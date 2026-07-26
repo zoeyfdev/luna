@@ -7,6 +7,7 @@ import (
 	"strings"
 	"regexp"
 	"runtime/debug"
+	"github.com/alexfdev0/lcc_info"
 )
 
 var errors = []string {
@@ -63,6 +64,7 @@ var errors = []string {
 	"member reference base type", // 50
 	"member reference type",
 	"unknown type name",
+	"unknown argument:",
 }
 
 var Warnings int = 0
@@ -214,7 +216,7 @@ func InternalCompilerError(message string) {
 	fmt.Fprintln(os.Stderr, "\033[1;39mlcc: \033[1;31minternal compiler error: \033[1;39m" + message + "\033[0m")
 	fmt.Fprintln(os.Stderr, "Stack trace:")
 	debug.PrintStack()
-	fmt.Fprintln(os.Stderr, "Please send a bug report to alex@alexflax.xyz or make an issue on the GitHub repository and provide the source code file you used.")
+	fmt.Fprintln(os.Stderr, lcc_info.ICE_MESSAGE)
 	os.Exit(1)
 }
 func UnimplementedMessage(message string) {

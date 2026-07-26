@@ -52,6 +52,7 @@ var Registers = []shared.Register {
 	{0x001e, "IRV", 0},
 	{0x001f, "IR", 0},
 	{0x0020, "B", 0},
+	{0x0021, "FP", 0},
 		
 }
 
@@ -113,6 +114,12 @@ var ins int64 = 0
 func execute() {
 	II_HALT := func(ProgramCounter uint32, next uint32) bool {
 		now := ProgramCounter
+
+		fmt.Println("Illegal instruction")
+		for {
+			time.Sleep(time.Second)
+		}
+
 		bios.IntWrapper(0x7, next)
 		if shared.Debug == true {
 			setRegister(0x001d, next)
@@ -160,7 +167,8 @@ func execute() {
 			mode := shared.Mapper(ProgramCounter + 1)
 			dst := shared.Mapper(ProgramCounter + 2)
 
-			if mode == 0x01 {
+			switch mode {
+			case 0x01:
 				var imm uint32 = 0
 				var next uint32 = 0
 				if shared.Bits32 == false {
@@ -173,11 +181,37 @@ func execute() {
 				setRegister(uint32(dst), imm)
 				setRegister(0x001d, next)
 				Log("mov " + getRegisterName(uint32(dst)) + ", " + fmt.Sprintf("0x%08x", imm))
-			} else if mode == 0x02 {
+			case 0x02:
 				frm := uint32(shared.Mapper(ProgramCounter + 3))
 				setRegister(uint32(dst), uint32(getRegister(frm)))
 				setRegister(0x001d, ProgramCounter + 4)
 				Log("mov " + getRegisterName(uint32(dst)) + ", " + getRegisterName(frm))
+			case 0x03:
+				// Displacement
+				frmreg := shared.Mapper(ProgramCounter + 3)
+				_type := shared.Mapper(ProgramCounter + 4)
+				var next uint32 = 0
+				var imm uint32 = 0
+				if shared.Bits32 == false {
+					imm = uint32(uint16(shared.Mapper(ProgramCounter + 5)) << 8 | uint16(shared.Mapper(ProgramCounter + 6)))
+					next = ProgramCounter + 7	
+				} else {
+					imm = uint32(shared.Mapper(ProgramCounter + 5)) << 24 | uint32(shared.Mapper(ProgramCounter + 6)) << 16 | uint32(shared.Mapper(ProgramCounter + 7)) << 8 | uint32(shared.Mapper(ProgramCounter + 8))
+					next = ProgramCounter + 9
+				}
+
+				operand := ""
+				switch _type {
+				case 0x01: // Add
+					setRegister(uint32(dst), getRegister(uint32(frmreg)) + imm)
+					operand = " + " 
+				case 0x02: // Subtraction
+					setRegister(uint32(dst), getRegister(uint32(frmreg)) - imm)
+					operand = " - "
+				}
+
+				Log("mov " + getRegisterName(uint32(dst)) + ", " + getRegisterName(frmreg) + operand + fmt.Sprintf("0x%08x", imm))
+				setRegister(0x001d, next)
 			}	
 			stall(4)
 		case 0x02:

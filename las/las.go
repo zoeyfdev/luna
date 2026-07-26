@@ -118,6 +118,8 @@ func isRegister(word string) byte {
 		return 0x1f
 	case "b":
 		return 0x20
+	case "fp":
+		return 0x21
 	default:
 		return 0xff
 	}
@@ -138,6 +140,8 @@ var errors = []string{
 	"expected number",
 	"unknown pragma directive",
 	"deprecated instruction",
+	"unknown argument:",
+	"invalid hex color to '.fhex'",
 }
 
 var Upgrade bool
@@ -175,7 +179,7 @@ func warning(errno int, args string) {
 	Warnings++
 }
 
-var PtrLabels []string
+var SL uint32
 
 func parse(text string) ([]byte, bool) {
 	// Check for number
@@ -224,6 +228,19 @@ func parse(text string) ([]byte, bool) {
 			}
 		}	
 		return []byte(text), false
+	}
+	if text == "__stackloc__" {
+		if Bits32 == false {
+			H := byte(SL >> 8)
+			L := byte(SL & 0xFF)
+			return []byte{H, L}, false
+		} else {
+			HH := byte(SL >> 24)
+			HL := byte(SL >> 16)
+			LH := byte(SL >> 8)
+			LL := byte(SL & 0xFF)
+			return []byte{HH, HL, LH, LL}, false	
+		}	
 	}
 	return append([]byte("LR_"+text), 0x00), true
 }
@@ -349,12 +366,6 @@ func assemble(text string) {
 
 		words[i] = strings.ToLower(words[i])
 		switch words[i] {
-		case ".data":
-			section = "data"
-		case ".text":
-			section = "text"
-		case ".edata":
-			section = "edata"
 		case "#", "//", ";":
 			for j := i + 1; j < len(words); j++ {
 				if words[j] == "\n" {
@@ -368,10 +379,14 @@ func assemble(text string) {
 			write([]byte{0x01})
 
 			var mode byte
-			if isRegister(words[i+2]) == 0xff {
+			if isRegister(words[i + 2]) == 0xff {
 				mode = 0x01
 			} else {
-				mode = 0x02
+				if words[i + 3] == "+" || words[i + 3] == "-" {
+					mode = 0x03
+				} else {
+					mode = 0x02
+				}
 			}
 			write([]byte{mode})
 
@@ -382,10 +397,26 @@ func assemble(text string) {
 			write([]byte{dst})
 
 			if mode == 0x02 {
-				src := isRegister(words[i+2])
+				src := isRegister(words[i + 2])
 				write([]byte{src})
+			} else if mode == 0x03 {
+				src := isRegister(words[i + 2])
+				write([]byte{src})
+
+				_type := words[i + 3]
+				if _type == "+" {
+					write([]byte{ 0x01 })
+				} else if _type == "-" {
+					write([]byte{ 0x02 })
+				}
+
+				// TODO: add support for PIEs
+				value, _ := parse(words[i + 4])
+				write(value)
+				
+				i += 2
 			} else {
-				value, label := parse(words[i+2])
+				value, label := parse(words[i + 2])
 	
 				write(value)
 				if PIE == true && label == true {	
@@ -396,7 +427,7 @@ func assemble(text string) {
 					}
 				}
 			}
-			i = i + 2
+			i += 2
 		case "hlt":
 			write([]byte{0x02})
 		case "jmp":
@@ -1216,9 +1247,51 @@ func assemble(text string) {
 					break
 				}
 			}
-		case ".ptrlabel":
-			PtrLabels = append(PtrLabels, words[i + 1])
+		case ".fhex":
 			i++
+			if len(words[i]) != 6 && len(words[i]) != 8 {
+				error(15, "'" + words[i] + "'")
+				continue
+			}
+	
+			if len(words[i]) == 8 || words[i][0:2] == "0x" {
+				words[i] = words[i][2:]
+			} else {
+				error(15, "'" + words[i] + "'")
+				continue
+			}	
+
+			r, e1 := strconv.ParseInt(words[i][0:2], 16, 64)
+			g, e2 := strconv.ParseInt(words[i][2:4], 16, 64)
+			b, e3 := strconv.ParseInt(words[i][4:6], 16, 64)
+
+			if e1 != nil || e2 != nil || e3 != nil {
+				error(15, "'" + words[i] + "'")
+				continue
+			}
+			
+			write([]byte{byte((r & 0xE0) | ((g >> 3) & 0x1C) | (b >> 6))})
+		case ".stackloc":
+			i++
+			_SL, err := strconv.ParseInt(words[i], 0, 64)
+			if err != nil {
+				error(11, "");
+			}
+			SL = uint32(_SL)
+		case ".stackalloc":
+			i++
+			by, err := strconv.ParseInt(words[i], 0, 64)
+			if err != nil {
+				error(11, "");
+			}
+			SL -= uint32(by)
+		case ".stackdealloc":
+			i++
+			by, err := strconv.ParseInt(words[i], 0, 64)
+			if err != nil {
+				error(11, "");
+			}
+			SL += uint32(by)
 		default:
 			error(4, "'"+words[i]+"'")
 		}
@@ -1273,7 +1346,11 @@ func main() {
 		case "-fpie":
 			PIE = true
 		default:
-			input_files = append(input_files, arg)
+			if arg[0] == '-' {
+				error(14, "'" + arg + "'")
+			} else {
+				input_files = append(input_files, arg)
+			}
 		}
 	}
 

@@ -1,7 +1,7 @@
 SRC=./
 
 all: luna-l2 las lcc lcc1 l2ld 
-.PHONY: clean install l2ld lcc
+.PHONY: clean install l2ld lcc lcc1 las
 
 luna-l2: $(SRC)/l2/*
 	cd l2 && go build -buildmode=plugin -o ../components/audio/s1.so ./audio/hardware/s1.go

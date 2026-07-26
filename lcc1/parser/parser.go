@@ -264,6 +264,19 @@ func ReturnStruct(name string) Variable_Static {
 	return Variable_Static {}
 }
 
+func EmitLocalGrab(displacement int) {
+	Write("push r11", true)
+	Write("push r12", true)
+
+	Write("mov r11, " + fmt.Sprintf("%d", displacement), true)
+	Write("sub r12, sp, r11", true)
+}
+
+func EmitLocalGrabEnd() {
+	Write("pop r12", true)
+	Write("pop r11", true)
+}
+
 // Some globals (i know its bad practice but it works so....)
 var CMP_OP string = ""
 var _CMP_MOP_REVERSE string = ""
@@ -364,10 +377,12 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			j := i
 			exit := false
 			var CurrentTokens []shared.Token
+
 			for j = i; j < len(tokens); j++ {
 				if exit == true {
 					break
 				}
+
 				switch tokens[j].Type {
 				case shared.TokComma:
 					if depth == 1 {
@@ -624,8 +639,10 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		}
 		level = 0
 		L1_ALLOW_NONCONST = true
+		IS_LOCAL = true
 		Parse(bodytokens, Scope)
 		L1_ALLOW_NONCONST = true
+		IS_LOCAL = false
 		level = 1
 	}	
 	_STRUCT_ACCESS := func(variable Variable_Static, CTYPE int, CPTR bool, CLENGTH int, MoveAfter bool, LoadArrow bool) (Variable_Static, int, bool, int) {
@@ -1248,6 +1265,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		expect(shared.TokSemi)
 
 		Write("pop e11", true)
+		Write("pop fp", true)
 		Write("ret", true)
 		goto DONE
 	case shared.TokIdent:
@@ -1961,6 +1979,8 @@ func FuncDeclLookup(Name string) (shared.Token, *[]shared.Token) {
 
 var topLevelName string
 var BitPref int = 16
+var IS_LOCAL bool = false
+var CurrentDisplacement uint32
 func Parse(tokens []shared.Token, Scope int) {
 	i := 0
 	expect := func(toktype shared.TokenType) string {
@@ -2148,6 +2168,25 @@ func Parse(tokens []shared.Token, Scope int) {
 			}
 		}
 		return NUMBER16, false, 0
+	}
+
+	ReturnDisplacement := func(Type int) uint32 {
+		OldDisplacement := CurrentDisplacement
+		switch Type {
+		case NUMBER8:
+			CurrentDisplacement += 1
+		case NUMBER16:
+			CurrentDisplacement += 2
+		case NUMBER32:
+			CurrentDisplacement += 4
+		case STRING:
+			CurrentDisplacement += 4 // Just to be safe
+		case NULL:
+			CurrentDisplacement += 4 // Just to be safe as well
+		default:
+			CurrentDisplacement += 4 // Just to be safe as well :3
+		}
+		return OldDisplacement
 	}
 	
 	for {
@@ -2675,6 +2714,11 @@ func Parse(tokens []shared.Token, Scope int) {
 							r--
 						}
 					}
+
+
+					Write("push fp", true)
+					Write("dec fp", true)
+
 					if noreturn == false {
 						Write("push e11", true)
 					}
@@ -2710,10 +2754,16 @@ func Parse(tokens []shared.Token, Scope int) {
 					}
 
 					_CURRENT_INFUNCTION = FuncVar
+					// CurrentDisplacement = 0
 					ParseExpyL1(Children, 0, fscope)
 
 					if noreturn == false {
 						Write("pop e11", true)
+					}
+
+					Write("pop fp", true)
+
+					if noreturn == false {
 						Write("ret", true)
 					}
 					IDCounter++
@@ -2743,7 +2793,23 @@ func Parse(tokens []shared.Token, Scope int) {
 					error.Error(7, "'void'", _typetoken, &tokens)
 				case "int":
 					_i := 0
-					rn := "var_" + fmt.Sprintf("%d", IDCounter)
+
+					rn := "fp - "
+
+					switch IS_LOCAL {
+					case false:
+						rn = "var_" + fmt.Sprintf("%d", IDCounter)
+					case true:
+						switch ptr {
+						case true:
+							Displacement := ReturnDisplacement(NUMBER32)
+							rn += fmt.Sprintf("%d", Displacement)
+						case false:
+							Displacement := ReturnDisplacement(rtype)
+							rn += fmt.Sprintf("%d", Displacement)
+						}	
+					}
+
 					IDCounter++	
 
 					if allow_nonconst == false {
@@ -2782,7 +2848,9 @@ func Parse(tokens []shared.Token, Scope int) {
 						}
 						EQU_RTYPE_DONE:
 					} else {
-						WritePre(rn + ":", false)
+						if IS_LOCAL == false {
+							WritePre(rn + ":", false)
+						}
 						var ATMEntry ArgumentTypeManifestEntry
 						if ptr == false {
 							ATMEntry.Type = rtype
@@ -2798,20 +2866,28 @@ func Parse(tokens []shared.Token, Scope int) {
 						if ptr == false {
 							switch rtype {
 							case NUMBER8, STRING:
-								WritePre(".byte 0x00", true)
+								if IS_LOCAL == false {
+									WritePre(".byte 0x00", true)
+								}
 								Write("mov r7, " + rn, true)
 								Write("str r7, r4", true)
 							case NUMBER16:
-								WritePre(".word 0x0000", true)
+								if IS_LOCAL == false {
+									WritePre(".word 0x0000", true)
+								}
 								Write("mov r7, " + rn, true)
 								Write("str16 r7, r4", true)
 							case NUMBER32:
-								WritePre(".dword 0x00000000", true)
+								if IS_LOCAL == false {
+									WritePre(".dword 0x00000000", true)
+								}
 								Write("mov r7, " + rn, true)
 								Write("str32 r7, r4", true)
 							}
 						} else {
-							WritePre(".ptr 0x00", true)
+							if IS_LOCAL == false {
+								WritePre(".ptr 0x00", true)
+							}
 							Write("mov r7, " + rn, true)
 							Write("str_ptr r7, r4", true)
 						}

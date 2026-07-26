@@ -52,7 +52,7 @@ func main() {
 	var noassemble bool = false
 	var nolink bool = false
 	var errors bool = false
-
+	
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
 		switch arg {
@@ -71,7 +71,11 @@ func main() {
 		case "-fpie":
 			parser.PIE = true	
 		default:
-			input_files = append(input_files, arg)
+			if arg[0] == '-' {
+				error.ErrorNoGaze(53, "'" + arg + "'", shared.Token{Line: 0}) 
+			} else {
+				input_files = append(input_files, arg)
+			}
 		}
 	}
 

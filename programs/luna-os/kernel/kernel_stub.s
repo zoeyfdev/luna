@@ -12,6 +12,7 @@ set 32
 .bits 32
 LOS_BASE:
 mov sp, 0x6FFEFFFF
+mov fp, sp
 
 call IDT_SETUP
 jmp boot
@@ -27,7 +28,7 @@ IDT_SETUP:
 
     mov r1, 0x6FFF0026
     mov r2, kernel_panic
-    str32 r1, r2
+    // str32 r1, r2
 
     mov r1, 0x6FFF0013
     mov r2, 1

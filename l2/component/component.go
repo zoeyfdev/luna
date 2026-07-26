@@ -20,6 +20,7 @@ func ReturnComponentFunction(_Component Component, Name string) any {
 }
 
 func InitializeComponent(Path string) Component {
+	fmt.Println("luna-l2: initializing component with path", Path)
 	_Component, err := plugin.Open(Path)
 	if err != nil {
 		fmt.Println("luna-l2: failed to initialize component with path '" + Path + "':", err)

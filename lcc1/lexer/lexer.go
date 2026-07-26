@@ -540,7 +540,7 @@ PREPROCESSOR_TOP:
 				}
 			case "once":
 				file := tokens[i - 1].Filename
-				pragma_once_files = append(pragma_once_files, file)
+				pragma_once_files = append(pragma_once_files, file)	
 			}
 
 			for j := i; j < len(tokens); j++ {

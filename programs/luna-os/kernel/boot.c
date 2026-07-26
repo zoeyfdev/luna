@@ -20,5 +20,6 @@ void boot() __attribute__((noreturn)) {
     sleep(5);
 
     render_buf((void*) 0x30303030);
+    
     asm ("jmp _cstart");
 }

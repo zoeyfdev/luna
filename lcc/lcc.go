@@ -32,9 +32,14 @@ func execute(command string, displayError bool) bool {
 	}
 	fmt.Printf(string(output))
 
+	code := _cmd.ProcessState.ExitCode()
+
 	if err != nil {
-		if displayError == true {
-			stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39compilation command failed.\033[0m")
+		if displayError == true || code == 2 {
+			if code == 2 {
+				stderr(lcc_info.ICE_MESSAGE)
+			}
+			stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mcompilation command failed.\033[0m")
 			os.Exit(1)
 		} else {
 			return false
@@ -47,7 +52,7 @@ func splitFile(path string) (name string, ext string) {
 	ext = filepath.Ext(path)
 	name = filepath.Base(path)	
 	if ext != "" {
-		name = name[:len(name)-len(ext)]
+		name = name[:len(name) - len(ext)]
 	}
 	return
 }

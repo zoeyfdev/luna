@@ -113,16 +113,16 @@ long int* find_file(char* name) {
 
 File* fopen(char* filename, short short int complain_on_not_found) {
     long int* faddr = find_file(filename);
+    File f;
+
     if (faddr == 0x00000000) {
         if (complain_on_not_found) {
             puts32("File '", COLOR_LRED, COLOR_BLACK);
             puts32((char*) ffnt(filename), COLOR_LRED, COLOR_BLACK);
             puts32("' not found!\n", COLOR_LRED, COLOR_BLACK);
-            return 0;
+            return &f;
         }
     }
-
-    File f;
 
     f.Address = faddr;
     f.Name = (char*) ffnt(filename);
