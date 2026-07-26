@@ -1,16 +1,17 @@
 package main
 
-import (	
+import (
+	"fmt"
+	"lcc1/error"
 	"lcc1/lexer"
 	"lcc1/parser"
-	"lcc1/error"
 	"lcc1/shared"
 	"os"
-	"fmt"
-	"strings"
-	"runtime"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
+
 	"github.com/alexfdev0/lcc_info"
 )
 
@@ -111,6 +112,13 @@ func main() {
 			default:
 				dir = ".bits 16"
 			}
+
+			for _, variable := range parser.Variables {
+				if variable.HasBasin == true {
+					parser.Code1 = "#define _builtin_lcc_basin_" + variable.Name + " " + fmt.Sprintf("0x%08x", variable.BasinSize) + "\n" + parser.Code1
+				}
+			}
+
 			os.WriteFile(name + ".s", []byte(dir + "\n" + parser.Code1 + "\n" + parser.Code2), 0644)
 		}
 

@@ -1,12 +1,12 @@
 package parser
 
 import (
-	"lcc1/shared"
+	"fmt"
 	"lcc1/error"
-	"strings"
-	"fmt"	
-	"strconv"
+	"lcc1/shared"
 	"math"
+	"strconv"
+	"strings"
 )
 
 var level int = 0
@@ -40,6 +40,8 @@ type Variable_Static struct {
 	ArgNum int
 	Register bool
 	PointerLength int
+	BasinSize uint32
+	HasBasin bool
 	ArgumentTypeManifest []ArgumentTypeManifestEntry
 	StructTotalSize int
 	StructMemberList []StructMemberListEntry
@@ -92,39 +94,39 @@ type TypeMapEntry struct {
 var TypeMap []TypeMapEntry
 
 var Variables = []Variable_Static {
-	Variable_Static{Name: "_r0", Real: "r0", Register: true, Scope: 1, Type: NUMBER32},	
-	Variable_Static{Name: "_r1", Real: "r1", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_r2", Real: "r2", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_r3", Real: "r3", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_r4", Real: "r4", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_r5", Real: "r5", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_r6", Real: "r6", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_r7", Real: "r7", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_r8", Real: "r8", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_r9", Real: "r9", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_r10", Real: "r10", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_r11", Real: "r11", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_r12", Real: "r12", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e0", Real: "e0", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e1", Real: "e1", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e2", Real: "e2", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e3", Real: "e3", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e4", Real: "e4", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e5", Real: "e5", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e6", Real: "e6", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e7", Real: "e7", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e8", Real: "e8", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e9", Real: "e9", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e10", Real: "e10", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e11", Real: "e11", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e12", Real: "e12", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e13", Real: "e13", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_e14", Real: "e14", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_sp", Real: "sp", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_pc", Real: "pc", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_irv", Real: "irv", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_ir", Real: "ir", Register: true, Scope: 1, Type: NUMBER32},
-	Variable_Static{Name: "_b", Real: "b", Register: true, Scope: 1, Type: NUMBER32},	
+	{Name: "_r0", Real: "r0", Register: true, Scope: 1, Type: NUMBER32},	
+	{Name: "_r1", Real: "r1", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_r2", Real: "r2", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_r3", Real: "r3", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_r4", Real: "r4", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_r5", Real: "r5", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_r6", Real: "r6", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_r7", Real: "r7", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_r8", Real: "r8", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_r9", Real: "r9", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_r10", Real: "r10", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_r11", Real: "r11", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_r12", Real: "r12", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e0", Real: "e0", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e1", Real: "e1", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e2", Real: "e2", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e3", Real: "e3", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e4", Real: "e4", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e5", Real: "e5", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e6", Real: "e6", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e7", Real: "e7", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e8", Real: "e8", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e9", Real: "e9", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e10", Real: "e10", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e11", Real: "e11", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e12", Real: "e12", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e13", Real: "e13", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_e14", Real: "e14", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_sp", Real: "sp", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_pc", Real: "pc", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_irv", Real: "irv", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_ir", Real: "ir", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_b", Real: "b", Register: true, Scope: 1, Type: NUMBER32},	
 }
 
 var FunctionDecls = []FunctionDecl {}
@@ -599,7 +601,6 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				}
 
 				return rtype, ptr, ptr_length
-				break
 			}
 		}
 		return NUMBER16, false, 0
@@ -1939,6 +1940,22 @@ func LookupVariable(Name string, Enforce bool, Scope int, Token shared.Token, To
 	return Variable_Static{Name: "__ZERO", Type: NULL, Value: 0}
 }
 
+func LookupVariableDirect(Name string, Scope int) *Variable_Static {
+	for {
+		for i := 0; i < len(Variables); i++ {
+			if Variables[i].Name == Name && Variables[i].Scope == Scope {	
+				return &Variables[i]
+			}
+		}
+		parent := LookupParent(Scope)
+		if parent == -1 {	
+			break
+		}	
+		Scope = parent
+	}
+	return &Variable_Static{Name: "__ZERO", Type: NULL, Value: 0}
+}
+
 func StringParse(tokens []shared.Token, start int) (string, int) {
 	// Start would be the first token
 	var str string = ""
@@ -2164,7 +2181,6 @@ func Parse(tokens []shared.Token, Scope int) {
 				}
 
 				return rtype, ptr, ptrlen
-				break
 			}
 		}
 		return NUMBER16, false, 0
@@ -2715,9 +2731,13 @@ func Parse(tokens []shared.Token, Scope int) {
 						}
 					}
 
-
 					Write("push fp", true)
-					Write("dec fp", true)
+
+					FPtr := LookupVariableDirect(name, 1)
+					(*FPtr).HasBasin = true
+
+					Write("mov r12, _builtin_lcc_basin_" + name, true)
+					Write("sub fp, fp, r12", true);
 
 					if noreturn == false {
 						Write("push e11", true)
@@ -2794,7 +2814,7 @@ func Parse(tokens []shared.Token, Scope int) {
 				case "int":
 					_i := 0
 
-					rn := "fp - "
+					rn := "fp + "
 
 					switch IS_LOCAL {
 					case false:
@@ -2808,6 +2828,23 @@ func Parse(tokens []shared.Token, Scope int) {
 							Displacement := ReturnDisplacement(rtype)
 							rn += fmt.Sprintf("%d", Displacement)
 						}	
+					}
+
+					if IS_LOCAL == true {
+						FPtr := LookupVariableDirect(_CURRENT_INFUNCTION.Name, 1)
+						switch ptr {
+						case true:
+							(*FPtr).BasinSize += 4
+						case false:
+							switch rtype {
+							case NUMBER8:
+								(*FPtr).BasinSize += 1
+							case NUMBER16:
+								(*FPtr).BasinSize += 2
+							case NUMBER32, NULL, STRING:
+								(*FPtr).BasinSize += 4
+							}
+						}
 					}
 
 					IDCounter++	

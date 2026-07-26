@@ -1,21 +1,21 @@
 package main
 
-import (	
-	"os"	
-	"time"
-	"fmt"
-	"strconv"
+import (
 	"bufio"
-	"runtime"	
+	"fmt"
+	"os"
+	"runtime"
+	"strconv"
+	"time"
 
-	"luna_l2/bios"		
-	"luna_l2/video"
-	"luna_l2/shared"
 	"luna_l2/audio"
-	"luna_l2/rtc"
+	"luna_l2/bios"
 	"luna_l2/keyboard"
 	"luna_l2/pit"
-	"luna_l2/power"	
+	"luna_l2/power"
+	"luna_l2/rtc"
+	"luna_l2/shared"
+	"luna_l2/video"
 )
 
 var Registers = []shared.Register {
@@ -95,7 +95,7 @@ var BIOS_SHUTDOWN bool = false
 
 func Log(text string) {
 	if shared.LogOn == true {
-		fmt.Println("\033[33m" + fmt.Sprintf("0x%08x: ", getRegister(0x001d)) + text + "\033[0m")
+		fmt.Println(fmt.Sprintf("0x%08x: ", getRegister(0x001d)) + text)
 	}	
 }
 
@@ -228,6 +228,7 @@ func execute() {
 		case 0x03:
 			// JMP	
 			mode := shared.Mapper(ProgramCounter + 1)
+			// hi
 
 			if mode == 0x01 {
 				var loc uint32 = 0
@@ -636,6 +637,10 @@ func execute() {
 			shared.LogOn = true
 			shared.Debug = true
 			Log("\033[31m----- BREAKPOINT -----\033[33m")
+			setRegister(0x001d, ProgramCounter + 1)
+		case 0x22:
+			Log("BREAKPOINT")
+			shared.LogOn = true
 			setRegister(0x001d, ProgramCounter + 1)
 		default:
 			setRegister(0x0001, uint32(op))
