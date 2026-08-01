@@ -20,7 +20,7 @@ void shell() {
         }
 
         if (strcmp("about", (char*) buf) == 1) {
-            puts32("LunaOS 2.0.0\nBy Alexander Flax\n", COLOR_WHITE, COLOR_BLACK);
+            puts32("LunaOS 2.0.0\nBy Zoey Flax\n", COLOR_WHITE, COLOR_BLACK);
             puts32("\n\n", COLOR_WHITE, COLOR_BLACK);
             continue;
         }
@@ -85,7 +85,7 @@ void shell() {
             short short int* bat_ptr = 0x80000026;
             tohex((long int) *bat_ptr, 1);
             continue;
-        }
+        }  
 
         puts32("Bad command '", COLOR_LRED, COLOR_BLACK);
         puts32((char*) get_first_word((char*) buf), COLOR_LRED, COLOR_BLACK);

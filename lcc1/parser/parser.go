@@ -266,19 +266,6 @@ func ReturnStruct(name string) Variable_Static {
 	return Variable_Static {}
 }
 
-func EmitLocalGrab(displacement int) {
-	Write("push r11", true)
-	Write("push r12", true)
-
-	Write("mov r11, " + fmt.Sprintf("%d", displacement), true)
-	Write("sub r12, sp, r11", true)
-}
-
-func EmitLocalGrabEnd() {
-	Write("pop r12", true)
-	Write("pop r11", true)
-}
-
 // Some globals (i know its bad practice but it works so....)
 var CMP_OP string = ""
 var _CMP_MOP_REVERSE string = ""
@@ -388,7 +375,12 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				switch tokens[j].Type {
 				case shared.TokComma:
 					if depth == 1 {
-						ParseExpy(CurrentTokens, 0, Scope, "r7", Function_Variable.ArgumentTypeManifest[pushed])
+						ATMEntry := ArgumentTypeManifestEntry{ Type: 999 }	
+						if pushed < Function_Variable.ArgNum {
+							ATMEntry = Function_Variable.ArgumentTypeManifest[pushed]
+						}
+
+						ParseExpy(CurrentTokens, 0, Scope, "r7", ATMEntry)
 						Write("push r7", true)
 						CurrentTokens = []shared.Token{}
 						pushed++
@@ -413,7 +405,12 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 			// Push last args 
 			if len(CurrentTokens) > 0 {
-				ParseExpy(CurrentTokens, 0, Scope, "r7", Function_Variable.ArgumentTypeManifest[pushed])
+				ATMEntry := ArgumentTypeManifestEntry{ Type: 999 }	
+				if pushed < Function_Variable.ArgNum {
+					ATMEntry = Function_Variable.ArgumentTypeManifest[pushed]
+				}
+
+				ParseExpy(CurrentTokens, 0, Scope, "r7", ATMEntry)
 				Write("push r7", true)
 				pushed++
 			}
@@ -1953,6 +1950,8 @@ func LookupVariableDirect(Name string, Scope int) *Variable_Static {
 		}	
 		Scope = parent
 	}
+
+	error.InternalCompilerError("Couldn't find variable on direct lookup")
 	return &Variable_Static{Name: "__ZERO", Type: NULL, Value: 0}
 }
 
@@ -2531,6 +2530,7 @@ func Parse(tokens []shared.Token, Scope int) {
 
 			switch peek(0).Type {
 			case shared.TokLParen:
+				CurrentDisplacement = 0
 				rns := false
 				if name == "main" {
 					rns = true
@@ -2546,6 +2546,7 @@ func Parse(tokens []shared.Token, Scope int) {
 		
 				register := 0
 				nargs := 0
+				var BasinSize uint32
 				switch peek(0).Type {
 				case shared.TokType, shared.TokQualifier:
 					if name == "_start" {
@@ -2564,7 +2565,10 @@ func Parse(tokens []shared.Token, Scope int) {
 							}
 
 							__arg_reg := fmt.Sprintf("e%d", register)
-							__rn := fmt.Sprintf("var_%d", IDCounter)
+
+							// __rn := fmt.Sprintf("var_%d", IDCounter)
+							__rn := "fp + "
+
 							IDCounter++
 							__rtype, __ptr, __ptrlen := _PARSE_TYPE()
 							__name := expect(shared.TokIdent)
@@ -2583,29 +2587,31 @@ func Parse(tokens []shared.Token, Scope int) {
 								})
 							}
 
+							var dis uint32
+
 							if extern == true {
 								goto ARG_DECL_DONE
 							}
 
+							if __ptr == true {
+								dis = ReturnDisplacement(__rtype)
+							} else {
+								dis = ReturnDisplacement(NUMBER32) 
+							}
+							
+							__rn += fmt.Sprintf("%d", dis)
+							
 							UnpackOrders = append(UnpackOrders, UnpackOrder{Register: __arg_reg, Label: __rn, Type: __rtype, Pointer: __ptr, PointerLength: __ptrlen})
 
-							WritePre(__rn + ":", false)
 							switch __rtype {
-							case NUMBER8:
-								WritePre(".byte 0x00", true)
-							case STRING:	
-								if __ptr == false {
-									WritePre(".byte 0x00", true)
-								} else {
-									WritePre(".ptr 0x00", true)
-								}
-							case NULL:
-								WritePre(".ptr 0x00", true)
+							case NUMBER8:	
+								BasinSize += 1
 							case NUMBER16:
-								WritePre(".word 0x0000", true)
-							case NUMBER32:
-								WritePre(".dword 0x00000000", true)
+								BasinSize += 2
+							case NUMBER32, STRING, NULL:
+								BasinSize += 4
 							}
+							
 
 							ARG_DECL_DONE:
 							if __ptr == false {
@@ -2642,6 +2648,7 @@ func Parse(tokens []shared.Token, Scope int) {
 						Extern: extern, 
 						ArgNum: nargs,
 						ArgumentTypeManifest: ManifestEntries,
+						BasinSize: BasinSize,
 					}	
 				} else {
 					FuncVar = Variable_Static{
@@ -2657,6 +2664,7 @@ func Parse(tokens []shared.Token, Scope int) {
 						ArgNum: nargs,
 						ArgumentTypeManifest: ManifestEntries,
 						PointingToStruct: PTS,
+						BasinSize: BasinSize,
 					}	
 				}
 				Variables = append(Variables, FuncVar)
@@ -2735,7 +2743,7 @@ func Parse(tokens []shared.Token, Scope int) {
 
 					FPtr := LookupVariableDirect(name, 1)
 					(*FPtr).HasBasin = true
-
+	
 					Write("mov r12, _builtin_lcc_basin_" + name, true)
 					Write("sub fp, fp, r12", true);
 
@@ -2773,8 +2781,7 @@ func Parse(tokens []shared.Token, Scope int) {
 						}	
 					}
 
-					_CURRENT_INFUNCTION = FuncVar
-					// CurrentDisplacement = 0
+					_CURRENT_INFUNCTION = FuncVar	
 					ParseExpyL1(Children, 0, fscope)
 
 					if noreturn == false {
@@ -2944,21 +2951,44 @@ func Parse(tokens []shared.Token, Scope int) {
 					if ptr == true {
 						rn := "var_" + fmt.Sprintf("%d", IDCounter)
 						IDCounter++
-						rn2 := "var_" + fmt.Sprintf("%d", IDCounter)
-						IDCounter++
-						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Value: str, Type2: STRING, Pointer: true, PointerLength: _ptrlen, Real: rn2, Scope: Scope, Const: constant})
+						rn2 := ""
+
 						WritePre(rn + ":", false)
 						WritePre(".asciz \"" + str + "\"", true)
-						WritePre(rn2 + ":", false)
-						WritePre(".ptr " + rn, true)
+
+						if IS_LOCAL == true {
+							FPtr := LookupVariableDirect(_CURRENT_INFUNCTION.Name, 1)
+							(*FPtr).BasinSize += 4
+							rn2 = "fp + " + fmt.Sprintf("%d", ReturnDisplacement(NUMBER32))	
+
+							Write("mov r7, " + rn2, true)
+							Write("mov r4, " + rn, true)
+							Write("str_ptr r7, r4", true)
+						} else {
+							rn2 = "var_" + fmt.Sprintf("%d", IDCounter)
+							IDCounter++
+							WritePre(rn2 + ":", false)
+							WritePre(".ptr " + rn, true)
+						}
+	
+						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Value: str, Type2: STRING, Pointer: true, PointerLength: _ptrlen, Real: rn2, Scope: Scope, Const: constant})	
 					} else {	
 						if len(str) > 1 {
 							error.Error(5, "'char' with an expression of type 'char*'", tokens[i], &tokens)
 						}
-						rn := "var_" + fmt.Sprintf("%d", IDCounter)
-						IDCounter++
-						WritePre(rn + ":", false)
-						WritePre(".byte " + fmt.Sprintf("0x%02x", str[0]), true)
+
+						rn := ""
+						if IS_LOCAL == true {
+							FPtr := LookupVariableDirect(_CURRENT_INFUNCTION.Name, 1)
+							(*FPtr).BasinSize += 1
+							rn = "fp + " + fmt.Sprintf("%d", ReturnDisplacement(NUMBER8))
+						} else {
+							rn = "var_" + fmt.Sprintf("%d", IDCounter)
+							IDCounter++
+							WritePre(rn + ":", false)
+							WritePre(".byte " + fmt.Sprintf("0x%02x", str[0]), true)
+						}
+
 						Variables = append(Variables, Variable_Static{Name: name, Type: STRING, Value: str, Pointer: false, Scope: Scope, Const: constant, Real: rn})
 					}
 					i = end + 1
@@ -3105,33 +3135,56 @@ func Parse(tokens []shared.Token, Scope int) {
 				switch _type {
 				case "int":
 					if ptr == true {
-						rn := "var_" + fmt.Sprintf("%d", IDCounter)
-						WritePre(rn + ":", false)
-						IDCounter++
-						switch rtype {
-						case NUMBER8, STRING:
-							WritePre(".byte 0x00", true)
-						case NUMBER16:
-							WritePre(".word 0x0000", true)
-						case NUMBER32:
-							WritePre(".dword 0x00000000", true)
-						}
+						rn := ""
+						if IS_LOCAL == true {
+							// TODO: differentiate between 16 and 32 bit pointers to save space
+							rn = "fp + " + fmt.Sprintf("%d", ReturnDisplacement(NUMBER32))
+							FPtr := LookupVariableDirect(_CURRENT_INFUNCTION.Name, 1)
+							(*FPtr).BasinSize += 4
+							// Uninitialized, so no store
+						} else {
+							rn = "var_" + fmt.Sprintf("%d", IDCounter)
+							IDCounter++
+							WritePre(rn + ":", false)
+							WritePre(".ptr 0x00000000", true)
+
+							/*
+							switch rtype {
+							case NUMBER8, STRING:
+								WritePre(".byte 0x00", true)
+							case NUMBER16:
+								WritePre(".word 0x0000", true)
+							case NUMBER32:
+								WritePre(".dword 0x00000000", true)
+							}
+							*/
+						}	
 
 						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: 0, Pointer: true, PointerLength: _ptrlen, Real: rn, Scope: Scope, Const: constant})
 					} else {
-						rn := "var_" + fmt.Sprintf("%d", IDCounter)
-						WritePre(rn + ":", false)
-						IDCounter++
-						switch rtype {
-						case NUMBER8, STRING:
-							WritePre(".byte 0x00", true)
-						case NUMBER16:
-							WritePre(".word 0x0000", true)
-						case NUMBER32:
-							WritePre(".dword 0x00000000", true)
+						rn := ""
+						if IS_LOCAL == true {
+							// TODO: differentiate between 16 and 32 bit pointers to save space
+							rn = "fp + " + fmt.Sprintf("%d", ReturnDisplacement(NUMBER32))
+							FPtr := LookupVariableDirect(_CURRENT_INFUNCTION.Name, 1)
+							(*FPtr).BasinSize += 4
+							// Uninitialized, so no store
+						} else {
+							rn = "var_" + fmt.Sprintf("%d", IDCounter)
+							IDCounter++
+							WritePre(rn + ":", false)
+
+							switch rtype {
+							case NUMBER8, STRING:
+								WritePre(".byte 0x00", true)
+							case NUMBER16:
+								WritePre(".word 0x0000", true)
+							case NUMBER32:
+								WritePre(".dword 0x00000000", true)
+							}
 						}
 
-						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: 0, Pointer: false, Scope: Scope, Const: constant})	
+						Variables = append(Variables, Variable_Static{Name: name, Real: rn, Type: rtype, Value: 0, Pointer: false, Scope: Scope, Const: constant})	
 					}
 				case "char":
 					if ptr == true {
@@ -3191,11 +3244,22 @@ func Parse(tokens []shared.Token, Scope int) {
 					switch TypeEntry.ReferralType {
 					case STRUCT:
 						if ptr == false {
-							rn := "var_" + fmt.Sprintf("%d", IDCounter)
-							IDCounter++
+							rn := ""
+							if IS_LOCAL == true {
+								rn = "fp + " + fmt.Sprintf("%d", CurrentDisplacement)
+								CurrentDisplacement += uint32(TypeEntry.EmbeddedStruct.StructTotalSize)
+								FPtr := LookupVariableDirect(_CURRENT_INFUNCTION.Name, 1)
+								(*FPtr).BasinSize += uint32(TypeEntry.EmbeddedStruct.StructTotalSize)
+								
+							} else {
+								rn = "var_" + fmt.Sprintf("%d", IDCounter)
+								IDCounter++
 
-							WritePre(rn + ":", false)
-							WritePre(".pad " + fmt.Sprintf("%d", TypeEntry.EmbeddedStruct.StructTotalSize), true)
+								WritePre(rn + ":", false)
+								WritePre(".pad " + fmt.Sprintf("%d", TypeEntry.EmbeddedStruct.StructTotalSize), true)
+							}
+
+							
 
 							StructVar := TypeEntry.EmbeddedStruct
 

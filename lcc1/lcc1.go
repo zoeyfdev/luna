@@ -37,7 +37,7 @@ func splitFile(path string) (name string, ext string) {
 	ext = filepath.Ext(path)
 	name = filepath.Base(path)	
 	if ext != "" {
-		name = name[:len(name)-len(ext)]
+		name = name[:len(name) - len(ext)]
 	}
 	return
 }
@@ -115,7 +115,7 @@ func main() {
 
 			for _, variable := range parser.Variables {
 				if variable.HasBasin == true {
-					parser.Code1 = "#define _builtin_lcc_basin_" + variable.Name + " " + fmt.Sprintf("0x%08x", variable.BasinSize) + "\n" + parser.Code1
+					parser.Code1 = "#define _builtin_lcc_basin_" + variable.Name + " " + fmt.Sprintf("%d", variable.BasinSize) + "\n" + parser.Code1
 				}
 			}
 

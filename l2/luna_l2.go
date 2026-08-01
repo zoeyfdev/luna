@@ -114,12 +114,6 @@ var ins int64 = 0
 func execute() {
 	II_HALT := func(ProgramCounter uint32, next uint32) bool {
 		now := ProgramCounter
-
-		fmt.Println("Illegal instruction")
-		for {
-			time.Sleep(time.Second)
-		}
-
 		bios.IntWrapper(0x7, next)
 		if shared.Debug == true {
 			setRegister(0x001d, next)
