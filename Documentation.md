@@ -13,7 +13,7 @@
 The Luna L2 is a simple, lightweight, RISC CPU that aims to be clean while also leveraging some luxuries from CISC, with the ultimate end goal of being easy to teach and learn.<br><br>
 
 # Registers
-L2 has 33 total registers for the storage and manipulation of data and information:<br><br>
+L2 has 34 total registers for the storage and manipulation of data and information:<br><br>
 R0-R12: general purpose registers, all can be written to and read from<br>
 E0-E12: extra registers, also general purpose. The standard calling convention uses registers E0-E6<br>
 E13-E14: Assembler reserved for PIE mode and PIE macros, do not use<br>
@@ -21,12 +21,13 @@ SP: stack pointer<br>
 PC: program counter/instruction pointer<br>
 IRV: interrupt return address storage<br>
 IR: interrupt register<br>
-B: bank register.<br>
+B: bank register<br>
+FP: frame pointer; not related to SP in any way<br>
 
 # Instructions
 The Luna L2 has 32 unique instructions that allow the CPU to interact with registers, memory, and the BIOS<br><br>
 
-1. MOV: moves a value from the source to the destination; source can be register or immediate.<br>
+1. MOV: moves a value from the source to the destination; source can be register or immediate or a displacement target (only addition and subtraction).<br>
 2. HLT: stops the CPU from executing instructions.<br>
 3. JMP: sets the program counter to the specified address; address can be register or immediate.<br>
 4. INT: calls a BIOS interrupt. [Jump to interrupts](#interrupts)<br> 
@@ -160,6 +161,7 @@ There are some directives in LAS that do not correspond to any instruction on L2
 ## Examples
 For assembly examples, I recommend you see the many assembly files in `programs/luna-os/` as they are much better than the examples below.<br><br>
 `mov r1, 5` (destination: r1, source: 5)<br>
+`mov r2, fp + 5` (destination: r2, source: fp + 5)<br>
 `pop r1` (destination: r1)<br>
 `add r3, r1, r2` (destination: r3, source 1: r1, source 2: r2)<br>
 `mylabel:
