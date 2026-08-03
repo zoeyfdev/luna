@@ -4,6 +4,7 @@ bin
 *.bin
 *.o
 *.out
+*.img
 lcc1/test
 .vscode
 components

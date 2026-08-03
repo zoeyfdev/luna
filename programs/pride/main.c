@@ -18,7 +18,6 @@ void render_flags() {
 }
 
 void _start() {
-
     // Load the next sectors on the disk
     asm ("int 0x10");
     asm ("mov r2, r1");

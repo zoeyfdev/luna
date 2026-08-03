@@ -208,4 +208,4 @@ To compile a program, use the following: `lcc <flags> <input file(s)> -o <output
 ## Supported file types
 `.s/.S/.asm`: assembly<br>
 `.o/.obj`: object file<br>
-`.c/.h/.cpp/.hpp/.cxx/.hxx`: C (C++ is not supported; extra extensions are present for compatibility.)<br>
+`.c/.h/.cpp/.hpp/.cxx/.hxx/.cc/.hh`: C (C++ is not supported; extra extensions are present for compatibility.)<br>
