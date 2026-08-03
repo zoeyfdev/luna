@@ -1,17 +1,18 @@
 package video
 
 import (
-	"runtime"
 	"fmt"
-	"os"
-	"luna_l2/shared"
-	"luna_l2/keyboard"
-	"luna_l2/component"
-	"luna_l2/proxy"
-	"github.com/veandco/go-sdl2/sdl"
-	"github.com/ncruces/zenity"
 	"image"
+	"luna_l2/component"
+	"luna_l2/keyboard"
+	"luna_l2/proxy"
+	"luna_l2/shared"
+	"os"
+	"runtime"
 	"unsafe"
+
+	"github.com/ncruces/zenity"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 var CommonComponentPathPrefix string = "/usr/local/lib/l2/video/"
@@ -112,13 +113,13 @@ func InitializeWindow(ComponentName string) {
 	renderer, _ := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
 	defer renderer.Destroy()
 
+	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "0")
+
 	Frame := ReturnFramebuffer()
 	Texture, _ := renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, int32(Frame.Bounds().Dx()), int32(Frame.Bounds().Dy()))
 	defer Texture.Destroy()
 
 	Texture.Update(nil, unsafe.Pointer(&Frame.Pix[0]), Frame.Stride)
-
-	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "nearest")
 
 	running := true
 	for running {
@@ -233,7 +234,8 @@ func InitializeWindow(ComponentName string) {
 				}
 			}
         }
-		
+
+		sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "0")
 		renderer.Clear()
 		Frame := ReturnFramebuffer()
 		Texture, _ := renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, int32(Frame.Bounds().Dx()), int32(Frame.Bounds().Dy()))
