@@ -4,21 +4,18 @@
       Id="*"
       Name="Luna L2"
       Language="1033"
-      Version="1.0.0.0"
+      Version="7.0.0.0"
       Manufacturer="alexfdev0"
       UpgradeCode="89cffe92-3418-429d-b14e-3374a663f319"> 
 
-    <!-- Required 64-bit installer settings -->
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
 
     <MediaTemplate EmbedCab="yes" />
 
     <Directory Id="TARGETDIR" Name="SourceDir">
 
-      <!-- Program Files (64-bit) -->
       <Directory Id="ProgramFiles64Folder">
 
-        <!-- Luna L2 install directory -->
         <Directory Id="INSTALLFOLDER" Name="Luna L2">
           
           <Component Id="LunaExeComponent" Guid="ca84310e-1542-41bc-bbdc-6401b3149080">
