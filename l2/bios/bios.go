@@ -176,7 +176,7 @@ func IntHandler(code uint32) {
 func Splash() {
 	WriteLine("Luna L2", 255, 0)
 	WriteLine("BIOS: Integrated BIOS", 255, 0)	
-	WriteLine("Copyright (c) 2025 Alexander Flax\n", 255, 0)
+	WriteLine("Copyright (c) 2025 zoeyfdev\n", 255, 0)
 }
 
 func CheckArgs() bool {
