@@ -73,8 +73,8 @@ readin:
 readin_rdy:
     mov r2, 255
     mov r3, 0x00
-    mov r5, 0x0a
-    mov r7, 0xc3
+    mov r5, 0x0d
+    mov r7, 0x08
 
     mov e10, pc
     nop
@@ -103,12 +103,16 @@ readin_ai:
     cmp r8, r1, r7
     jnz r8, readin_bksp
     jnz e1, readin_bt
+
+    cmp r8, r1, r5
+    jnz r8, readin_ai_3
+readin_ai_2:
     int 1
     jmp readin_nxt
 readin_bt:
     push e8
     push e7
-    mov e8, 0x0a
+    mov e8, 0x0d
     cmp e7, e8, r1
     jnz e7, readin_bt_nl
     push r1
@@ -117,11 +121,17 @@ readin_bt:
     pop r1
     jmp readin_bt_done
 readin_bt_nl:
-    mov r1, 0x0a
+    mov r1, 0x0d
     int 1
 readin_bt_done:
     pop e7
     pop e8
+readin_ai_3:
+    push r1
+    mov r1, 0x0a
+    int 1
+    pop r1
+    jmp readin_ai_2
 readin_nxt:
     cmp r6, r1, r5
     jnz r6, readin_done

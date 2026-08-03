@@ -4,111 +4,51 @@ import (
 	"runtime"
 	"fmt"
 	"os"
-	"time"
 	"luna_l2/shared"
 	"luna_l2/keyboard"
 	"luna_l2/component"
 	"luna_l2/proxy"
-	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/veandco/go-sdl2/sdl"
 	"github.com/ncruces/zenity"
 	"image"
+	"unsafe"
 )
 
 var CommonComponentPathPrefix string = "/usr/local/lib/l2/video/"
 var WindowsComponentPathPrefix string = "C:\\Program Files (x86)\\Luna L2\\lib\\l2\\video\\"
 var VideoComponent component.Component
 
-
 // Function definitions
 var ReturnFramebuffer func() *image.RGBA
 
-
-
-const VertexShaderSrc = `
-#version 150
-
-in vec2 inPos;
-in vec2 inUV;
-
-out vec2 uv;
-
-void main() {
-    uv = inUV;
-    gl_Position = vec4(inPos, 0.0, 1.0);
-}
-` + "\x00"
-
-const FragmentShaderSrc = `
-#version 150
-
-in vec2 uv;
-out vec4 color;
-
-uniform sampler2D tex;
-
-void main() {
-    color = texture(tex, uv);
-}
-` + "\x00"
-
-func compileShader(src string, t uint32) uint32 {
-    shader := gl.CreateShader(t)
-    csrc, free := gl.Strs(src)
-    gl.ShaderSource(shader, 1, csrc, nil)
-    free()
-    gl.CompileShader(shader)
-
-    var status int32
-    gl.GetShaderiv(shader, gl.COMPILE_STATUS, &status)
-    if status == gl.FALSE {
-        var logLen int32
-        gl.GetShaderiv(shader, gl.INFO_LOG_LENGTH, &logLen)
-        log := make([]byte, logLen)
-        gl.GetShaderInfoLog(shader, logLen, nil, &log[0])
-        panic(string(log))
-    }
-    return shader
-}
-
-func CreateProgram() uint32 {
-    vs := compileShader(VertexShaderSrc, gl.VERTEX_SHADER)
-    fs := compileShader(FragmentShaderSrc, gl.FRAGMENT_SHADER)
-
-    program := gl.CreateProgram()
-    gl.AttachShader(program, vs)
-    gl.AttachShader(program, fs)
-	gl.BindAttribLocation(program, 0, gl.Str("inPos\x00"))
-	gl.BindAttribLocation(program, 1, gl.Str("inUV\x00"))
-    gl.LinkProgram(program)
-
-    var status int32
-    gl.GetProgramiv(program, gl.LINK_STATUS, &status)
-    if status == gl.FALSE {
-        var logLen int32
-        gl.GetProgramiv(program, gl.INFO_LOG_LENGTH, &logLen)
-        log := make([]byte, logLen)
-        gl.GetProgramInfoLog(program, logLen, nil, &log[0])
-        panic(string(log))
-    }
-
-    gl.DeleteShader(vs)
-    gl.DeleteShader(fs)
-
-    return program
-}
-
 // Frontend code
 var Ready bool
+var FS bool
+var Grab bool
 
-var Vertices = []float32 {
-	-1, -1, 0, 1,
-     1, -1, 1, 1,
-     1,  1, 1, 0,
+func ResetAspectRatio(renderer *sdl.Renderer) {
+	WO, HO, _ := renderer.GetOutputSize()
+	aspect := float32(960) / float32(600)
+	actual := float32(WO) / float32(HO)
 
-    -1, -1, 0, 1,
-     1,  1, 1, 0,
-    -1,  1, 0, 0,	
+	var H int
+	var W int
+	var X int
+	var Y int
+
+	if actual > aspect {
+		H = int(HO)
+		W = int(float32(HO) * aspect)
+		X = (int(WO) - W) / 2
+		Y = 0
+	} else {
+		W = int(WO)
+		H = int(float32(WO) / aspect)
+		X = 0
+		Y = (int(HO) - H) / 2
+	}
+
+	renderer.SetViewport(&sdl.Rect{X: int32(X), Y: int32(Y), W: int32(W), H: int32(H)})
 }
 
 func FileOpenDialogue(title string, drive int) {
@@ -137,55 +77,7 @@ func FileOpenDialogue(title string, drive int) {
     }
 }
 
-func ToggleGrab(window *glfw.Window, Grab bool) {
-	if Grab == true {
-		window.SetTitle("Luna L2 - Press Ctrl+Alt+G to release grab")
-		window.SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
-	} else {
-		window.SetTitle("Luna L2")
-		window.SetInputMode(glfw.CursorMode, glfw.CursorNormal)
-	}
-}
-
-func ResetAspectRatio(window *glfw.Window, width int, height int) {
-	aspect := float32(640) / float32(400)
-	actual := float32(width) / float32(height)
-
-	var H int
-	var W int
-	var X int
-	var Y int
-
-	if actual > aspect {
-		H = height
-		W = int(float32(height) * aspect)
-		X = (width - W) / 2
-		Y = 0
-	} else {
-		W = width
-		H = int(float32(width) / aspect)
-		X = 0
-		Y = (height - H) / 2
-	}
-
-	gl.Viewport(int32(X), int32(Y), int32(W), int32(H))
-}
-
-var FS bool
-func ToggleFullscreen(window *glfw.Window) {
-	if FS == false {
-		window.SetFramebufferSizeCallback(ResetAspectRatio)
-		window.SetMonitor(glfw.GetPrimaryMonitor(), 0, 0, 640, 400, 60)
-		FS = true
-	} else {
-		window.SetMonitor(nil, 960, 540, 640, 400, 0)
-		FS = false
-	}
-}
-
-var Grab bool
 func InitializeWindow(ComponentName string) {
-	wd, _ := os.Getwd()
 	prefix := CommonComponentPathPrefix
 	ext := ".so"
 	if runtime.GOOS == "windows" {
@@ -203,246 +95,156 @@ func InitializeWindow(ComponentName string) {
 	proxy.VideoReadVideoMemory = component.ReturnComponentFunction(VideoComponent, "ReadVideoMemory").(func(uint32) byte)
 	proxy.VideoWriteVideoMemory = component.ReturnComponentFunction(VideoComponent, "WriteVideoMemory").(func(uint32, byte))
 
-	err := glfw.Init()
+	err := sdl.Init(sdl.INIT_EVERYTHING)
 	if err != nil {
-		fmt.Println("luna-l2: could not initialize window: ", err)
+		fmt.Println("luna-l2: failed to initialize SDL:", err)
 		os.Exit(1)
 	}
-	defer glfw.Terminate()
+	defer sdl.Quit()
 
-	glfw.WindowHint(glfw.ContextVersionMajor, 3)
-	glfw.WindowHint(glfw.ContextVersionMinor, 2)
-	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
-	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
-	glfw.WindowHint(glfw.ScaleToMonitor, glfw.True)
-
-	window, err := glfw.CreateWindow(640, 400, "Luna L2", nil, nil)
+	window, err := sdl.CreateWindow("Luna L2", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 960, 600, sdl.WINDOW_SHOWN)
 	if err != nil {
-		fmt.Println("luna-l2: could not initialize window: ", err)
+		fmt.Println("luna-l2: failed to create window:", err)
 		os.Exit(1)
 	}
-	window.MakeContextCurrent()
+	defer window.Destroy()
 
-	window.SetFramebufferSizeCallback(ResetAspectRatio)
+	renderer, _ := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
+	defer renderer.Destroy()
 
-	err = gl.Init()
-	if err != nil {
-		fmt.Println("luna-l2: could not initialize window: ", err)
-		os.Exit(1)
-	}
+	Frame := ReturnFramebuffer()
+	Texture, _ := renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, int32(Frame.Bounds().Dx()), int32(Frame.Bounds().Dy()))
+	defer Texture.Destroy()
 
-	fbWidth, fbHeight := window.GetFramebufferSize()
-	gl.Viewport(0, 0, int32(fbWidth), int32(fbHeight))
-	gl.ClearColor(0, 0, 0, 1)	
+	Texture.Update(nil, unsafe.Pointer(&Frame.Pix[0]), Frame.Stride)
 
-	program := CreateProgram()
-	gl.UseProgram(program)
+	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "nearest")
 
-	loc := gl.GetUniformLocation(program, gl.Str("tex\x00"))	
-	gl.Uniform1i(loc, 0)
-
-	var vao, vbo uint32
-
-	gl.GenVertexArrays(1, &vao)
-	gl.GenBuffers(1, &vbo)
-
-	gl.BindVertexArray(vao)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-
-	gl.BufferData(
-		gl.ARRAY_BUFFER,
-		len(Vertices) * 4,
-		gl.Ptr(Vertices),
-		gl.STATIC_DRAW,
-	)
-
-	gl.EnableVertexAttribArray(0)
-	gl.VertexAttribPointer(0, 2, gl.FLOAT, false, 4*4, gl.PtrOffset(0))
-
-	gl.EnableVertexAttribArray(1)
-	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, 4*4, gl.PtrOffset(2*4))
-
-	window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-		if action == glfw.Press || action == glfw.Repeat {
-			shift := (mods & glfw.ModShift) != 0
-			alt := (mods & glfw.ModAlt) != 0
-			ctrl := (mods & glfw.ModControl) != 0
-
-			if ctrl && alt && key == glfw.KeyG {
-				if Grab == true {
-					ToggleGrab(window, false)
-					Grab = false
-					return
-				}	
-			}
-
-			switch key {	
-			case glfw.KeyF1:
-				// Insert into HDD slot
-				if shared.Filename == "" {
-					FileOpenDialogue("Select hard disk file", 0)
-				} else {
-					shared.Filename = ""
+	running := true
+	for running {
+		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+			switch t := event.(type) {
+			case *sdl.QuitEvent:
+				running = false
+				os.Exit(0)
+			case *sdl.MouseButtonEvent:
+				if t.State == sdl.PRESSED {
+					if Grab == false {
+						sdl.SetRelativeMouseMode(true)
+						window.SetTitle("Luna L2 - Press Ctrl+Alt+G to release grab")
+						Grab = true
+						continue
+					}
 				}
-				return
-			case glfw.KeyF2:
-				// Insert into SD slot
-				if shared.SDFilename == "" {
-					FileOpenDialogue("Select SD/USB file", 1)
-				} else {
-					shared.SDFilename = ""
-				}	
-				return
-			case glfw.KeyF3:
-				// Insert into CD/DVD slot
-				if shared.OpticalFilename == "" {
-					FileOpenDialogue("Select CD/DVD file", 2)
-				} else {
-					shared.OpticalFilename = ""
-				}	
-				return
-			case glfw.KeyF4:
-				if shared.Debug == true {
-					shared.LogOn = false
-					shared.Debug = false
-				} else {
-					shared.LogOn = true
-					shared.Debug = true
+			case *sdl.MouseMotionEvent:
+				if Grab == false { continue }
+				
+				t.X /= 3 // not good because hardcoded scale factor
+				t.Y /= 3
+
+				if t.X < 0 { t.X = 0} else if t.X > 320 { t.X = 320 }
+				if t.Y < 0 { t.Y = 0} else if t.Y > 200 { t.Y = 200 }
+
+				ixh := int(t.X) >> 8
+				ixl := int(t.X) & 0xFF
+
+				iyh := int(t.Y) >> 8
+				iyl := int(t.Y) & 0xFF
+
+				keyboard.MemoryMouse[2] = byte(ixh)
+				keyboard.MemoryMouse[3] = byte(ixl)
+				keyboard.MemoryMouse[6] = byte(iyh)
+				keyboard.MemoryMouse[7] = byte(iyl)
+				
+				shared.RaiseInterrupt(0x12)
+				fmt.Printf("%d, %d\n", t.X, t.Y)	
+			case *sdl.KeyboardEvent:
+				Shift := t.Keysym.Mod & sdl.KMOD_SHIFT != 0
+				Alt := t.Keysym.Mod & sdl.KMOD_ALT != 0
+				Control := t.Keysym.Mod & sdl.KMOD_CTRL != 0
+
+				KeyCode := t.Keysym.Sym	
+				if t.State == sdl.PRESSED || t.Repeat > 0 {
+					switch KeyCode {
+					case sdl.K_F1:
+						// Insert into HDD slot
+						if shared.Filename == "" {
+							FileOpenDialogue("Select hard disk file", 0)
+						} else {
+							shared.Filename = ""
+						}
+					case sdl.K_F2:
+						// Insert into SD slot
+						if shared.SDFilename == "" {
+							FileOpenDialogue("Select SD/USB file", 1)
+						} else {
+							shared.SDFilename = ""
+						}	
+					case sdl.K_F3:
+						// Insert into CD/DVD slot
+						if shared.OpticalFilename == "" {
+							FileOpenDialogue("Select CD/DVD file", 2)
+						} else {
+							shared.OpticalFilename = ""
+						}	
+					case sdl.K_F4:
+						if shared.Debug == true {
+							shared.LogOn = false
+							shared.Debug = false
+						} else {
+							shared.LogOn = true
+							shared.Debug = true
+						}
+					case sdl.K_F5:
+						shared.RaiseInterrupt(0xF)
+					case sdl.K_F6:
+						f, _ := os.Create("memory_dump.bin")
+						f.Write((*shared.Memory)[:])
+						f.Close()
+					case sdl.K_F11:
+						if FS == false {
+							FS = true
+							window.SetFullscreen(sdl.WINDOW_FULLSCREEN_DESKTOP)
+						} else {
+							FS = false
+							window.SetFullscreen(0)
+						}
+					default:
+						if KeyCode >= 10000 { continue }
+						char := ""
+						if Shift == true {
+							char = keyboard.Upper(string(KeyCode))
+						} else {
+							char = keyboard.Lower(string(KeyCode))
+						}
+	
+						if len(char) > 0 {
+							if Control == true && Alt == true && (char[0] == 'g' || char[0] == 'G') {
+								sdl.SetRelativeMouseMode(false)
+								window.SetTitle("Luna L2")
+								Grab = false
+							} else {
+								keyboard.MemoryKeyboard[0] = byte(char[0])
+								shared.RaiseInterrupt(0x5)
+								shared.SetRegister(0x001b, uint32(char[0]))
+							}
+						}
+					}	
 				}
-				return
-			case glfw.KeyF5:
-				shared.RaiseInterrupt(0xF)
-			case glfw.KeyF6:
-				f, _ := os.Create("memory_dump.bin")
-				f.Write((*shared.Memory)[:])
-				f.Close()
-			case glfw.KeyF11:
-				ToggleFullscreen(window)
-				return	
-			}	
-	
-
-			var char string
-			switch key {
-			case glfw.KeySpace:
-				char = string(byte(0x20))
-			case glfw.KeyEnter:
-				char = string(byte(0x0A))
-			case glfw.KeyBackspace:
-				char = string(byte(0xC3))	
-			default:
-				char = glfw.GetKeyName(key, scancode)	
 			}
-
-			if shift {
-				char = keyboard.Upper(char)
-			} else {
-				char = keyboard.Lower(char)
-			}
-
-			if len(char) > 0 {
-				keyboard.MemoryKeyboard[0] = byte(char[0])
-				shared.RaiseInterrupt(0x5)
-				shared.SetRegister(0x001b, uint32(char[0]))
-			}
-		}
-	})
-
-	window.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
-		if button == glfw.MouseButtonLeft && action == glfw.Press {
-			if Grab == false {
-				ToggleGrab(window, true)
-				Grab = true
-				return
-			}
-		}
-	})
-
-	window.SetCursorPosCallback(func(w *glfw.Window, xpos float64, ypos float64) {
-		if Grab == false {
-			return
-		}
-
-		if xpos > 320 {
-			xpos = 320
-		} else if xpos < 0 {
-			xpos = 0
-		}
-
-		if ypos > 200 {
-			ypos = 200
-		} else if ypos < 0 {
-			ypos = 0
-		}
-	
-		ixh := int(xpos) >> 8
-		ixl := int(xpos) & 0xFF
-
-		iyh := int(ypos) >> 8
-		iyl := int(ypos) & 0xFF
-
-		keyboard.MemoryMouse[2] = byte(ixh)
-		keyboard.MemoryMouse[3] = byte(ixl)
-		keyboard.MemoryMouse[6] = byte(iyh)
-		keyboard.MemoryMouse[7] = byte(iyl)
+        }
 		
-		shared.RaiseInterrupt(0x12)
-	})
+		renderer.Clear()
+		Frame := ReturnFramebuffer()
+		Texture, _ := renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, int32(Frame.Bounds().Dx()), int32(Frame.Bounds().Dy()))
+		Texture.Update(nil, unsafe.Pointer(&Frame.Pix[0]), Frame.Stride)
+		renderer.Copy(Texture, nil, nil)
+		renderer.Present()
+		Texture.Destroy()
 
-	var texture uint32
-	gl.GenTextures(1, &texture)
-	gl.BindTexture(gl.TEXTURE_2D, texture)
+		ResetAspectRatio(renderer)	
 
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-
-	gl.TexImage2D(
-		gl.TEXTURE_2D,
-		0,
-		gl.RGBA8,
-		320, 200,
-		0,
-		gl.RGBA,
-		gl.UNSIGNED_BYTE,
-		nil,
-	)	
-
-	os.Chdir(wd)
-	next := time.Now()	
-	for !window.ShouldClose() {
+		sdl.Delay(10)
 		Ready = true
-		img := ReturnFramebuffer() 
-
-		gl.ActiveTexture(gl.TEXTURE0)
-		gl.BindTexture(gl.TEXTURE_2D, texture)
-		gl.TexSubImage2D(
-			gl.TEXTURE_2D,
-			0,
-			0, 0,
-			320, 200,
-			gl.RGBA,
-			gl.UNSIGNED_BYTE,
-			gl.Ptr(img.Pix),
-		)
-
-		gl.Clear(gl.COLOR_BUFFER_BIT)
-
-		gl.UseProgram(program)
-		gl.BindVertexArray(vao)
-
-		gl.DrawArrays(gl.TRIANGLES, 0, 6)
-
-		next = next.Add(time.Second / 70)
-		sleep := time.Until(next)
-		if sleep > 0 {
-			time.Sleep(sleep)
-		} else {
-			next = time.Now()
-		}
-
-		glfw.PollEvents()
-		window.SwapBuffers()
-	}
+	}	
 }

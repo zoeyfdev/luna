@@ -1,13 +1,3 @@
-/*
-Component: Luna G1
-Resolutions:
-320x200
-
-Description:
-The Luna G1 is an extremely basic video
-component, blindly rendering pixels from
-the framebuffer.
-*/
 package main
 
 import (
@@ -26,22 +16,22 @@ var img = image.NewRGBA(image.Rect(0, 0, 320, 200))
 
 func scrollUp() {
     const (
-        screenWidth  = 320
-        screenHeight = 200
-        charHeight   = 8
+        ScreenWidth  = 320
+        ScreenHeight = 200
+        CharHeight   = 8
     )
 
-    lineSize := screenWidth * charHeight
-    visibleLines := screenHeight / charHeight
+	LineSize := ScreenWidth * CharHeight
+    VisibleLines := ScreenHeight / CharHeight
  
-    copy(MemoryVideo[0:], MemoryVideo[lineSize:])
+    copy(MemoryVideo[0:], MemoryVideo[LineSize:])
  
-    bottomStart := (visibleLines - 1) * lineSize
-    for i := bottomStart; i < len(MemoryVideo); i++ {
+    BottomStart := (VisibleLines - 1) * LineSize
+    for i := BottomStart; i < len(MemoryVideo); i++ {
         MemoryVideo[i] = 0
     }
  
-    CursorY = visibleLines - 1
+    CursorY = VisibleLines - 1
 }
 
 func PushChar(x, y int, ch rune, fg byte, bg byte) {
@@ -63,7 +53,7 @@ func PushChar(x, y int, ch rune, fg byte, bg byte) {
 			} else {
 				color = bg
 			}
-			px := (y + row) * 320 + (x+col)
+			px := (y + row) * 320 + (x + col)
 			MemoryVideo[shared.Clamp(int(px), 0, 63999)] = color
 		}
 
@@ -95,7 +85,7 @@ func PrintChar(ch rune, fg byte, bg byte) {
 	PushChar(x, y, ch, fg, bg)	
 
 	CursorX++
-	if CursorX >= 320/8 {
+	if CursorX >= 320 / 8 {
 		CursorY++
 		CursorX = 0
 	}

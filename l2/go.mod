@@ -8,6 +8,7 @@ require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20250301202403-da16c1255728
 	github.com/gopxl/beep v1.4.1
 	github.com/ncruces/zenity v0.10.14
+	github.com/veandco/go-sdl2 v0.4.40
 )
 
 require (

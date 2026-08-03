@@ -13,6 +13,7 @@
 void _cstart() __attribute__((noreturn)) {
     if (fopen("NOTEPAD     SYS", 0)->Address == 0x00000000) {
         fcreate("NOTEPAD     SYS", 256);
+        fcreate("DESKTOP     IMG", 64000);
     }
  
     puts32("Welcome to ", COLOR_WHITE, COLOR_BLACK);

@@ -1,5 +1,7 @@
 package proxy
 
+// Technically this no longer needs to exist but...
+
 var VideoPrintChar func(rune, byte, byte)
 var VideoSetCursor func(int, int)
 var VideoGetCursor func() (int, int)
