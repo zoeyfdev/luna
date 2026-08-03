@@ -73,7 +73,7 @@ vinp_ai:
     mov r2, 0
     str r1, r2 // DISABLE KEY INP
 
-    mov e1, 0x0a
+    mov e1, 0x0d
     cmp e2, e1, e12
     jnz e2, REBOOT // reboot if enter
 

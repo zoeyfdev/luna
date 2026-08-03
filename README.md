@@ -38,12 +38,12 @@ DVD: Optical disc slot; use `-dvd <file>` to insert a file into the slot.<br>
 ### Luna G1<br>
 - Emulator equipment ID: `g1`<br>
 - Valid resolutions: 320x200@8bpp<br>
-- Video memory: 64 KB (64,000 bytes)<br>
+- Video memory: 64 KiB (65,536 bytes)<br>
 - Extra features: None<br><br>
 ### Luna G1X<br>
 - Emulator equipment ID: `g1x`<br>
 - Valid resolutions: 320x200@8bpp<br>
-- Video memory: 64 KB (64,000 bytes)<br>
+- Video memory: 64 KiB (65,535 bytes)<br>
 - Extra features: Simple transparency via color code 0xE3<br><br>
 ## Audio<br>
 ### Luna S1<br>

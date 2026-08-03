@@ -10,7 +10,7 @@ import (
 
 var CursorX int = 0
 var CursorY int = 0
-var MemoryVideo = make([]byte, 64000)
+var MemoryVideo = make([]byte, 65536)
 var Palette = make([]color.NRGBA, 256)
 var img = image.NewRGBA(image.Rect(0, 0, 320, 200))
 
