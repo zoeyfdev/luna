@@ -1,5 +1,7 @@
 SRC=./
 
+# No windows support (for now until I figure out how to get DLLs to work)
+
 all: luna-l2 las lcc lcc1 l2ld 
 .PHONY: clean install l2ld lcc lcc1 las
 
@@ -66,7 +68,7 @@ mac_qmake:
 	cd l2ld && GOOS=darwin go build -o /usr/local/bin/l2ld l2ld.go	
 
 windows-installer:
-	cd l2 && CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui" -o ../Windows/luna-l2.exe luna_l2.go
+	cd l2 && CGO_LDFLAGS="-lmingw32 -lSDL2" CGO_CFLAGS="-D_REENTRANT" CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui" -o ../Windows/luna-l2.exe -x luna_l2.go
 	cd lcc && GOOS=windows GOARCH=amd64 go build -o ../Windows/lcc.exe lcc.go
 	cd las && GOOS=windows GOARCH=amd64 go build -o ../Windows/las.exe las.go
 	cd lcc1 && GOOS=windows GOARCH=amd64 go build -o ../Windows/lcc1.exe lcc1.go
