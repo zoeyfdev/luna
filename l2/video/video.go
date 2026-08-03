@@ -158,7 +158,6 @@ func InitializeWindow(ComponentName string) {
 				keyboard.MemoryMouse[7] = byte(iyl)
 				
 				shared.RaiseInterrupt(0x12)
-				fmt.Printf("%d, %d\n", t.X, t.Y)	
 			case *sdl.KeyboardEvent:
 				Shift := t.Keysym.Mod & sdl.KMOD_SHIFT != 0
 				Alt := t.Keysym.Mod & sdl.KMOD_ALT != 0
