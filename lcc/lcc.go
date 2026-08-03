@@ -96,6 +96,10 @@ func main() {
 		case "-c":
 			nolink = true
 		case "-o":
+			if len(os.Args) <= i + 1 {
+				stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39margument to '-o' is missing (expected 1 value)\033[0m")
+				continue
+			}
 			output_file = os.Args[i + 1]
 			i++
 		case "-v":
