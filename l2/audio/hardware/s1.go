@@ -25,8 +25,9 @@ func AudioController() {
 				Freq: 48000,
 				Format: sdl.AUDIO_S8,
 				Channels: 1,
-				Samples: 4096,
+				Samples: 65535, // Just in case of long audios
 			}
+
 			Device, err := sdl.OpenAudioDevice("", false, Spec, nil, 0)
 			if err != nil {
 				fmt.Println("luna-l2: failed opening audio:", err)
