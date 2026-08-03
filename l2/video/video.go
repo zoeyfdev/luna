@@ -103,7 +103,7 @@ func InitializeWindow(ComponentName string) {
 	}
 	defer sdl.Quit()
 
-	window, err := sdl.CreateWindow("Luna L2", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 960, 600, sdl.WINDOW_SHOWN)
+	window, err := sdl.CreateWindow("Luna L2", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 960, 600, sdl.WINDOW_SHOWN | sdl.WINDOW_RESIZABLE)
 	if err != nil {
 		fmt.Println("luna-l2: failed to create window:", err)
 		os.Exit(1)
@@ -112,8 +112,6 @@ func InitializeWindow(ComponentName string) {
 
 	renderer, _ := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
 	defer renderer.Destroy()
-
-	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "0")
 
 	Frame := ReturnFramebuffer()
 	Texture, _ := renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, int32(Frame.Bounds().Dx()), int32(Frame.Bounds().Dy()))

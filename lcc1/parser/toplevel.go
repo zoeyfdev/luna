@@ -1040,7 +1040,6 @@ func Parse(tokens []shared.Token, Scope int) {
 							rn := "var_" + fmt.Sprintf("%d", IDCounter)
 							IDCounter++
 
-							WritePre(rn + ":", false)
 							var ATMEntry ArgumentTypeManifestEntry
 							if ptr == false {
 								ATMEntry.Type = rtype
@@ -1050,11 +1049,20 @@ func Parse(tokens []shared.Token, Scope int) {
 								ATMEntry.Type2 = rtype
 								ATMEntry.Pointer = ptr
 								ATMEntry.PointerLength = _ptrlen
-							}	
+							}
 
+							if IS_LOCAL == false {
+								WritePre(rn + ":", false)
+								WritePre(".ptr 0x00", true)
+							} else {
+								rn = "fp + " + fmt.Sprintf("%d", ReturnDisplacement(NUMBER32))
+								FPtr := LookupVariableDirect(_CURRENT_INFUNCTION.Name, 1)
+								(*FPtr).BasinSize += 4	
+							}
+								
+							// TODO: var lookup for toplevel
 							_i = ParseExpy(tokens, i, Scope, "r4", ATMEntry)
-
-							WritePre(".ptr 0x00", true)
+	
 							Write("mov r7, " + rn, true)
 							Write("str_ptr r7, r4", true)
 
@@ -1098,8 +1106,7 @@ func Parse(tokens []shared.Token, Scope int) {
 								WritePre(".dword " + fmt.Sprintf("0x%08x", r_res), true)
 							}	
 							EQU_RTYPE_DONE2:
-						} else {
-							WritePre(rn + ":", false)
+						} else {	
 							var ATMEntry ArgumentTypeManifestEntry
 							if ptr == false {
 								ATMEntry.Type = rtype
@@ -1110,31 +1117,72 @@ func Parse(tokens []shared.Token, Scope int) {
 								ATMEntry.Pointer = ptr
 								ATMEntry.PointerLength = _ptrlen
 							}
+
 							_i = ParseExpy(tokens, i, Scope, "r4", ATMEntry)
 
-							if ptr == false {
-								switch rtype {
-								case NUMBER8, STRING:
-									WritePre(".byte 0x00", true)
+							if IS_LOCAL == true {
+								FPtr := LookupVariableDirect(_CURRENT_INFUNCTION.Name, 1)
+								Displacement := uint32(0)
+								if ptr == false {
+									Displacement = ReturnDisplacement(TypeEntry.ReferralType)
+									rn = "fp + " + fmt.Sprintf("%d", Displacement)
+									switch TypeEntry.ReferralType {
+									case NUMBER8, STRING, NULL:
+										(*FPtr).BasinSize += 1
+									case NUMBER16:
+										(*FPtr).BasinSize += 2
+									case NUMBER32:
+										(*FPtr).BasinSize += 4
+									}
+								} else {
+									Displacement = ReturnDisplacement(NUMBER32)
+									rn = "fp + " + fmt.Sprintf("%d", Displacement)
+									(*FPtr).BasinSize += 4
+								}
+
+								if ptr == false {
+									switch rtype {
+									case NUMBER8, STRING, NULL:
+										Write("mov r7, " + rn, true)
+										Write("str r7, r4", true)
+									case NUMBER16:
+										Write("mov r7, " + rn, true)
+										Write("str16 r7, r4", true)
+									case NUMBER32:
+										Write("mov r7, " + rn, true)
+										Write("str32 r7, r4", true)
+									}
+								} else {
 									Write("mov r7, " + rn, true)
-									Write("str r7, r4", true)
-								case NUMBER16:
-									WritePre(".word 0x0000", true)
-									Write("mov r7, " + rn, true)
-									Write("str16 r7, r4", true)
-								case NUMBER32:
-									WritePre(".dword 0x00000000", true)
-									Write("mov r7, " + rn, true)
-									Write("str32 r7, r4", true)
+									Write("str_ptr r7, r4", true)
 								}
 							} else {
-								WritePre(".ptr 0x00", true)
-								Write("mov r7, " + rn, true)
-								Write("str_ptr r7, r4", true)
-							}
+								// TODO: fix this
+								WritePre(rn + ":", false)
+								if ptr == false {
+									switch rtype {
+									case NUMBER8, STRING:
+										WritePre(".byte 0x00", true)
+										Write("mov r7, " + rn, true)
+										Write("str r7, r4", true)
+									case NUMBER16:
+										WritePre(".word 0x0000", true)
+										Write("mov r7, " + rn, true)
+										Write("str16 r7, r4", true)
+									case NUMBER32:
+										WritePre(".dword 0x00000000", true)
+										Write("mov r7, " + rn, true)
+										Write("str32 r7, r4", true)
+									}
+								} else {
+									WritePre(".ptr 0x00", true)
+									Write("mov r7, " + rn, true)
+									Write("str_ptr r7, r4", true)
+								}
+							}	
 						}
-						i = _i
 
+						i = _i
 
 						var val any
 						if ptr == true || TypeEntry.Pointer == true {	
@@ -1163,18 +1211,7 @@ func Parse(tokens []shared.Token, Scope int) {
 							rn = "var_" + fmt.Sprintf("%d", IDCounter)
 							IDCounter++
 							WritePre(rn + ":", false)
-							WritePre(".ptr 0x00000000", true)
-
-							/*
-							switch rtype {
-							case NUMBER8, STRING:
-								WritePre(".byte 0x00", true)
-							case NUMBER16:
-								WritePre(".word 0x0000", true)
-							case NUMBER32:
-								WritePre(".dword 0x00000000", true)
-							}
-							*/
+							WritePre(".ptr 0x00000000", true)	
 						}	
 
 						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: 0, Pointer: true, PointerLength: _ptrlen, Real: rn, Scope: Scope, Const: constant})
@@ -1275,8 +1312,6 @@ func Parse(tokens []shared.Token, Scope int) {
 								WritePre(rn + ":", false)
 								WritePre(".pad " + fmt.Sprintf("%d", TypeEntry.EmbeddedStruct.StructTotalSize), true)
 							}
-
-							
 
 							StructVar := TypeEntry.EmbeddedStruct
 

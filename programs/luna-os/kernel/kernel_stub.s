@@ -3,7 +3,7 @@
 
 .global IDT_SETUP
 .global targeted_load
-.global boot_load_all_sectors
+.global linear_sector_load
 
 // LUFS header
 .pad 32
@@ -28,7 +28,7 @@ IDT_SETUP:
 
     mov r1, 0x6FFF0026
     mov r2, kernel_panic
-    // str32 r1, r2
+    str32 r1, r2
 
     mov r1, 0x6FFF0013
     mov r2, 1
@@ -89,7 +89,7 @@ targeted_load:
 
     ret
 
-boot_load_all_sectors:
+linear_sector_load:
     pop e11
     pop r6 // num sectors
 

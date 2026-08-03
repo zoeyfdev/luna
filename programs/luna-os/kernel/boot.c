@@ -4,6 +4,7 @@
 #include "images.h"
 #include "audio.h"
 #include "stub.h"
+#include "stdbool.h"
 
 void boot() __attribute__((noreturn)) {
     targeted_load((long int) BOOT_SOUND, 83);
@@ -12,10 +13,10 @@ void boot() __attribute__((noreturn)) {
     targeted_load((long int) renderbuf_loc, 2);
     targeted_load((long int) sleep_loc, 2);
 
-    play_sound(BOOT_SOUND, 41984, 0);
+    play_sound(BOOT_SOUND, 41984, false);
     render_buf((void*) BOOT_IMG);
 
-    boot_load_all_sectors(0x300);
+    linear_sector_load(0x300);
 
     sleep(5);
 

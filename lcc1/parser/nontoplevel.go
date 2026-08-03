@@ -1478,7 +1478,6 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				Write("dec r0", true)
 			}
 
-			// ALERT FOR FUTURE ALEX: if the derefs behave then change this
 			if EQU_VAR.Pointer == false {	
 				switch EQU_VT {
 				case NUMBER8, STRING, NULL:

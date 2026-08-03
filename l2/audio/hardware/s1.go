@@ -25,7 +25,7 @@ func AudioController() {
 				Freq: 48000,
 				Format: sdl.AUDIO_S8,
 				Channels: 1,
-				Samples: 65535, // Just in case of long audios
+				Samples: 4096, // Just in case of long audios
 			}
 
 			Device, err := sdl.OpenAudioDevice("", false, Spec, nil, 0)

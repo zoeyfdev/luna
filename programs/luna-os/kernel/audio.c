@@ -1,9 +1,10 @@
 #pragma bits 32
+#include "stdbool.h"
 
 asm (".global play_sound_loc");
 asm ("play_sound_loc:");
 
-void play_sound(void* buffer, long int size, short short int block) {
+void play_sound(void* buffer, long int size, bool block) {
     short short int* done_flag = (short short int*) 0x80000009;
     *done_flag = 0;
 
@@ -11,7 +12,7 @@ void play_sound(void* buffer, long int size, short short int block) {
     *(long int*) 0x80000005 = size;
     *(short short int*) 0x80000000 = 1; 
 
-    if (block) {
+    if (block == true) {
         while (*done_flag == 0) {}
     }
     return;
