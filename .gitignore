@@ -2,11 +2,12 @@
 bin/*
 bin
 *.bin
-*.asm
-*.s
 *.o
 *.out
 lcc1/test
 .vscode
 components
 components/*
+*.img
+Windows/*.msi
+Windows/*.exe
