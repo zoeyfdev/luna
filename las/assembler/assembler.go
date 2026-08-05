@@ -222,6 +222,17 @@ func Lex(text string) []Token {
 					Buffer += string(current)
 				}
 			}
+		case ';':
+			InComment = true
+		case '#':
+			if text[i + 1] == ' ' {
+				i++
+				InComment = true
+			} else {
+				if InComment == false {
+					Buffer += string(current)
+				}
+			}
 		default:
 			if InComment == false {
 				Buffer += string(current)
