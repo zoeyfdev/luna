@@ -111,12 +111,12 @@ long int* find_file(char* name) {
     return 0;
 }
 
-File* fopen(char* filename, short short int complain_on_not_found) {
+File* fopen(char* filename, bool complain_on_not_found) {
     long int* faddr = find_file(filename);
     File f;
 
     if (faddr == 0x00000000) {
-        if (complain_on_not_found) {
+        if (complain_on_not_found == true) {
             puts32("File '", COLOR_LRED, COLOR_BLACK);
             puts32((char*) ffnt(filename), COLOR_LRED, COLOR_BLACK);
             puts32("' not found!\n", COLOR_LRED, COLOR_BLACK);
@@ -168,4 +168,6 @@ void fwrite(char* name, char* content) {
     strcpy(content, (char*) cptr);
     long int sec = (long int) cptr / 512;
     save_sector(sec);
+    save_sector(sec - 1);
+    save_sector(sec + 1);
 }

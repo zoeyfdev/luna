@@ -1325,7 +1325,12 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 		x_deref := deref
 		derefs := 0
-		for x_deref - 1 > 0 {
+
+		if Intent == "write" {
+			x_deref--
+		}
+
+		for x_deref > 0 {
 			if RequiredType.Type != 999 {
 				if CLENGTH > 0 {
 					CLENGTH--

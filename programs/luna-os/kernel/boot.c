@@ -16,7 +16,7 @@ void boot() __attribute__((noreturn)) {
     play_sound(BOOT_SOUND, 41984, false);
     render_buf((void*) BOOT_IMG);
 
-    linear_sector_load(0x300);
+    linear_sector_load(0x350);
 
     sleep(5);
 
