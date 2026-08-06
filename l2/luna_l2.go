@@ -796,6 +796,7 @@ func main() {
 
 		if BIOS_REBOOT == true {
 			BIOS_REBOOT = false
+			shared.BootDrive = 0
 			goto boot
 		} else if BIOS_SHUTDOWN == true {
 			os.Exit(0)

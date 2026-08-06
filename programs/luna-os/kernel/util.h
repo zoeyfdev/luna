@@ -6,3 +6,4 @@ extern void reboot();
 extern void load_sector(short short int drive, long int dest_sector, long int real_sector);
 extern void load_executable();
 extern short short int* get_first_word(char* string);
+extern short short int* get_word(char* string, int pos);

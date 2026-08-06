@@ -109,3 +109,29 @@ short short int* get_first_word(char* string) {
     free(1024);
     return ogbuf;
 }
+
+short short int* get_word(char* string, int pos) {
+    short short int* buffer = (short short int*) malloc(1024);
+    short short int* ogbuf = buffer;
+    int cpos = 1;
+
+    while (*string != 0x00) {
+        if (*string == 0x20) {
+            if (cpos == pos) {
+                break;
+            } else {
+                cpos++;
+                string++;
+            }
+        }
+
+        if (cpos == pos) {
+            putchar(*string, (char*) buffer);
+            buffer++;
+        }
+
+        string++;
+    }
+    free(1024);
+    return ogbuf;
+}
