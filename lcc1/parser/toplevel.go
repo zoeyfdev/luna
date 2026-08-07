@@ -1319,6 +1319,7 @@ func Parse(tokens []shared.Token, Scope int) {
 							StructVar.Real = rn
 							StructVar.Type = STRUCT
 							StructVar.Scope = Scope
+							StructVar.StructTotalSize = TypeEntry.EmbeddedStruct.StructTotalSize
 
 							Variables = append(Variables, StructVar)
 						} else {

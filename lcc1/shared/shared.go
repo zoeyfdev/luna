@@ -46,6 +46,8 @@ const (
 	TokPercent
 	TokPeriod
 	TokArrow
+	TokShiftLeft
+	TokShiftRight
 )
 
 type Token struct {

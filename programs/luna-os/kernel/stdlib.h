@@ -42,4 +42,6 @@ extern void* sleep_loc;
 #define COLOR_WHITE   0xFF
 #define TRANSPARENT   0xE3
 
+// Pointer descriptions
 #define NULL *(void*) 0xDEADBEEF;
+#define NULLPTR 0x00000000

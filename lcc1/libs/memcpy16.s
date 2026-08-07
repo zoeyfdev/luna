@@ -7,7 +7,7 @@ _builtin_lcc_memcpy16:
     pop r6 // Source address
     pop r7 // Destination address
 
-    mov r4, 0
+    xor r4, r4, r4
     
     mov e10, pc
 

@@ -34,7 +34,6 @@ void kernel_panic() __attribute__((noreturn)) {
     puts32((char*) itoa(_e9, 1, (char*) malloc(11)), COLOR_WHITE, COLOR_RED);
     puts32("\n", COLOR_WHITE, COLOR_RED);
 
-
     wait_for_key();
     asm ("int 0x10");
     asm ("int 0xf");
@@ -94,22 +93,6 @@ void app_error() __attribute__((noreturn)) {
     goto lexec_done; 
 }
 
-short short int* get_first_word(char* string) {
-    short short int* buffer = (short short int*) malloc(1024);
-    short short int* ogbuf = buffer;
-
-    while (*string != 0x00) {
-        if (*string == 0x20) {
-            break;
-        }
-        putchar(*string, (char*) buffer);
-        buffer++;
-        string++;
-    }
-    free(1024);
-    return ogbuf;
-}
-
 short short int* get_word(char* string, int pos) {
     short short int* buffer = (short short int*) malloc(1024);
     short short int* ogbuf = buffer;
@@ -134,4 +117,40 @@ short short int* get_word(char* string, int pos) {
     }
     free(1024);
     return ogbuf;
+}
+
+short short int* atoi(long int n) {
+    short short int* buf = (short short int*) malloc(32);
+    short short int* buf2 = (short short int*) malloc(32);
+    short short int* ogbufptr = buf2;
+    
+    long int i = 0;
+    
+    if (n == 0) {
+        putchar(0x30, (char*) buf2);
+        return ogbufptr;
+    }
+
+    while (n > 0) {
+        long int res = n % 10;
+        putchar(0x30 + res, (char*) buf);
+        n = n / 10;
+        i++;
+        buf++;
+    }
+
+    while (i > 0) { 
+        i--;
+        buf--;
+        putchar((char) *buf, (char*) buf2);
+        buf2++; 
+    }
+
+    free(64);
+    return ogbufptr;
+}
+
+void toint(long int n) {
+    puts32((char*) atoi(n), COLOR_WHITE, COLOR_BLACK);
+    puts32("\n", COLOR_WHITE, COLOR_BLACK);
 }

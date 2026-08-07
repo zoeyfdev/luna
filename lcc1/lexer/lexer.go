@@ -105,6 +105,10 @@ func Lex(code []SmallToken, filename string) []shared.Token {
 			Add(shared.TokPeriod, content, SToken)
 		case "->":
 			Add(shared.TokArrow, content, SToken)
+		case "<<":
+			Add(shared.TokShiftLeft, content, SToken)
+		case ">>":
+			Add(shared.TokShiftRight, content, SToken)
 		default:
 			num, err := strconv.ParseInt(content, 0, 64)
 			if err == nil {

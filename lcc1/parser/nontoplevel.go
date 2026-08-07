@@ -67,7 +67,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			val := 0
 			_label := expect(shared.TokIdent)
 			expect(shared.TokRParen)
-			Variable := LookupVariable(_label, true, Scope, peek(-2), &tokens)
+			Variable := LookupVariable(_label, true, Scope, peek(-2), &tokens)	
 			switch Variable.Type {
 			case NUMBER8:
 				val = 1
@@ -86,6 +86,8 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				val = 2
 			case NUMBER32:
 				val = 4
+			case STRUCT:
+				val = Variable.StructTotalSize	
 			}
 			Write("mov " + register + ", " + fmt.Sprintf("%d", val), true)
 		default:
@@ -466,8 +468,6 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				FirstTime = false
 				goto SA_TOP
 			}
-
-			return variable, CTYPE, CPTR, CLENGTH
 		}
 		return variable, CTYPE, CPTR, CLENGTH
 	}
@@ -1109,9 +1109,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			CTYPE = _COERCE_TYPE
 			CPTR = _COERCE_PTR
 			CLENGTH = _COERCE_LENGTH
-			_COERCE_TYPE = 6
-			_COERCE_PTR = false
-			_COERCE_LENGTH = 0
+			// If causing issues, move cleanup here	
 		} else {
 			if variable.Pointer == false {
 				CTYPE = variable.Type
@@ -1233,9 +1231,18 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		}
 
 		if deref < 0 {
-			CPTR = true
-			CLENGTH = -deref
+			if _COERCE_TYPE != 6 {
+				CPTR = _COERCE_PTR
+				CLENGTH = _COERCE_LENGTH
+			} else {
+				CPTR = true
+				CLENGTH = -deref
+			}
 		}
+
+		_COERCE_TYPE = 6
+		_COERCE_PTR = false
+		_COERCE_LENGTH = 0		
 
 		CheckRequiredType(CTYPE, CPTR, CLENGTH)
 		Write("mov " + register + ", r2", true)	
@@ -1245,7 +1252,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 		_NUMBER_PARSE("r1")
 		switch peek(0).Type {
-		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash, shared.TokPercent:
+		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash, shared.TokPercent, shared.TokShiftLeft, shared.TokShiftRight:
 			NUM_DIRECT = true
 		default:
 			NUM_DIRECT = true	
@@ -1258,7 +1265,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		if NUM_DIRECT == true {
 			Write("mov " + register + ", r1", true)
 		}
-	case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash, shared.TokPercent:
+	case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash, shared.TokPercent, shared.TokShiftLeft, shared.TokShiftRight:
 		if NUM_TRY_DEREF == false {
 			Write("mov r5, " + register, true)
 		}
@@ -1295,13 +1302,13 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			Write("shr r1, r5, r6", true)
 		}
 		switch peek(0).Type {
-		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
+		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash, shared.TokPercent, shared.TokShiftLeft, shared.TokShiftRight:
 			Write("mov r5, r1", true)
 			goto OP_TRY
 		}
-		if NUM_TRY_DEREF == false {
-			Write("mov " + register + ", r1", true)
-		}
+
+		// If having issues; only do this when NUM_TRY_DEREF == true
+		Write("mov " + register + ", r1", true)
 		NUM_DIRECT = false
 	}
 

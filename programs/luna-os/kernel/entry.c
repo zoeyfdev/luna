@@ -12,15 +12,16 @@
 #endif
 
 void _cstart() __attribute__((noreturn)) {
-    if (fopen("NOTEPAD     SYS", false)->Address == 0x00000000) {
-        fcreate("NOTEPAD     SYS", 256);
+    if (fopen((char*) fntf("NOTEPAD.SYS"), false)->Address == NULLPTR) {
+        fcreate((char*) fntf("NOTEPAD.SYS"), 256);
     }
 
     puts32("Welcome to ", COLOR_WHITE, COLOR_BLACK);
     puts32("Luna", COLOR_LCYAN, COLOR_BLACK);
     puts32("OS!\n", COLOR_WHITE, COLOR_BLACK);
 
-    puts32((char*) get_word("Hello world!", 2), COLOR_RED, COLOR_WHITE);
+    int x; 
+    tohex((long int) &x, 1);
 
     while (1) {
         shell();

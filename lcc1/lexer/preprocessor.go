@@ -137,6 +137,18 @@ func Tokenize (text string, filename string) []SmallToken {
 			continue
 		}
 
+		if r == '>' && peek(1) == '>' {
+			Write(">>")
+			i += 2
+			continue
+		}
+
+		if r == '<' && peek(1) == '<' {
+			Write("<<")
+			i += 2
+			continue
+		}
+
 		if r == '-' && peek(1) == '>' {
 			Write("->")
 			i += 2

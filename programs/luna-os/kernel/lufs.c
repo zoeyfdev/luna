@@ -115,7 +115,7 @@ File* fopen(char* filename, bool complain_on_not_found) {
     long int* faddr = find_file(filename);
     File f;
 
-    if (faddr == 0x00000000) {
+    if (faddr == NULLPTR) {
         if (complain_on_not_found == true) {
             puts32("File '", COLOR_LRED, COLOR_BLACK);
             puts32((char*) ffnt(filename), COLOR_LRED, COLOR_BLACK);
