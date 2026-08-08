@@ -191,8 +191,27 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 		return __label
 	}
-	_IDENT_INTENT := func(pointer bool, _type int, deref int, register bool, variable Variable_Static) string {	
-		if peek(0).Type == shared.TokEqual || peek(0).Type == shared.TokIncrement || peek(0).Type == shared.TokDecrement {
+	_IDENT_INTENT := func(pointer bool, _type int, deref int, register bool, variable Variable_Static) string {
+		IS_WRITE := false
+		for j := i; j < len(tokens); j++ {
+			_token := tokens[j]
+			exit := false
+
+			switch _token.Type {
+			case shared.TokSemi, shared.TokRAngle:
+				IS_WRITE = false
+				exit = true
+			case shared.TokEqual, shared.TokIncrement, shared.TokDecrement:
+				IS_WRITE = true
+				exit = true
+			}
+
+			if exit == true {
+				break
+			}	
+		}
+
+		if IS_WRITE == true {
 			// Write intent (NEVER give one free dereference)
 			Write("mov r2, r1", true)
 			return "write"

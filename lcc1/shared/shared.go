@@ -55,6 +55,7 @@ type Token struct {
 	Value string
 	Line int
 	File string
+	MathToken bool
 }
 
 var Bits int = 16

@@ -10,11 +10,19 @@ func Lex(code []SmallToken, filename string) []shared.Token {
 	var tokens = []shared.Token {}
 
 	Add := func(Type shared.TokenType, Value string, ST SmallToken) {
+		MathToken := false
+
+		switch Type {
+		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash, shared.TokPercent, shared.TokShiftLeft, shared.TokShiftRight, shared.TokIncrement, shared.TokDecrement:
+			MathToken = true
+		}
+
 		tokens = append(tokens, shared.Token{
 			Type: Type,
 			Value: Value,
 			Line: ST.Line,
 			File: ST.Filename,
+			MathToken: MathToken,
 		})
 	}
    	 
