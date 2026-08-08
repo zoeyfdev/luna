@@ -1127,7 +1127,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 		switch peek(0).Type {
 		case shared.TokLBracket:
-			if variable.ArgNum < 1 {
+			if variable.ArgNum < 1 && CPTR != true {
 				error.Error(40, "", peek(0), &tokens)
 			}
 			array = true

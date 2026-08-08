@@ -175,36 +175,42 @@ For assembly examples, I recommend you see the many assembly files in `programs/
 The Luna toolchain has a custom linker (`l2ld`) that will convert files from object format to executable format. Flags for L2LD can be found below<br><br>
 
 # C compilation
-The Luna toolchain has a custom C compiler (`lcc1`) that will convert from C (C99) to assembly. Flags for LCC1 can be found below.<br>
-Please note that LCC1 is very incomplete in terms of C features supported but an effort is being made to add new features.<br>
-## Attributes
+The Luna toolchain has a custom C compiler (`lcc1`) that will compile from C (C99) to assembly. Flags for LCC1 can be found below.<br>
+Please note that LCC1 is incomplete in terms of C features supported but an effort is being made to add new features, however most features used in C99 are supported at least to some degree.<br>
+## Variable Attributes
 In LCC1, you can use `__attribute__((<attribute(s)>))` to specify attributes for variables in the manner below:<br>
 `int foo __attribute__((require_const)) = 5;`<br>
-`int foo() __attribute__((noreturn)) {}`<br>
+`int foo() __attribute__((noreturn)) { ... }`<br>
 All valid attributes are listed below:<br>
 `noreturn`: tells compiler to not pop a return address from the stack at the beginning of a function or adding a `ret` at the end of a function. (valid for functions)<br>
-`norename`: tells compiler to not rename the function in question to `main` if the function name is `_start`. (valid for functions)<br>
 `require_const`: tells compiler to require that the non-global variable in question have a constant compile time initializer. (valid for variables)<br><br>
 ## Extensions
-In LCC1, there are a few extensions to make programming easier. They are as follows:<br>
+In LCC1, there are a few extensions to make programming L2 applications easier. They are as follows:<br>
 `short short <int>`: Specifies an 8-bit integer without a custom type like `uint8_t`.<br>
 `__embed__`: Embeds a file into the resulting assembly file; equivalent to `.embed` but from C. Syntax: `__embed__ <pre (puts at top of file instead at canonical location)/static (no auto .global)> <label name> (("<file path>"))`<br>
-`void*` dereferences: equivalent to `char`/`short short int` dereferences; grabs 8 bits.<br><br>
+`void*` dereferences: equivalent to `char`/`short short int` dereferences; grabs 8 bits.<br>
+Pointer increments: **ALL** pointer types when incremented will be incremented by 1, not by the size of the element. To increment by the size of the element, add by `sizeof(ptr)` instead.<br>
+## Integer Chart
+`short short`: 8 bits (1 byte)<br>
+`short/<none>`: 16 bits (2 bytes)<br>
+`long`: 32 bits (4 bytes)<br>
+`long long`: unsupported<br><br>
 
 # Frontend
-L2 has a simple compiler frontend (`lcc`) which is similar to that of GCC or Clang. LCC will also automatically detect each file's type and use the relevant subtool for it.<br>
+The Luna toolchain has a simple compiler frontend (`lcc`) which is similar to that of GCC or Clang. LCC will also automatically detect each file's type and use the relevant subtool for it.<br>
 ## Compiling a program
 To compile a program, use the following: `lcc <flags> <input file(s)> -o <output file>`<br>
 ## Flags
 `-o`: specifies output file (L2LD)<br>
 `-Werror`: upgrades all warnings to errors (LAS/LCC1)<br>
-`-fstdlib`: Allows linker to pull from `/usr/local/lib/l2ld/` if the corresponding label is not present (L2LD)<br>
 `-fpie`: Specifies to compile in position independent executable mode (LCC1/LAS/L2LD)<br>
 `-fpie-16`: Specifies to L2LD to link your PIE in 16 bit mode (L2LD)<br>
 `-fpie-32`: Specifies to L2LD to link your PIE in 32 bit mode (L2LD)<br>
 `-c`: do not invoke linker (`l2ld`) after assembly is complete (LAS)<br>
-`-v`: shows version of LCC as well as all command invocations<br>
+`-v`: shows version of LCC and exits<br>
+`-si`: shows command invocations LCC makes<br>
 `-S`: do not invoke assembler (`las`) after compilation is complete (LCC1)<br>
+`-fno-autolink`: disallows L2LD pulling from standard libraries if a symbol is undefined after initial linking (L2LD)<br>
 ## Supported file types
 `.s/.S/.asm`: assembly<br>
 `.o/.obj`: object file<br>
