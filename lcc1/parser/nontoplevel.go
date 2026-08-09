@@ -198,7 +198,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			exit := false
 
 			switch _token.Type {
-			case shared.TokSemi, shared.TokRAngle:
+			case shared.TokSemi, shared.TokRAngle, shared.TokComma, shared.TokRParen, shared.TokLParen, shared.TokEquality, shared.TokInequality:
 				IS_WRITE = false
 				exit = true
 			case shared.TokEqual, shared.TokIncrement, shared.TokDecrement:
@@ -266,8 +266,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				}
 			}
 			ParseExpy(subslice, 0, Scope, register, ArgumentTypeManifestEntry{Type: 999})
-		case shared.TokNumber:
-
+		case shared.TokNumber:	
 			Write("mov " + register + ", " + peek(0).Value, true)
 			i++
 		}
@@ -489,6 +488,13 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			}
 		}
 		return variable, CTYPE, CPTR, CLENGTH
+	}
+	_IS_OP := func(op string) bool {
+		switch op {
+		case "+", "-", "*", "/", "%", "&", "|", "^", "<<", ">>":
+			return true
+		}
+		return false
 	}
 
 	deref := 0
@@ -1122,7 +1128,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 		variable = LookupVariable(label, true, Scope, peek(-1), &tokens)
 
-		Write("mov r1, " + variable.Real, true)
+		Write("mov r1, " + variable.Real + " // Variable name: " + variable.Name + ", internal: " + variable.Real, true)
 
 		if _COERCE_TYPE != 6 {
 			CTYPE = _COERCE_TYPE
@@ -1198,8 +1204,9 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				Write("mul e8, e8, e7", true)
 				Write("add r1, r1, e8", true)
 			}
-		}
-	
+		}	
+
+		// I think I can just revert to old after I make the new exparser
 		Intent := _IDENT_INTENT(variable.Pointer, variable.Type, deref, variable.Register, variable)
 
 		if Intent == "write" && deref < 0 {
@@ -1257,6 +1264,53 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				CPTR = true
 				CLENGTH = -deref
 			}
+		}
+
+		VOP_USED := false
+		VOP_FT := false
+		
+		VOP_TOP:	
+		op := peek(0).Value
+		if _IS_OP(op) {
+			VOP_USED = true
+			if VOP_FT == false {
+				VOP_FT = true
+				Write("mov e9, r2", true); // move starting to e9
+			} else {
+				Write("mov e9, e10", true) // move running total to e9 again
+			}
+
+			expect(peek(0).Type)
+			_NUMBER_PARSE("e7")
+
+			// do work
+			switch op {
+			case "+":
+				Write("add e10, e9, e7", true)
+			case "-":
+				Write("sub e10, e9, e7", true)
+			case "*":
+				Write("mul e10, e9, e7", true)
+			case "/":
+				Write("div e10, e9, e7", true)
+			case "%":
+				Write("mod e10, e9, e7", true)
+			case "&":
+				Write("and e10, e9, e7", true)
+			case "|":
+				Write("or e10, e9, e7", true)
+			case "^":
+				Write("xor e10, e9, e7", true)
+			case "<<":
+				Write("shl e10, e9, e7", true)
+			case ">>":
+				Write("shr e10, e9, e7", true)
+			}
+			goto VOP_TOP
+		}
+
+		if VOP_USED == true {
+			Write("mov r2, e10", true) // return to r2
 		}
 
 		_COERCE_TYPE = 6
