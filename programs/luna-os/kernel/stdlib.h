@@ -12,17 +12,17 @@ extern int strlen(char* str);
 extern long int* malloc(long int size);
 extern void free(long int size);
 extern char* itoa(long int num, short short int capitalized, char* location);
-extern int ASLR_generate_address();
+extern long int ASLR_generate_address();
 extern void lexec_core(long int address);
 extern void sleep(long int seconds);
 extern void strcpy(char* b1, char* b2);
 extern void save_sector(long int sector);
-extern void putchar(char c, char* dest);
 extern void printchar(char c);
 extern void render_picture(void* framebuffer);
 extern void* PROMPTBUF;
 extern void* renderbuf_loc;
 extern void* sleep_loc;
+extern void* malloc_loc;
 
 // Console colors, adapted from BIOS colors
 #define COLOR_BLACK   0x00

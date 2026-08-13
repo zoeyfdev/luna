@@ -20,9 +20,6 @@ void _cstart() __attribute__((noreturn)) {
     puts32("Luna", COLOR_LCYAN, COLOR_BLACK);
     puts32("OS!\n", COLOR_WHITE, COLOR_BLACK);
 
-    int x; 
-    tohex((long int) &x, 1);
-
     while (1) {
         shell();
     }

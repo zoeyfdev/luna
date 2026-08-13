@@ -730,7 +730,7 @@ func Assemble(text string) {
 				write([]byte{one})
 			}
 			i = i + 2
-		case "str16": // strfe
+		case "str16", "str16e": // strfe
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
@@ -739,7 +739,7 @@ func Assemble(text string) {
 			if one == 0xff {
 				error.Error(2, "'"+words[i+2]+"'")
 			}
-			if words[i] == "strfe" {
+			if words[i] == "str16e" {
 				Assemble("add e13, " + words[i + 1] + ", e14")
 				write([]byte{0x18})
 				write([]byte{0x1a})
@@ -750,7 +750,7 @@ func Assemble(text string) {
 				write([]byte{one})
 			}
 			i = i + 2
-		case "lod16": // lodfe
+		case "lod16", "lod16e": // lodfe
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
@@ -759,7 +759,7 @@ func Assemble(text string) {
 			if one == 0xff {
 				error.Error(2, "'"+words[i+2]+"'")
 			}
-			if words[i] == "lodfe" {
+			if words[i] == "lod16e" {
 				Assemble("add e13, " + words[i + 1] + ", e14")
 				write([]byte{0x19})
 				write([]byte{0x1a})
@@ -836,7 +836,7 @@ func Assemble(text string) {
 			write([]byte{one})
 			write([]byte{two})
 			i = i + 3
-		case "str32": // strfe
+		case "str32", "str32e": // strfe
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
@@ -845,7 +845,7 @@ func Assemble(text string) {
 			if one == 0xff {
 				error.Error(2, "'"+words[i+2]+"'")
 			}
-			if words[i] == "strfe" {
+			if words[i] == "str32e" {
 				Assemble("add e13, " + words[i + 1] + ", e14")
 				write([]byte{0x1f})
 				write([]byte{0x1a})
@@ -856,7 +856,7 @@ func Assemble(text string) {
 				write([]byte{one})
 			}
 			i = i + 2
-		case "lod32": // lodfe
+		case "lod32", "lod32e": // lodfe
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
@@ -865,7 +865,7 @@ func Assemble(text string) {
 			if one == 0xff {
 				error.Error(2, "'"+words[i+2]+"'")
 			}
-			if words[i] == "lodfe" {
+			if words[i] == "lod32e" {
 				Assemble("add e13, " + words[i + 1] + ", e14")
 				write([]byte{0x1e})
 				write([]byte{0x1a})
@@ -1025,6 +1025,8 @@ func Assemble(text string) {
 				pop r1
 				pop r0
 			`)
+		case "syscall":
+			Assemble(`int 0x4`)
 		case ".ascii":	
 			var value string	
 			var tokens = []string {}

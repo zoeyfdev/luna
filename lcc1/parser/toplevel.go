@@ -532,12 +532,11 @@ func Parse(tokens []shared.Token, Scope int) {
 				error.Error(3, "'" + name + "'", tokens[i - 1], &tokens)
 			}
 
-			FunctionDecls = append(FunctionDecls, 
-				FunctionDecl {
-					Name: name, 
-					Token: peek(-1), 
-					Set: tokens,
-				})	
+			FunctionDecls = append(FunctionDecls, FunctionDecl {
+				Name: name, 
+				Token: peek(-1), 
+				Set: tokens,
+			})	
 
 			var attrs []string
 			var UnpackOrders []UnpackOrder
@@ -547,12 +546,7 @@ func Parse(tokens []shared.Token, Scope int) {
 
 			switch peek(0).Type {
 			case shared.TokLParen:
-				CurrentDisplacement = 0
-				rns := false
-				if name == "main" {
-					rns = true
-					name = "_start"
-				}
+				CurrentDisplacement = 0	
 
 				if rtype == STRUCT && ptr != true {
 					error.UnimplementedMessage("direct returning of structs is not supported due to ABI limitations")
@@ -565,10 +559,7 @@ func Parse(tokens []shared.Token, Scope int) {
 				nargs := 0
 				var BasinSize uint32
 				switch peek(0).Type {
-				case shared.TokType, shared.TokQualifier:
-					if name == "_start" {
-						error.Warning(10, "", peek(0), &tokens)
-					}
+				case shared.TokType, shared.TokQualifier:	
 					register = 0
 					expComma := false
 					for j := i; j < len(tokens); j++ {
@@ -610,7 +601,7 @@ func Parse(tokens []shared.Token, Scope int) {
 								goto ARG_DECL_DONE
 							}
 
-							if __ptr == true {
+							if __ptr == false {
 								dis = ReturnDisplacement(__rtype)
 							} else {
 								dis = ReturnDisplacement(NUMBER32) 
@@ -693,10 +684,6 @@ func Parse(tokens []shared.Token, Scope int) {
 						switch attr {
 						case "noreturn":
 							noreturn = true
-						case "norename":
-							if rns == true {
-								name = "main"
-							}
 						default:
 							error.Warning(34, "'" + attr + "' not allowed here", peek(-3), &tokens)
 						}

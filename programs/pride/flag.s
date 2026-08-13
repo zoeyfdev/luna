@@ -1,4 +1,4 @@
-.bits 16
+.bits 32
 .global flags_start
 
 flags_start:

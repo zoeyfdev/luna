@@ -1,7 +1,8 @@
-.bits 16
+.bits 32
 .global pit_nxt
 .global sleep
 .global putc
+.global key_click
 
 sleep:
     pop e11
@@ -24,16 +25,16 @@ sleep:
 pit_handler:
     pop e11
 
-    // mov r1, 0x6FFF0007 // 0xFA3E for 16 bit
-    mov r1, 0xFA3E
+    mov r1, 0x6FFF0007 // 0xFA3E for 16 bit
+    // mov r1, 0xFA3E
     mov r2, 1
     str r1, r2
 pit_wait:
     hlt
     jmp pit_wait
 pit_nxt:
-    // mov r1, 0x6FFF0007 // 0xFA3E for 16 bit
-    mov r1, 0xFA3E
+    mov r1, 0x6FFF0007 // 0xFA3E for 16 bit
+    // mov r1, 0xFA3E
     mov r2, 0
     str r1, r2
 
@@ -49,3 +50,11 @@ putc:
     int 1
 
     ret
+
+key_click:
+    mov r1, 0x6FFF0019
+    mov r2, 0
+    str r1, r2 // DISABLE KEYBOARD INTERRUPT
+
+    mov r1, 1
+    syscall

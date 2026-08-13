@@ -1,4 +1,4 @@
-#pragma bits 16
+#pragma bits 32
 
 extern void putc(char c, short short int color);
 extern void sleep(int seconds);
@@ -27,11 +27,11 @@ void _start() {
 
     // Set up PIT
     
-    // asm ("mov r1, 0x6FFF0008"); 0xFA41 for 16 bit
-    asm ("mov r1, 0xFA41");
+    asm ("mov r1, 0x6FFF0008"); // 0xFA41 for 16 bit
+    // asm ("mov r1, 0xFA41");
 
     asm ("mov r2, pit_nxt");
-    asm ("str16 r1, r2");
+    asm ("str32 r1, r2");
 
     while (1) {
         render_flags();

@@ -35,7 +35,8 @@ var Variables = []Variable_Static {
 	{Name: "_pc", Real: "pc", Register: true, Scope: 1, Type: NUMBER32},
 	{Name: "_irv", Real: "irv", Register: true, Scope: 1, Type: NUMBER32},
 	{Name: "_ir", Real: "ir", Register: true, Scope: 1, Type: NUMBER32},
-	{Name: "_b", Real: "b", Register: true, Scope: 1, Type: NUMBER32},	
+	{Name: "_b", Real: "b", Register: true, Scope: 1, Type: NUMBER32},
+	{Name: "_fp", Real: "fp", Register: true, Scope: 1, Type: NUMBER32},
 }
 
 var FunctionDecls = []FunctionDecl {}

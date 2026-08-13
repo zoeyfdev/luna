@@ -39,7 +39,7 @@ func execute(command string, displayError bool) bool {
 			if code == 2 {
 				stderr(lcc_info.ICE_MESSAGE)
 			}
-			stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mcompilation command failed.\033[0m")
+			stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mcompilation command failed (use -si to see invocation)\033[0m")
 			os.Exit(1)
 		} else {
 			return false

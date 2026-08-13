@@ -16,12 +16,12 @@ long int* ffnt(char* filename) {
     bool seen = false;
     while (*filename != 0) { 
         if (*filename != 0x20) {
-            putchar((char) *filename, (char*) buffer); 
+            *buffer = *filename;
             buffer++;
         } else {
             if (seen == false) {
                 seen = true;
-                putchar(46, (char*) buffer); // .
+                *buffer = 0x2E; // .
                 buffer++;
             }
         }
@@ -44,13 +44,13 @@ long int* fntf(char* name) {
                 int initial = 12;
                 int toput = initial - copied;
                 for (int i = 0; i < toput; i++) {
-                    putchar(0x20, (char*) buffer);
+                    *buffer = 0x20;
                     buffer++;
                 }
                 name++;
             } 
         } else {
-            putchar(*name, (char*) buffer);
+            *buffer = *name;
             copied++;
             name++;
             buffer++;

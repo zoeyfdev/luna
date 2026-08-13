@@ -12,9 +12,11 @@ void boot() __attribute__((noreturn)) {
     targeted_load((long int) play_sound_loc, 3);
     targeted_load((long int) renderbuf_loc, 2);
     targeted_load((long int) sleep_loc, 2);
+    targeted_load((long int) fzipdecode_loc, 3);
+    targeted_load((long int) malloc_loc, 2);
 
     play_sound(BOOT_SOUND, 41984, false);
-    render_buf((void*) BOOT_IMG);
+    render_buf((void*) fzip_decode(BOOT_IMG));
 
     linear_sector_load(0x350);
 

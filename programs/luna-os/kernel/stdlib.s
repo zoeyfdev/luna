@@ -32,9 +32,9 @@
 .global strcpy
 .global save_sector
 .global strlen
-.global putchar
 .global printchar
 .global render_picture
+.global malloc_loc
 
 printchar:
     pop e11
@@ -219,15 +219,6 @@ strlen:
 
     cmp r5, r3, r2
     jz r5, e10
-
-    ret
-
-putchar:
-    pop e11
-    pop r2 // destination
-    pop r1 // char
-
-    str r2, r1
 
     ret
 
@@ -438,7 +429,7 @@ ASLR_generate_address:
 
     mov r1, ASLR_addr 
     
-    mov r2, 0x50
+    mov r2, 0x20
     str r1, r2 // 1
     inc r1
 
@@ -611,6 +602,7 @@ itoa_after:
 
     ret
 
+malloc_loc:
 malloc:
     pop e11
     pop r1 // Size

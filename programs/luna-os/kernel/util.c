@@ -67,20 +67,20 @@ void load_sector(short short int drive, long int* dest_sector, long int real_sec
 
 void load_executable() {
     if (query_drive_inserted(2) == 0) {
-        puts32("Error! ", 0xA0, 0);
+        puts32("Error! ", COLOR_RED, COLOR_BLACK);
         puts32("Please insert a disc into the DVD\ndrive and try again.\n", COLOR_WHITE, COLOR_BLACK);
         return;
     }
 
     long int* address = (long int*) ASLR_generate_address();
-    address = address + 1;
-
+    address++;
+   
     load_sector(2, address / 512, 0);
     load_sector(2, address / 512 + 1, 1);
     load_sector(2, address / 512 + 2, 2);
 
     if (*address != 0x4C325049) {   
-        puts32("Error! ", COLOR_WHITE, COLOR_BLACK);
+        puts32("Error! ", COLOR_RED, COLOR_BLACK);
         puts32("Invalid executable file format.\n", COLOR_WHITE, COLOR_BLACK);
         return;
     }
@@ -88,7 +88,7 @@ void load_executable() {
 }
 
 void app_error() __attribute__((noreturn)) {
-    puts32("Error! ", COLOR_LRED, COLOR_BLACK);
+    puts32("Error! ", COLOR_RED, COLOR_BLACK);
     puts32("Executable automatically\nterminated due to instruction fault.\n", COLOR_WHITE, COLOR_BLACK);
     goto lexec_done; 
 }
@@ -109,7 +109,7 @@ short short int* get_word(char* string, int pos) {
         }
 
         if (cpos == pos) {
-            putchar(*string, (char*) buffer);
+            *buffer = *string;
             buffer++;
         }
 
@@ -127,13 +127,13 @@ short short int* atoi(long int n) {
     long int i = 0;
     
     if (n == 0) {
-        putchar(0x30, (char*) buf2);
+        *buf2 = 0x30;
         return ogbufptr;
     }
 
     while (n > 0) {
         long int res = n % 10;
-        putchar(0x30 + res, (char*) buf);
+        *buf = 0x30 + res;
         n = n / 10;
         i++;
         buf++;
@@ -142,10 +142,11 @@ short short int* atoi(long int n) {
     while (i > 0) { 
         i--;
         buf--;
-        putchar((char) *buf, (char*) buf2);
+        *buf2 = *buf;
         buf2++; 
     }
 
+    *buf2 = 0;
     free(64);
     return ogbufptr;
 }
