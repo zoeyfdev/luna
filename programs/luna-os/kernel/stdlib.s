@@ -251,6 +251,7 @@ strcpy:
 
     jnz r3, e10
 
+    mov e6, r2
     ret
 
 puts32:

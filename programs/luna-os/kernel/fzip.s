@@ -4,12 +4,17 @@
 
 fzipdecode_loc:
 fzip_decode:
-    // .byte 0x21
     pop e11
     pop r5 // image
     push e11
 
     mov r10, 4
+    mov e4, 1 // granular 1 marker
+
+    add r5, r5, r10 // skip over header
+
+    lod r5, e7 // granular marker in e7
+    inc r5
 
     lod32 r5, r11 // size in r11
 
@@ -27,8 +32,17 @@ fzip_decode:
 
     mov e10, pc
 
+    cmp e8, e7, e4
+    jnz e8, fzd_l8
+    jmp fzd_l32
+fzd_l8:
+    lod r5, r6 // Load current n into r6
+    inc r5 // advance past n
+    jmp fzd_lafter
+fzd_l32:
     lod32 r5, r6 // Load current n into r6
     add r5, r5, r10 // advance past n
+fzd_lafter:
     lod r5, r9 // char in r9
     inc r5
 
@@ -43,12 +57,14 @@ fzd_inner:
     jmp fzd_inner
 
 fzd_next:
-    // .byte 0x21
     mov r7, 0
     cmp e1, e0, r11
     jnz e1, fzd_ret
     jmp e10
-fzd_ret:
+fzd_ret: 
+    push r11
+    call free
+
     pop e6
     pop e11
     ret

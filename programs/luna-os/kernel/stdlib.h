@@ -15,7 +15,7 @@ extern char* itoa(long int num, short short int capitalized, char* location);
 extern long int ASLR_generate_address();
 extern void lexec_core(long int address);
 extern void sleep(long int seconds);
-extern void strcpy(char* b1, char* b2);
+extern short short int* strcpy(char* b1, char* b2);
 extern void save_sector(long int sector);
 extern void printchar(char c);
 extern void render_picture(void* framebuffer);

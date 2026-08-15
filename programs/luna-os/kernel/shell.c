@@ -6,6 +6,7 @@
 #include "util.h"
 #include "audio.h"
 #include "stdbool.h"
+#include "textedit.h"
 
 char* notepad_file = "NOTEPAD.SYS";
 
@@ -62,9 +63,13 @@ void shell() {
                 continue;
             }
 
-            strcpy((char*) file, (char*) buf);
+            short short int* final = strcpy((char*) file, (char*) buf);
+            *final = 0;
 
-            readin((char*) buf, 0, 0);
+            tohex((long int) f->Address, 1);
+            wait_for_key();
+
+            textedit_init((short short int*) buf);
             fwrite((char*) fntf(notepad_file), (char*) buf);
 
             puts32("\n", COLOR_WHITE, COLOR_BLACK);
