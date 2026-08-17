@@ -732,13 +732,7 @@ func main() {
 	}
 
 	Memory = make([]byte, MemorySetting)
-	shared.MEMCAP = MemorySetting - 1
-
-	// Initialize components
-	audio.AudioController(APU)
-	go rtc.RTCController()
-	go pit.PITController()
-	go power.PowerController()	
+	shared.MEMCAP = MemorySetting - 1	
 
 	go func() {
 		if video.Ready == false {	
@@ -749,7 +743,13 @@ func main() {
 					time.Sleep(500)
 				}
 			}
-		}	
+		}
+
+		// Initialize components
+		audio.AudioController(APU)
+		go rtc.RTCController()
+		go pit.PITController()
+		go power.PowerController()
 
 		boot:
 		bios.Splash()

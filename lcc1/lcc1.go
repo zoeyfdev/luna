@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/alexfdev0/lcc_info"
 )
@@ -53,6 +54,7 @@ func main() {
 	var noassemble bool = false
 	var nolink bool = false
 	var errors bool = false
+	var stats bool = false
 	
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -70,7 +72,9 @@ func main() {
 		case "-Werror":
 			error.Upgrade = true
 		case "-fpie":
-			parser.PIE = true	
+			parser.PIE = true
+		case "-scs":
+			stats = true
 		default:
 			if arg[0] == '-' {
 				error.ErrorNoGaze(53, "'" + arg + "'", shared.Token{Line: 0}) 
@@ -95,9 +99,31 @@ func main() {
 			error.ErrorNoGaze(16, "'" + file + "'", shared.Token{Line: 0})
 			os.Exit(1)
 		}
+
+		if stats == true {
+			fmt.Println("\033[1;39mlcc: statistics in file '" + file + "':\033[0m")
+		}
+
+		preproc_time := time.Now()
 		code := lexer.Preprocessor(string(data), file)
+
+		if stats == true {
+			fmt.Println("\033[1;39mlcc: preprocessor:", time.Since(preproc_time), "\033[0m")
+		}
+
+		lex_time := time.Now()
 		tokens := lexer.Lex(code, file)
+
+		if stats == true {
+			fmt.Println("\033[1;39mlcc: lexer:", time.Since(lex_time), "\033[0m")
+		}
+
+		parse_time := time.Now()
 		parser.Parse(tokens, 1)
+
+		if stats == true {
+			fmt.Println("\033[1;39mlcc: parser:", time.Since(parse_time), "\033[0m")
+		}
 
 		if error.Errors < 1 && error.FailCompilation == false {
 			name := strings.TrimSuffix(file, filepath.Ext(file))

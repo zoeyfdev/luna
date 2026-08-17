@@ -8,3 +8,5 @@ extern void load_executable();
 extern short short int* get_word(char* string, int pos);
 extern short short int* atoi(long int n);
 extern void toint(long int n);
+extern void video_save_cursor();
+extern void video_load_cursor();

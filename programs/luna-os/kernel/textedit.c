@@ -5,6 +5,7 @@
 
 void textedit_init(short short int* buffer) {
     save_graphics_buf();
+    video_save_cursor();
     render_buf((void*) 0x40404040);
     video_set_cursor(0, 0);
     
@@ -12,4 +13,5 @@ void textedit_init(short short int* buffer) {
     readin((char*) buffer, 0, 0);
 
     render_buf(0x30303030);
+    video_load_cursor();
 }

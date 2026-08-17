@@ -1,4 +1,5 @@
 #pragma bits 32
+
 #include "stdbool.h"
 
 asm (".global play_sound_loc");
@@ -15,5 +16,6 @@ void play_sound(void* buffer, long int size, bool block) {
     if (block == true) {
         while (*done_flag == 0) {}
     }
+
     return;
 }

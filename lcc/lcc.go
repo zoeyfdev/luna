@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"runtime"
 	"github.com/alexfdev0/lcc_info"
+	"time"
 )
 
 var SeeInvocation bool
@@ -86,6 +87,7 @@ func main() {
 	var lasargs []string
 	var noautolink bool = false
 	var l2ld_opt string = ""
+	var show_stats bool
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -122,6 +124,9 @@ func main() {
 			l2ld_opt += " -fpie-32"
 		case  "-fpie-16":
 			l2ld_opt += " -fpie-16"
+		case "-scs":
+			show_stats = true
+			cc1args = append(cc1args, "-scs")
 		default:
 			if arg[0] == '-' {
 				stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39munknown argument: '" + arg + "'\033[0m")
@@ -153,6 +158,7 @@ func main() {
 	var object_files = []string {}
 
 	// First pass: compile high-level languages to assembly
+	cstart := time.Now()
 	for _, file := range input_files {
 		ext := filepath.Ext(file)
 		name := strings.TrimSuffix(file, filepath.Ext(file))
@@ -173,7 +179,11 @@ func main() {
 		default:
 			stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39munknown file type in '" + file + "'\033[0m")
 		}
-	}	
+	}
+	
+	if show_stats == true {
+		fmt.Println("lcc: compile duration:", time.Since(cstart))
+	}
 
 	if hl_error == true {
 		cleanupFiles(cleanup)
@@ -184,8 +194,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Second pass: assemble all assembly files	
-
+	// Second pass: assemble all assembly files
+	astart := time.Now()
 	for _, file := range assembly_files {
 		name, _ := splitFile(file)		
 		success := execute("las -c " + strings.Join(lasargs, " ") + " " + file + " -o " + name + ".o", false)
@@ -201,6 +211,10 @@ func main() {
 		}	
 	}
 
+	if show_stats == true {
+		fmt.Println("lcc: assemble duration:", time.Since(astart))
+	}
+
 	if asm_error == true {
 		cleanupFiles(cleanup)
 		os.Exit(1)
@@ -212,12 +226,18 @@ func main() {
 	}
 	
 	// Third pass: link all assembly files to final executable
+	lstart := time.Now()
 	alinkstring := " -a"
 	if noautolink == true {
 		alinkstring = ""
 	}
 
 	success := execute("l2ld " + alinkstring + " " + l2ld_opt + " " + strings.Join(object_files, " ") + " -o " + output_file, false)
+
+	if show_stats == true {
+		fmt.Println("lcc: link duration:", time.Since(lstart))
+	}
+
 	if success != true {
 		cleanupFiles(cleanup)
 		stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mlinker command failed (use -si to see invocation)\033[0m")

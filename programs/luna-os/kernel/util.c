@@ -2,6 +2,8 @@
 
 #include "stdlib.h"
 #include "audio.h"
+#include "stdbool.h"
+#include "fzip.h"
 
 void tohex(long int number, short short int capitalized) {
     puts32("0x", 255, 0);
@@ -20,7 +22,7 @@ void kernel_panic() __attribute__((noreturn)) {
     asm ("push r2");
     asm ("push r1");
 
-    play_sound(CRASH_SOUND, 164352, 0);
+    play_sound((void*) fzip_decode(CRASH_SOUND), 164352, false);
     screen_fill(0x80808080);
     puts32("System error\n\nYour PC ran into an error and needs to\nbe restarted.\n\nPress any key to reboot.\n\n\n", COLOR_WHITE, COLOR_RED);
     
@@ -44,6 +46,25 @@ void video_set_cursor(int x, int y) {
     asm ("mov r1, e0");
     asm ("mov r2, e1");
     asm ("int 0x0c");
+}
+
+int get_cursor_x() {
+    asm ("int 0xe");
+    asm ("mov e6, r1");
+}
+int get_cursor_y() {
+    asm ("int 0xe");
+    asm ("mov e6, r2");
+}
+
+int cursor_x = 0;
+int cursor_y = 0;
+void video_save_cursor() {
+    cursor_x = get_cursor_x();
+    cursor_y = get_cursor_y();
+}
+void video_load_cursor() {
+    video_set_cursor(cursor_x, cursor_y);
 }
 
 int query_drive_inserted(short short int drive) {

@@ -11,7 +11,6 @@
 char* notepad_file = "NOTEPAD.SYS";
 
 bool tried = false;
-
 void teststack() {
     long int* rand = 0x90909090;
     long int val = *rand;
@@ -65,9 +64,6 @@ void shell() {
 
             short short int* final = strcpy((char*) file, (char*) buf);
             *final = 0;
-
-            tohex((long int) f->Address, 1);
-            wait_for_key();
 
             textedit_init((short short int*) buf);
             fwrite((char*) fntf(notepad_file), (char*) buf);

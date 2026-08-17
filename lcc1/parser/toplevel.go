@@ -579,7 +579,7 @@ func Parse(tokens []shared.Token, Scope int) {
 
 							IDCounter++
 							__rtype, __ptr, __ptrlen := _PARSE_TYPE()
-							__name := expect(shared.TokIdent)
+							__name := expect(shared.TokIdent)	
 							
 							if __ptr == false {
 								ManifestEntries = append(ManifestEntries, ArgumentTypeManifestEntry{
@@ -611,16 +611,20 @@ func Parse(tokens []shared.Token, Scope int) {
 							
 							UnpackOrders = append(UnpackOrders, UnpackOrder{Register: __arg_reg, Label: __rn, Type: __rtype, Pointer: __ptr, PointerLength: __ptrlen})
 
-							switch __rtype {
-							case NUMBER8:	
-								BasinSize += 1
-							case NUMBER16:
-								BasinSize += 2
-							case NUMBER32, STRING, NULL:
+							switch __ptr {
+							case false:
+								switch __rtype {
+								case NUMBER8:	
+									BasinSize += 1
+								case NUMBER16:
+									BasinSize += 2
+								case NUMBER32, STRING, NULL:
+									BasinSize += 4
+								}
+							case true:
 								BasinSize += 4
 							}
 							
-
 							ARG_DECL_DONE:
 							if __ptr == false {
 								Variables = append(Variables, Variable_Static{Name: __name, Type: __rtype, Value: nil, Scope: fscope, Real: __rn, Pointer: __ptr})
@@ -761,27 +765,28 @@ func Parse(tokens []shared.Token, Scope int) {
 						__ptr := UnpackOrder.Pointer
 						__rtype := UnpackOrder.Type
 
-						switch __rtype {
-						case NUMBER8:
-							Write("mov r1, " + __rn, true)
-							Write("str r1, " + __arg_reg, true)
-						case STRING:
-							if __ptr == false {
+						switch __ptr {
+						case false:
+							switch __rtype {
+							case NUMBER8:
 								Write("mov r1, " + __rn, true)
 								Write("str r1, " + __arg_reg, true)
-							} else {
+							case STRING:
 								Write("mov r1, " + __rn, true)
-								Write("str_ptr r1, " + __arg_reg, true)
+								Write("str r1, " + __arg_reg, true)
+							case NULL:
+								Write("mov r1, " + __rn, true)
+								Write("str_ptr r1, " + __arg_reg, true)	
+							case NUMBER16:
+								Write("mov r1, " + __rn, true)
+								Write("str16 r1, " + __arg_reg, true)
+							case NUMBER32:
+								Write("mov r1, " + __rn, true)
+								Write("str32 r1, " + __arg_reg, true)
 							}
-						case NULL:
+						case true:
 							Write("mov r1, " + __rn, true)
-							Write("str_ptr r1, " + __arg_reg, true)	
-						case NUMBER16:
-							Write("mov r1, " + __rn, true)
-							Write("str16 r1, " + __arg_reg, true)
-						case NUMBER32:
-							Write("mov r1, " + __rn, true)
-							Write("str32 r1, " + __arg_reg, true)
+							Write("str_ptr r1, " + __arg_reg, true)
 						}	
 					}
 

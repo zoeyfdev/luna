@@ -6,6 +6,7 @@ import (
 	"luna_l2/shared"
 	"math/rand"
 	"fmt"
+	"os"
 )
 
 var MemoryAudio [10]byte
@@ -17,22 +18,20 @@ var MemoryAudio [10]byte
 	// Byte 10: done flag
 
 func AudioController() {
+	Device, err := sdl.OpenAudioDevice("", false, &sdl.AudioSpec {
+		Freq: 48000,
+		Format: sdl.AUDIO_S8,
+		Channels: 1,
+		Samples: 4096, // Just in case of long audios
+	}, nil, 0)
+	if err != nil {
+		fmt.Println("luna-l2: failed opening audio:", err)
+		os.Exit(1)
+	}
+
 	for {
 		if MemoryAudio[0] != 0 {
-			MemoryAudio[0] = 0
-
-			Spec := &sdl.AudioSpec {
-				Freq: 48000,
-				Format: sdl.AUDIO_S8,
-				Channels: 1,
-				Samples: 4096, // Just in case of long audios
-			}
-
-			Device, err := sdl.OpenAudioDevice("", false, Spec, nil, 0)
-			if err != nil {
-				fmt.Println("luna-l2: failed opening audio:", err)
-				continue
-			}
+			MemoryAudio[0] = 0	
 
 			Length := uint32(MemoryAudio[5]) << 24 | uint32(MemoryAudio[6]) << 16 | uint32(MemoryAudio[7]) << 8 | uint32(MemoryAudio[8])
 			Cursor := uint32(MemoryAudio[1]) << 24 | uint32(MemoryAudio[2]) << 16 | uint32(MemoryAudio[3]) << 8 | uint32(MemoryAudio[4])
@@ -50,7 +49,6 @@ func AudioController() {
 				time.Sleep(15 * time.Millisecond)
 			}
 
-			sdl.CloseAudioDevice(Device)
 			MemoryAudio[9] = 1
 		}
 		time.Sleep(time.Duration(15) * time.Millisecond)
