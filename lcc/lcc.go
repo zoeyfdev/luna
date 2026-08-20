@@ -89,6 +89,13 @@ func main() {
 	var l2ld_opt string = ""
 	var show_stats bool
 
+	GrabArgument := func(pos int) string {
+		if pos <= len(os.Args) - 1 {
+			return os.Args[pos]
+		}
+		return ""
+	}
+
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
 		if i == 0 {
@@ -98,11 +105,12 @@ func main() {
 		case "-c":
 			nolink = true
 		case "-o":
-			if len(os.Args) <= i + 1 {
+			output_file = GrabArgument(i + 1)
+			if output_file == "" {
 				stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39margument to '-o' is missing (expected 1 value)\033[0m")
 				continue
 			}
-			output_file = os.Args[i + 1]
+
 			i++
 		case "-v":
 			lcc_info.PrintVersionInfo()
@@ -127,6 +135,21 @@ func main() {
 		case "-scs":
 			show_stats = true
 			cc1args = append(cc1args, "-scs")
+		case "-define":
+			name := GrabArgument(i + 1)
+			value := GrabArgument(i + 2)
+			if name == "" || value == "" {
+				stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39margument(s) to '-define' is missing (expected 2 values)\033[0m")
+				continue
+			}
+
+			cc1args = append(cc1args, "-define")
+			cc1args = append(cc1args, name)
+			cc1args = append(cc1args, value)
+
+			i += 2
+		case "-help", "--help":
+			lcc_info.PrintUnifiedHelpMessage()
 		default:
 			if arg[0] == '-' {
 				stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39munknown argument: '" + arg + "'\033[0m")

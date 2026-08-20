@@ -10,6 +10,8 @@ import (
 	"github.com/alexfdev0/lcc_info"
 	"las/error"
 	"las/assembler"
+	"las/lexer"
+	"las/shared"
 )
 
 // This code was hell to refactor
@@ -60,7 +62,7 @@ func cleanupFiles(files []string) {
 
 func main() {
 	if len(os.Args) < 2 {
-		error.Error(0, "")
+		error.Error(0, "", shared.Token{}, &[]shared.Token{}, false)
 		os.Exit(1)
 	}
 
@@ -84,9 +86,11 @@ func main() {
 			error.Upgrade = true
 		case "-fpie":
 			assembler.PIE = true
+		case "-help", "--help":
+			lcc_info.PrintUnifiedHelpMessage()
 		default:
 			if arg[0] == '-' {
-				error.Error(14, "'" + arg + "'")
+				error.Error(14, "'" + arg + "'", shared.Token{}, &[]shared.Token{}, false)
 			} else {
 				input_files = append(input_files, arg)
 			}
@@ -94,7 +98,7 @@ func main() {
 	}
 
 	if len(input_files) < 1 {
-		error.Error(0, "")
+		error.Error(0, "", shared.Token{}, &[]shared.Token{}, false)
 		os.Exit(1)
 	}
 
@@ -111,15 +115,16 @@ func main() {
 	for _, file := range input_files {
 		data, err := os.ReadFile(file)
 		if err != nil {
-			error.Error(1, "'" + file + "'")
+			error.Error(1, "'" + file + "'", shared.Token{}, &[]shared.Token{}, false)
 			os.Exit(1)
 		}
 		Current_Filename = file
-		error.File = file
+		shared.File = file
 		// Assemble everything
-		error.Line = 1
-		assembler.Assemble(string(data))
-		error.Line = 0
+
+		
+		tokens := lexer.Preprocessor(string(data), []lexer.DefineEntry {})
+		assembler.Assemble(tokens)
 
 		// Error checking
 

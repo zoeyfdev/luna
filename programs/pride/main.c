@@ -1,4 +1,8 @@
-#pragma bits 32
+#ifdef PORTABLE
+    #pragma bits 32
+#else
+    #pragma bits 16
+#endif
 
 extern void putc(char c, short short int color);
 extern void sleep(int seconds);
@@ -17,21 +21,31 @@ void render_flags() {
     }
 }
 
-void _start() {
-    // Load the next sectors on the disk
-    asm ("int 0x10");
-    asm ("mov r2, r1");
-    asm ("mov r1, 1");
-    asm ("mov r3, r1");
-    asm ("int 11");
+void _start() __attribute__((noreturn)) {
+    #ifndef PORTABLE
+        // Load the next sectors on the disk
+        asm ("int 0x10");
+        asm ("mov r2, r1");
+        asm ("mov r1, 1");
+        asm ("mov r3, r1");
+        asm ("int 11");
+    #endif
 
     // Set up PIT
+   
+    #ifdef PORTABLE
+        asm ("mov r1, 0x6FFF0008");
+    #else
+        asm ("mov r1, 0xFA41");
+    #endif
     
-    asm ("mov r1, 0x6FFF0008"); // 0xFA41 for 16 bit
-    // asm ("mov r1, 0xFA41");
-
     asm ("mov r2, pit_nxt");
-    asm ("str32 r1, r2");
+
+    #ifdef PORTABLE
+        asm ("str32 r1, r2");
+    #else
+        asm ("str16 r1, r2");
+    #endif
 
     while (1) {
         render_flags();

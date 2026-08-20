@@ -4,6 +4,8 @@ import (
 	"strings"
 	"strconv"
 	"las/error"
+	"las/lexer"
+	"las/shared"
 	"path/filepath"
 	"os"
 )
@@ -96,7 +98,7 @@ func isRegister(word string) byte {
 	}
 }
 
-func parse(text string) ([]byte, bool) {
+func parse(text string, Token shared.Token, Stream *[]shared.Token) ([]byte, bool) {
 	// Check for number
 	if _, err := strconv.ParseInt(text, 0, 64); err == nil {
 		num, _ := strconv.ParseInt(text, 0, 64)
@@ -115,9 +117,9 @@ func parse(text string) ([]byte, bool) {
 	if isRegister(text) != 0xff {	
 		return []byte{byte(isRegister(text))}, false
 	}
-	if string(text[0]) == "\"" {
+	if len(text) > 0 && string(text[0]) == "\"" {
 		if string(text[len(text) - 1]) != "\"" {
-			error.Error(6, "")
+			error.Error(6, "", Token, Stream, true)
 		}
 
 		text = strings.Trim(text, "\"")
@@ -127,13 +129,13 @@ func parse(text string) ([]byte, bool) {
 		text = strings.ReplaceAll(text, "\\r", "\r")
 		if Bits32 == false {
 			if len(text) > 2 {
-				error.Error(5, "'" + text + "'")
+				error.Error(5, "'" + text + "'", Token, Stream, true)
 			} else if len(text) == 1 {
 				text = string(byte(00)) + text
 			}
 		} else {
 			if len(text) > 4 {
-				error.Error(5, "'" + text + "'")	
+				error.Error(5, "'" + text + "'", Token, Stream, true)	
 			} else if len(text) == 1 {
 				text = string(byte(00)) + string(byte(00)) + string(byte(00)) + text
 			} else if len(text) == 2 {
@@ -160,99 +162,19 @@ func formatString(text string) string {
 	return text
 }
 
-
-func Lex(text string) []Token {
-   	var Tokens []Token
-	var Buffer string
-	var Str bool
-	var Line int = 1
-	var InComment bool = false
-
-	Add := func(Text string) {
-		if Text == "" { return }
-		Tokens = append(Tokens, Token{
-			Value: Text,
-			Line: Line,
-		})
-	}
-
-	for i := 0; i < len(text); i++ {
-		current := text[i]
-
-		switch current {
-		case '"':
-			if InComment == false {
-				Buffer += "\""
-				if Str == false {
-					Str = true
-				} else {
-					Str = false
-					Add(Buffer)
-					Buffer = ""
-				}
-			}
-		case 0x0A:
-			if InComment == true { InComment = false }
-			if Str == false && InComment == false {
-				Add(Buffer)
-				Buffer = "" 
-			}
-			Add("\n")
-			Line++
-		case ' ':
-			if Str == false && InComment == false {
-				Add(Buffer)
-				Buffer = ""
-			} else {
-				if Str == true && InComment == false {
-					Buffer += string(current)
-				}
-			}
-		case '\t':
-			if Str == false && InComment == false {
-				Add(Buffer)
-				Buffer = ""
-			}	
-		case '/':
-			if text[i + 1] == '/' {
-				i++
-				InComment = true
-			} else {
-				if InComment == false {
-					Buffer += string(current)
-				}
-			}
-		case ';':
-			InComment = true
-		case '#':
-			if text[i + 1] == ' ' {
-				i++
-				InComment = true
-			} else {
-				if InComment == false {
-					Buffer += string(current)
-				}
-			}
-		default:
-			if InComment == false {
-				Buffer += string(current)
-			}
-		}
-	}
-
-	if Buffer != "" && InComment == false {
-		Add(Buffer)
-	}
-	
-	return Tokens
-}
-
 var non_organic bool
 var PJL bool
 var clabel string
 
-func Assemble(text string) {
-	Tokens := Lex(text)
+func QuickAssemble(text string, line int) {
+	Tokens := lexer.Preprocessor(text, []lexer.DefineEntry {})
+	for i := 0; i < len(Tokens); i++ {
+		Tokens[i].Line = line	
+	}
+	Assemble(Tokens)
+}
+
+func Assemble(Tokens []shared.Token) {
 	words := []string {}
 
 	for _, T := range Tokens {
@@ -264,65 +186,20 @@ func Assemble(text string) {
 	}
 
 	for i := 0; i < len(words); i++ {
-		switch words[i] {
-		case "#define":
-			alias := words[i + 1]
-			actual := words[i + 2]
-			words = append(words[:i], words[i + 3:]...)
-			for j := 0; j < len(words); j++ {
-				if words[j] == alias {
-					words[j] = actual
-				}
-			}
-		case "#pragma":
-			switch words[i + 1] {
-			case "size":
-				size, err := strconv.ParseInt(words[i + 2], 0, 64)
-				if err != nil {
-					error.Error(11, "")
-					break
-				}
-				ForcedSize = size
-				i++
-			default:
-				error.Warning(12, "'" + words[i + 1] + "'")	
-			}
-			i++
-		}
-	}
-
-	for i := 0; i < len(words); i++ {
 		if strings.HasSuffix(words[i], ":") && !strings.Contains(words[i], "\"") {
-			end := len(words)
-			for j := i + 1; j < len(words); j++ {
-				if strings.HasSuffix(words[j], ":") {
-					end = j
-					break
-				}
-			}
-
 			words[i] = strings.ReplaceAll(words[i], ":", "")
 			if Bits32 == false {
 				write(append([]byte("LD16_" + words[i]), 0x00))
 			} else {
 				write(append([]byte("LD32_" + words[i]), 0x00))
-			}
-			clabel = words[i]
-			tocompile := words[i + 1:end]
-			if len(tocompile) > 0 {
-				Assemble(strings.Join(tocompile, " "))
-			}
-
-			i = end - 1
+			}	
 			continue
 		}
 
 		words[i] = strings.ToLower(words[i])
 
-
 		switch words[i] {
 		case "\n":
-			error.Line++
 			continue
 		case "mov":
 			write([]byte{0x01})
@@ -341,7 +218,7 @@ func Assemble(text string) {
 
 			dst := isRegister(words[i+1])
 			if dst == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i], &Tokens, true)
 			}
 			write([]byte{dst})
 
@@ -360,12 +237,12 @@ func Assemble(text string) {
 				}
 
 				// TODO: add support for PIEs
-				value, _ := parse(words[i + 4])
+				value, _ := parse(words[i + 4], Tokens[i + 4], &Tokens)
 				write(value)
 				
 				i += 2
 			} else {
-				value, label := parse(words[i + 2])
+				value, label := parse(words[i + 2], Tokens[i + 2], &Tokens)
 	
 				write(value)
 				if PIE == true && label == true {	
@@ -380,7 +257,7 @@ func Assemble(text string) {
 		case "hlt":
 			write([]byte{0x02})
 		case "jmp":
-			_, label := parse(words[i + 1])
+			_, label := parse(words[i + 1], Tokens[i + 1], &Tokens)
 			if PIE == false || label == false {
 				write([]byte{0x03})
 
@@ -390,31 +267,31 @@ func Assemble(text string) {
 					write([]byte{0x02})
 				}
 
-				value, _ := parse(words[i + 1])
+				value, _ := parse(words[i + 1], Tokens[i + 1], &Tokens)
 				write(value)
 			} else {
 				non_organic = true
-				Assemble(`mov e13, ` + words[i + 1])
+				QuickAssemble(`mov e13, ` + words[i + 1], Tokens[i + 1].Line)
 				non_organic = false
-				Assemble(`jmp e13`)
+				QuickAssemble(`jmp e13`, Tokens[i + 1].Line)
 			}
 			i = i + 1
 		case "int":
 			write([]byte{0x04})
-			value, _ := parse(words[i+1])	
+			value, _ := parse(words[i + 1], Tokens[i + 1], &Tokens)	
 			if Bits32 == false {
 				if len(value) > 2 {
-					error.Error(3, "'" + string(value) + "'")
+					error.Error(3, "'" + string(value) + "'", Tokens[i], &Tokens, true)
 				}
 			} else {
 				if len(value) > 4 {
-					error.Error(3, "'" + string(value) + "'")
+					error.Error(3, "'" + string(value) + "'", Tokens[i], &Tokens, true)
 				}
 			}
 			write(value)
 			i = i + 1
 		case "jnz":
-			_, label := parse(words[i + 2])
+			_, label := parse(words[i + 2], Tokens[i + 2], &Tokens)
 			if PIE == false || label == false {
 				write([]byte{0x05})
 
@@ -426,21 +303,21 @@ func Assemble(text string) {
 
 				register := isRegister(words[i+1])
 				if register == 0xff {
-					error.Error(2, "'"+words[i+1]+"'")
+					error.Error(2, "'" + words[i + 1] + "'", Tokens[i], &Tokens, true)
 				}
 				write([]byte{register})
 
-				value, _ := parse(words[i+2])
+				value, _ := parse(words[i + 2], Tokens[i + 2], &Tokens)
 				write(value)
 			}  else {
 				register := isRegister(words[i+1])
 				if register == 0xff {
-					error.Error(2, "'"+words[i+1]+"'")
+					error.Error(2, "'" + words[i + 1] + "'", Tokens[i], &Tokens, true)
 				}
 				non_organic = true
-				Assemble(`mov e13, ` + words[i + 2])
+				QuickAssemble(`mov e13, ` + words[i + 2], Tokens[i + 2].Line)
 				non_organic = false
-				Assemble(`jnz ` + words[i + 1] + `, e13`)
+				QuickAssemble(`jnz ` + words[i + 1] + `, e13`, Tokens[i + 1].Line)
 			}
 			i = i + 2
 		case "nop":
@@ -450,13 +327,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x07})
 			write([]byte{check})
@@ -464,7 +341,7 @@ func Assemble(text string) {
 			write([]byte{two})
 			i = i + 3
 		case "jz":
-			_, label := parse(words[i + 2])
+			_, label := parse(words[i + 2], Tokens[i + 2], &Tokens)
 			if PIE == false || label == false {
 				write([]byte{0x08})
 
@@ -476,28 +353,28 @@ func Assemble(text string) {
 
 				register := isRegister(words[i+1])
 				if register == 0xff {
-					error.Error(2, "'"+words[i+1]+"'")
+					error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 				}
 				write([]byte{register})
 
-				value, _ := parse(words[i+2])
+				value, _ := parse(words[i + 2], Tokens[i + 2], &Tokens)
 				write(value)
 			} else {
 				register := isRegister(words[i+1])
 				if register == 0xff {
-					error.Error(2, "'"+words[i+1]+"'")
+					error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 				}
 				non_organic = true
-				Assemble(`mov e13, ` + words[i + 2])
+				QuickAssemble(`mov e13, ` + words[i + 2], Tokens[i + 2].Line)
 				non_organic = false
-				Assemble(`jz ` + words[i + 1] + `, e13`)
+				QuickAssemble(`jz ` + words[i + 1] + `, e13`, Tokens[i + 1].Line)
 			}
 			i = i + 2
 		case "inc":
 			write([]byte{0x09})
 			reg := isRegister(words[i+1])
 			if reg == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			write([]byte{reg})
 			i = i + 1
@@ -505,12 +382,12 @@ func Assemble(text string) {
 			write([]byte{0x0a})
 			reg := isRegister(words[i+1])
 			if reg == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			write([]byte{reg})
 			i = i + 1
 		case "push":
-			_, label := parse(words[i + 1])
+			_, label := parse(words[i + 1], Tokens[i + 1], &Tokens)
 			if PIE == false || label == false {
 				write([]byte{0x0b})
 				if isRegister(words[i+1]) == 0xff {
@@ -518,20 +395,20 @@ func Assemble(text string) {
 				} else {
 					write([]byte{0x02})
 				}
-				value, _ := parse(words[i + 1])
+				value, _ := parse(words[i + 1], Tokens[i + 1], &Tokens)
 				write(value)
 			} else {
 				non_organic = true
-				Assemble(`mov e13, ` + words[i + 1])
+				QuickAssemble(`mov e13, ` + words[i + 1], Tokens[i + 1].Line)
 				non_organic = false
-				Assemble(`push e13`)
+				QuickAssemble(`push e13`, Tokens[i + 1].Line)
 			}
 			i = i + 1
 		case "pop":
 			write([]byte{0x0c})
 			reg := isRegister(words[i+1])
 			if reg == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			write([]byte{reg})
 			i = i + 1
@@ -540,13 +417,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x0d})
 			write([]byte{check})
@@ -558,13 +435,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x0e})
 			write([]byte{check})
@@ -576,13 +453,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x0f})
 			write([]byte{check})
@@ -594,13 +471,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x10})
 			write([]byte{check})
@@ -612,13 +489,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x11})
 			write([]byte{check})
@@ -630,13 +507,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x12})
 			write([]byte{check})
@@ -648,13 +525,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x13})
 			write([]byte{check})
@@ -666,13 +543,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x14})
 			write([]byte{check})
@@ -683,10 +560,10 @@ func Assemble(text string) {
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			write([]byte{0x15})
 			write([]byte{check})
@@ -697,13 +574,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x16})
 			write([]byte{check})
@@ -714,13 +591,13 @@ func Assemble(text string) {
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
-			}
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
+			}	
 			if words[i] == "lode" {
-				Assemble("add e13, " + words[i + 1] + ", e14")
+				QuickAssemble("add e13, " + words[i + 1] + ", e14", Tokens[i + 1].Line)
 				write([]byte{0x17})
 				write([]byte{0x1a})
 				write([]byte{one})
@@ -734,13 +611,13 @@ func Assemble(text string) {
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if words[i] == "str16e" {
-				Assemble("add e13, " + words[i + 1] + ", e14")
+				QuickAssemble("add e13, " + words[i + 1] + ", e14", Tokens[i + 1].Line)
 				write([]byte{0x18})
 				write([]byte{0x1a})
 				write([]byte{one})
@@ -754,13 +631,13 @@ func Assemble(text string) {
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if words[i] == "lod16e" {
-				Assemble("add e13, " + words[i + 1] + ", e14")
+				QuickAssemble("add e13, " + words[i + 1] + ", e14", Tokens[i + 1].Line)
 				write([]byte{0x19})
 				write([]byte{0x1a})
 				write([]byte{one})
@@ -784,13 +661,13 @@ func Assemble(text string) {
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if words[i] == "stre" {
-				Assemble("add e13, " + words[i + 1] + ", e14")
+				QuickAssemble("add e13, " + words[i + 1] + ", e14", Tokens[i + 1].Line)
 				write([]byte{0x1b})
 				write([]byte{0x1a})
 				write([]byte{one})
@@ -805,13 +682,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x1c})
 			write([]byte{check})
@@ -823,13 +700,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x1d})
 			write([]byte{check})
@@ -840,13 +717,13 @@ func Assemble(text string) {
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if words[i] == "str32e" {
-				Assemble("add e13, " + words[i + 1] + ", e14")
+				QuickAssemble("add e13, " + words[i + 1] + ", e14", Tokens[i + 1].Line)
 				write([]byte{0x1f})
 				write([]byte{0x1a})
 				write([]byte{one})
@@ -860,13 +737,13 @@ func Assemble(text string) {
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if words[i] == "lod32e" {
-				Assemble("add e13, " + words[i + 1] + ", e14")
+				QuickAssemble("add e13, " + words[i + 1] + ", e14", Tokens[i + 1].Line)
 				write([]byte{0x1e})
 				write([]byte{0x1a})
 				write([]byte{one})
@@ -881,13 +758,13 @@ func Assemble(text string) {
 			one := isRegister(words[i+2])
 			two := isRegister(words[i+3])
 			if check == 0xff {
-				error.Error(2, "'"+words[i+1]+"'")
+				error.Error(2, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if one == 0xff {
-				error.Error(2, "'"+words[i+2]+"'")
+				error.Error(2, "'"+words[i + 2] + "'", Tokens[i + 2], &Tokens, true)
 			}
 			if two == 0xff {
-				error.Error(2, "'"+words[i+3]+"'")
+				error.Error(2, "'" + words[i + 3] + "'", Tokens[i + 3], &Tokens, true)
 			}
 			write([]byte{0x20})
 			write([]byte{check})
@@ -895,19 +772,19 @@ func Assemble(text string) {
 			write([]byte{two})
 			i = i + 3
 		case "lodf", "strf":
-			error.Warning(13, "'" + words[i] + "'")	
+			error.Warning(13, "'" + words[i] + "'", Tokens[i], &Tokens, true)	
 			if Bits32 == false {
-				Assemble(words[i][0:3] + "16 " + words[i + 1] + " " + words[i + 2])
+				QuickAssemble(words[i][0:3] + "16 " + words[i + 1] + " " + words[i + 2], Tokens[i + 1].Line)
 			} else {
-				Assemble(words[i][0:3] + "32 " + words[i + 1] + " " + words[i + 2])
+				QuickAssemble(words[i][0:3] + "32 " + words[i + 1] + " " + words[i + 2], Tokens[i + 1].Line)
 			}
 			
 			i += 2
 		case "lod_ptr", "str_ptr":			
 			if Bits32 == false {
-				Assemble(words[i][0:3] + "16 " + words[i + 1] + " " + words[i + 2])
+				QuickAssemble(words[i][0:3] + "16 " + words[i + 1] + " " + words[i + 2], Tokens[i + 1].Line)
 			} else {
-				Assemble(words[i][0:3] + "32 " + words[i + 1] + " " + words[i + 2])
+				QuickAssemble(words[i][0:3] + "32 " + words[i + 1] + " " + words[i + 2], Tokens[i + 1].Line)
 			}
 			
 			i += 2
@@ -915,19 +792,19 @@ func Assemble(text string) {
 			label := words[i + 1]
 			if PIE == false {
 				if Bits32 == false {
-					Assemble(`
+					QuickAssemble(`
 					mov e11, pc                  
 					mov r0, 20                   
 					add e11, e11, r0             
 					push e11                     
-					jmp	` + label)             
+					jmp	` + label, Tokens[i + 1].Line)             
 				} else {
-					Assemble(`
+					QuickAssemble(`
 					mov e11, pc
 					mov r0, 24
 					add e11, e11, r0
 					push e11
-					jmp	` + label) 
+					jmp	` + label, Tokens[i + 1].Line) 
 					// 4 bytes
 					// 7 bytes
 					// 4 bytes
@@ -936,19 +813,19 @@ func Assemble(text string) {
 				}
 			} else {
 				if Bits32 == false {
-					Assemble(`
+					QuickAssemble(`
 					mov e11, pc                  
 					mov r0, 20                   
 					add e11, e11, r0             
 					push e11                     
-					jmp	` + label)             
+					jmp	` + label, Tokens[i + 1].Line)             
 				} else {
-					Assemble(`
+					QuickAssemble(`
 					mov e11, pc
 					mov r0, 32
 					add e11, e11, r0
 					push e11
-					jmp	` + label) 
+					jmp	` + label, Tokens[i + 1].Line) 
 					// 4 bytes
 					// 7 bytes
 					// 4 bytes
@@ -960,15 +837,15 @@ func Assemble(text string) {
 			i = i + 1
 		case "ret":
 			if (clabel == "_start" || clabel == "") && PIE == true {
-				Assemble(`
+				QuickAssemble(`
 				mov r1, 1
 				int 0x04
-				`)	
+				`, Tokens[i].Line)	
 			} else {
-				Assemble(`jmp e11`)
+				QuickAssemble(`jmp e11`, Tokens[i].Line)
 			}
 		case "pusha":
-			Assemble(`
+			QuickAssemble(`
 				push r0
 				push r1
 				push r2
@@ -995,9 +872,9 @@ func Assemble(text string) {
 				push e10
 				push e11
 				push e12
-			`)
+			`, Tokens[i].Line)
 		case "popa":
-			Assemble(`
+			QuickAssemble(`
 				pop e12
 				pop e11
 				pop e10
@@ -1024,15 +901,15 @@ func Assemble(text string) {
 				pop r2
 				pop r1
 				pop r0
-			`)
+			`, Tokens[i].Line)
 		case "syscall":
-			Assemble(`int 0x4`)
+			QuickAssemble(`int 0x4`, Tokens[i].Line)
 		case ".ascii":	
 			var value string	
 			var tokens = []string {}
 			
 			if string(words[i+1][0]) != "\"" {
-				error.Error(7, "'" + words[i+1] + "'")
+				error.Error(7, "'" + words[i+1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if strings.HasSuffix(words[i + 1], "\"") {
 				value = strings.Trim(words[i + 1], "\"")
@@ -1051,7 +928,7 @@ func Assemble(text string) {
 				}
 			}
 			if ending == 0 {
-				error.Error(6, "'" + words[i + 1] + "'")
+				error.Error(6, "'" + words[i + 1] + "'", Tokens[i], &Tokens, true)
 			}
 			
 			tokens[0] = strings.TrimPrefix(tokens[0], "\"")
@@ -1065,7 +942,7 @@ func Assemble(text string) {
 			var tokens = []string {}	
 
 			if string(words[i+1][0]) != "\"" {
-				error.Error(7, "'" + words[i+1] + "'")
+				error.Error(7, "'" + words[i+1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			if strings.HasSuffix(words[i + 1], "\"") {
 				value = strings.Trim(words[i + 1], "\"")
@@ -1085,7 +962,7 @@ func Assemble(text string) {
 				}
 			}
 			if ending == 0 {
-				error.Error(6, "'" + words[i + 1] + "'")
+				error.Error(6, "'" + words[i + 1] + "'", Tokens[i + 1], &Tokens, true)
 			}
 			
 			tokens[0] = strings.TrimPrefix(tokens[0], "\"")
@@ -1104,11 +981,11 @@ func Assemble(text string) {
 				Bits32 = true
 				write([]byte("L_32BIT"))
 			default:
-				error.Error(9, "")
+				error.Error(9, "", Tokens[i + 1], &Tokens, true)
 			}
 			i++
 		case ".embed":
-			absSource, _ := filepath.Abs(error.File)
+			absSource, _ := filepath.Abs(shared.File)
 			base := filepath.Dir(absSource)
 			raw := strings.ReplaceAll(words[i + 1], "\"", "")
 
@@ -1119,7 +996,7 @@ func Assemble(text string) {
 
 			data, err := os.ReadFile(path)
 			if err != nil {
-				error.Error(1, "'" + path + "'")
+				error.Error(1, "'" + path + "'", Tokens[i + 1], &Tokens, false)
 				continue
 			}
 			write(data)
@@ -1128,7 +1005,7 @@ func Assemble(text string) {
 			word := words[i + 1]
 			num, err := strconv.ParseInt(word, 0, 64)
 			if err != nil {
-				error.Error(11, ", got '" + word + "'")
+				error.Error(11, ", got '" + word + "'", Tokens[i + 1], &Tokens, true)
 			}
 			H := byte(num >> 8)
 			L := byte(num & 0xFF)
@@ -1138,7 +1015,7 @@ func Assemble(text string) {
 			word := words[i + 1]
 			num, err := strconv.ParseInt(word, 0, 64)
 			if err != nil {
-				error.Error(11, ", got '" + word + "'")
+				error.Error(11, ", got '" + word + "'", Tokens[i + 1], &Tokens, true)
 			}
 			HH := byte(num >> 24)
 			HL := byte(num >> 16)
@@ -1150,7 +1027,7 @@ func Assemble(text string) {
 			word := words[i + 1]
 			num, err := strconv.ParseInt(word, 0, 64)
 			if err != nil {
-				error.Error(11, ", got '" + word + "'")
+				error.Error(11, ", got '" + word + "'", Tokens[i + 1], &Tokens, true)
 			}
 			H := byte(num >> 8)
 			L := byte(num & 0xFF)
@@ -1160,21 +1037,21 @@ func Assemble(text string) {
 			word := words[i + 1]
 			num, err := strconv.ParseInt(word, 0, 64)
 			if err != nil {
-				error.Error(11, ", got '" + word + "'")
+				error.Error(11, ", got '" + word + "'", Tokens[i + 1], &Tokens, true)
 			}
 			H := byte(num >> 8)
 			L := byte(num & 0xFF)
 			write(append([]byte("LO_"), []byte{H, L}...))
 			i++
 		case ".ptr":
-			value, _ := parse(words[i + 1])
+			value, _ := parse(words[i + 1], Tokens[i + 1], &Tokens)
 			write(value)
 			i++
 		case ".pad":
 			word := words[i + 1]
 			num, err := strconv.ParseInt(word, 0, 64)
 			if err != nil {
-				error.Error(11, ", got '" + word + "'")
+				error.Error(11, ", got '" + word + "'", Tokens[i + 1], &Tokens, true)
 			}
 			for j := 0; int64(j) < num; j++ {
 				write([]byte{0x00})
@@ -1190,7 +1067,7 @@ func Assemble(text string) {
 				if words[j] != "\n" {
 					num, err := strconv.ParseUint(strings.ReplaceAll(words[j], ",", ""), 0, 8)
 					if err != nil {
-						error.Error(11, ", got '" + words[j] + "'")
+						error.Error(11, ", got '" + words[j] + "'", Tokens[j], &Tokens, true)
 					}
 					write([]byte{byte(num)})
 				} else {
@@ -1201,14 +1078,14 @@ func Assemble(text string) {
 		case ".fhex":
 			i++
 			if len(words[i]) != 6 && len(words[i]) != 8 {
-				error.Error(15, "'" + words[i] + "'")
+				error.Error(15, "'" + words[i] + "'", Tokens[i], &Tokens, true)
 				continue
 			}
 	
 			if len(words[i]) == 8 || words[i][0:2] == "0x" {
 				words[i] = words[i][2:]
 			} else {
-				error.Error(15, "'" + words[i] + "'")
+				error.Error(15, "'" + words[i] + "'", Tokens[i], &Tokens, true)
 				continue
 			}	
 
@@ -1217,13 +1094,13 @@ func Assemble(text string) {
 			b, e3 := strconv.ParseInt(words[i][4:6], 16, 64)
 
 			if e1 != nil || e2 != nil || e3 != nil {
-				error.Error(15, "'" + words[i] + "'")
+				error.Error(15, "'" + words[i] + "'", Tokens[i], &Tokens, true)
 				continue
 			}
 			
 			write([]byte{byte((r & 0xE0) | ((g >> 3) & 0x1C) | (b >> 6))})
 		default:
-			error.Error(4, "'" + words[i] + "'")
+			error.Error(4, "'" + words[i] + "'", Tokens[i], &Tokens, true)
 		}
 	}
 }

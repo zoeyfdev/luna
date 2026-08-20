@@ -204,10 +204,10 @@ func CheckDefined(Name string) (DefineEntry, bool) {
 	return DefineEntry{Name: "__NOTFOUND__"}, false
 }
 
-func Preprocessor(text string, filename string) []SmallToken {
+func Preprocessor(text string, filename string, predefs []DefineEntry) []SmallToken {
 	var out []SmallToken
 
-	
+	Defines = append(Defines, predefs...)
 
 	again := false
 
@@ -267,30 +267,67 @@ PREPROCESSOR_TOP:
 			i++
 			if (Found == true && dir == "#ifdef") || (Found == false && dir == "#ifndef") {
 				end := 0
+				isElse := false
 				for j := i; j < len(tokens); j++ {
 					t := tokens[j]
-					if t.Value == "#endif" {
+					if t.Value == "#endif" || t.Value == "#else" {
+						if t.Value == "#else" {
+							isElse = true
+						}
 						i = j
 						end = j
 						break
 					}
 					out = append(out, t)
 				}
+
+				if isElse == true {
+					for j := i; j < len(tokens); j++ {
+						t := tokens[j]
+						if t.Value == "#endif" {	
+							i = j
+							end = j
+							break
+						}
+					}
+				}
+
 				if end == 0 {
 					error.Error(29, "", origin, &FakeStream)
 				}
+
 				again = true
 			} else {
-				// TODO: add #else
 				end := 0
 				for j := i; j < len(tokens); j++ {
 					t := tokens[j]
-					if t.Value == "#endif" {
+					if t.Value == "#endif" || t.Value == "#else" {
 						i = j
 						end = j
 						break
 					}
 				}
+
+				if tokens[i].Value == "#else" {
+					i++
+					end := 0
+					for j := i; j < len(tokens); j++ {
+						t := tokens[j]
+						if t.Value == "#endif" {
+							i = j
+							end = j
+							break
+						}
+						out = append(out, t)
+					}
+
+					if end == 0 {
+						error.Error(29, "", origin, &FakeStream)
+					}
+
+					again = true
+				}
+
 				if end == 0 {
 					error.Error(29, "", origin, &FakeStream)
 				}

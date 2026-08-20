@@ -55,6 +55,7 @@ func main() {
 	var nolink bool = false
 	var errors bool = false
 	var stats bool = false
+	var predefs []lexer.DefineEntry
 	
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -75,6 +76,38 @@ func main() {
 			parser.PIE = true
 		case "-scs":
 			stats = true
+		case "-define":
+			if i + 2 > len(os.Args) - 1 {
+				continue
+			}
+
+			name := os.Args[i + 1]
+			value := os.Args[i + 2]
+
+			de := lexer.DefineEntry {}
+			
+			list := []lexer.SmallToken {}
+
+			cur := ""
+
+			for _, c := range value {
+				switch c {
+				case ' ':
+					list = append(list, lexer.SmallToken {
+						Value: cur,
+						Filename: "__CMDLINE__",
+					})
+				default:
+					cur += string(c)
+				}
+			}
+
+			de.Name = name
+			predefs = append(predefs, de)
+
+			i += 2
+		case "-help", "--help":
+			lcc_info.PrintUnifiedHelpMessage()
 		default:
 			if arg[0] == '-' {
 				error.ErrorNoGaze(53, "'" + arg + "'", shared.Token{Line: 0}) 
@@ -105,7 +138,7 @@ func main() {
 		}
 
 		preproc_time := time.Now()
-		code := lexer.Preprocessor(string(data), file)
+		code := lexer.Preprocessor(string(data), file, predefs)
 
 		if stats == true {
 			fmt.Println("\033[1;39mlcc: preprocessor:", time.Since(preproc_time), "\033[0m")

@@ -1,10 +1,20 @@
-.bits 16
+#ifdef PORTABLE
+    .bits 16
+#else
+    .bits 32
+#endif
+
 jmp _start
 
 #define TICK_TIME 62
 
 _start:
-    mov sp, 0xEFFF
+    #ifdef PORTABLE
+        mov sp, 0xEFFF
+    #else
+        mov sp, 0x60000000 
+        jmp main_setup
+    #end
 
     // Put loader stuff here
     int 0x10
