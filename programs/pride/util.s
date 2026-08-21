@@ -1,4 +1,9 @@
-.bits 32
+#ifdef PORTABLE
+    .bits 32
+#else
+    .bits 16
+#endif
+
 .global pit_nxt
 .global sleep
 .global putc
@@ -25,16 +30,24 @@ sleep:
 pit_handler:
     pop e11
 
-    mov r1, 0x6FFF0007 // 0xFA3E for 16 bit
-    // mov r1, 0xFA3E
+    #ifdef PORTABLE
+        mov r1, 0x6FFF0007 // 0xFA3E for 16 bit
+    #else
+        mov r1, 0xFA3E
+    #endif
+
     mov r2, 1
     str r1, r2
 pit_wait:
     hlt
     jmp pit_wait
 pit_nxt:
-    mov r1, 0x6FFF0007 // 0xFA3E for 16 bit
-    // mov r1, 0xFA3E
+    #ifdef PORTABLE
+        mov r1, 0x6FFF0007 // 0xFA3E for 16 bit
+    #else
+        mov r1, 0xFA3E
+    #endif
+
     mov r2, 0
     str r1, r2
 
@@ -51,10 +64,25 @@ putc:
 
     ret
 
+#ifdef PORTABLE
 key_click:
+    pusha
     mov r1, 0x6FFF0019
     mov r2, 0
     str r1, r2 // DISABLE KEYBOARD INTERRUPT
 
+    mov r1, 0x80000012
+    lod r1, r2
+
+    mov r3, "q"
+    cmp r4, r2, r3
+    jnz r4, kc_exit
+    jmp kc_ret
+kc_exit:
+    popa
     mov r1, 1
     syscall
+kc_ret:
+    popa
+    jmp irv
+#endif

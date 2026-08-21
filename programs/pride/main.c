@@ -21,7 +21,7 @@ void render_flags() {
     }
 }
 
-void _start() __attribute__((noreturn)) {
+void _cstart() __attribute__((noreturn)) {
     #ifndef PORTABLE
         // Load the next sectors on the disk
         asm ("int 0x10");

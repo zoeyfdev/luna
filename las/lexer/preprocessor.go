@@ -31,10 +31,12 @@ func CheckDefined(Name string) (DefineEntry, bool) {
 	return DefineEntry{Name: "__NOTFOUND__"}, false
 }
 
-func Preprocessor(data string, predefs []DefineEntry) []shared.Token {
+var Predefs []DefineEntry
+
+func Preprocessor(data string) []shared.Token {
 	out := []shared.Token {}
 
-	for _, Predef := range predefs {
+	for _, Predef := range Predefs {
 		Defines = append(Defines, Predef)	
 	}
 
@@ -112,7 +114,7 @@ PREPROCESSOR_TOP:
 				}
 
 				if end == 0 {
-					error.Error(29, "", origin, &FakeStream, true)
+					error.Error(17, "", origin, &FakeStream, true)
 				}
 
 				again = true
@@ -141,14 +143,14 @@ PREPROCESSOR_TOP:
 					}
 
 					if end == 0 {
-						error.Error(29, "", origin, &FakeStream, true)
+						error.Error(17, "", origin, &FakeStream, true)
 					}
 
 					again = true
 				}
 
 				if end == 0 {
-					error.Error(29, "", origin, &FakeStream, true)
+					error.Error(17, "", origin, &FakeStream, true)
 				}
 			}
 		case "#error":
@@ -166,7 +168,7 @@ PREPROCESSOR_TOP:
 			}
 			origin := FakeStream[0]
 			i++
-			error.Error(22, tokens[i].Value, origin, &FakeStream, true)
+			error.Error(10, tokens[i].Value, origin, &FakeStream, true)
 		case "#warning":
 			var FakeStream []shared.Token
 			for j := i; j < len(tokens); j++ {
@@ -182,7 +184,7 @@ PREPROCESSOR_TOP:
 			}
 			origin := FakeStream[0]
 			i++
-			error.Warning(22, tokens[i].Value, origin, &FakeStream, true)	
+			error.Warning(10, tokens[i].Value, origin, &FakeStream, true)	
 		default:
 			token := tokens[i]
 			if tokens[i].Value[0] == '#' {
@@ -199,7 +201,7 @@ PREPROCESSOR_TOP:
 					})
 				}
 				origin := FakeStream[0]
-				error.Error(42, "\"" + token.Value + "\"", origin, &FakeStream, true)
+				error.Error(16, "\"" + token.Value + "\"", origin, &FakeStream, true)
 			} else {
 				Entry, Found := CheckDefined(token.Value)
 				if Found == true {

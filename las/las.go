@@ -17,6 +17,9 @@ import (
 // This code was hell to refactor
 // Also it is a bucket of bad so be warned LOL
 
+// this code was aids to refactor AGAIN
+// ^ zoey aug 20 2025 日本語授業で
+
 var section string = "text"
 var input_files []string
 var Current_Filename string = ""
@@ -68,7 +71,7 @@ func main() {
 
 	var output_filename string = ""
 	var nolink bool = false
-	var object_files = []string {}	
+	var object_files = []string {}
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -88,6 +91,36 @@ func main() {
 			assembler.PIE = true
 		case "-help", "--help":
 			lcc_info.PrintUnifiedHelpMessage()
+		case "-define":
+			if i + 2 > len(os.Args) - 1 {
+				continue
+			}
+
+			name := os.Args[i + 1]
+			value := os.Args[i + 2]
+
+			de := lexer.DefineEntry {}
+			
+			list := []shared.Token {}
+
+			cur := ""
+
+			for _, c := range value {
+				switch c {
+				case ' ':
+					list = append(list, shared.Token {
+						Value: cur,
+						File: "__CMDLINE__",
+					})
+				default:
+					cur += string(c)
+				}
+			}
+
+			de.Name = name
+			lexer.Predefs = append(lexer.Predefs, de)
+
+			i += 2
 		default:
 			if arg[0] == '-' {
 				error.Error(14, "'" + arg + "'", shared.Token{}, &[]shared.Token{}, false)
@@ -123,7 +156,7 @@ func main() {
 		// Assemble everything
 
 		
-		tokens := lexer.Preprocessor(string(data), []lexer.DefineEntry {})
+		tokens := lexer.Preprocessor(string(data))
 		assembler.Assemble(tokens)
 
 		// Error checking

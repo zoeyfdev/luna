@@ -1,4 +1,9 @@
-.bits 32
+#ifdef PORTABLE
+    .bits 32
+#else
+    .bits 16
+#endif
+
 .global flags_start
 
 flags_start:

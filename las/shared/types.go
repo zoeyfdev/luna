@@ -5,5 +5,3 @@ type Token struct {
 	Value string
 	File string
 }
-
-var File string

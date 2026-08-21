@@ -167,7 +167,7 @@ var PJL bool
 var clabel string
 
 func QuickAssemble(text string, line int) {
-	Tokens := lexer.Preprocessor(text, []lexer.DefineEntry {})
+	Tokens := lexer.Preprocessor(text)
 	for i := 0; i < len(Tokens); i++ {
 		Tokens[i].Line = line	
 	}
@@ -835,15 +835,8 @@ func Assemble(Tokens []shared.Token) {
 			}
 			
 			i = i + 1
-		case "ret":
-			if (clabel == "_start" || clabel == "") && PIE == true {
-				QuickAssemble(`
-				mov r1, 1
-				int 0x04
-				`, Tokens[i].Line)	
-			} else {
-				QuickAssemble(`jmp e11`, Tokens[i].Line)
-			}
+		case "ret":	
+			QuickAssemble(`jmp e11`, Tokens[i].Line)
 		case "pusha":
 			QuickAssemble(`
 				push r0

@@ -40,7 +40,7 @@ func execute(command string, displayError bool) bool {
 			if code == 2 {
 				stderr(lcc_info.ICE_MESSAGE)
 			}
-			stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mcompilation command failed (use -si to see invocation)\033[0m")
+			stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mcompilation command failed with exit code " + fmt.Sprintf("%d", code) + " (use -si to see invocation)\033[0m")
 			os.Exit(1)
 		} else {
 			return false
@@ -146,6 +146,10 @@ func main() {
 			cc1args = append(cc1args, "-define")
 			cc1args = append(cc1args, name)
 			cc1args = append(cc1args, value)
+
+			lasargs = append(lasargs, "-define")
+			lasargs = append(lasargs, name)
+			lasargs = append(lasargs, value)
 
 			i += 2
 		case "-help", "--help":

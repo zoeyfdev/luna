@@ -22,13 +22,14 @@ var errors = []string {
 	"expected string",
 	"invalid architecture",
 	"invalid argument to 'bits', must be 16 or 32",
-	"putting more than one character to a register may have undesirable results", // 10 (not used anymore)
+	"", // 10 (not used anymore)
 	"expected number",
 	"unknown pragma directive",
 	"deprecated instruction",
 	"unknown argument:",
 	"invalid hex color to '.fhex'",
 	"invalid preprocessing directive",
+	"unterminated conditional directive",
 }
 
 func StargazeLite(Tokens *[]shared.Token, where int, kind int) {
@@ -57,11 +58,12 @@ func StargazeLite(Tokens *[]shared.Token, where int, kind int) {
 
 	words := make([]string, 0, end - start + 1)
 	for j := start; j <= end; j++ {
+		if (*Tokens)[j].Value == "\n" { continue }
 		words = append(words, (*Tokens)[j].Value)	
 	}
 
 	text := strings.Join(words, " ")
-	fmt.Printf("    %d | %s", line, text) 
+	fmt.Printf("    %d | %s\n", line, text) 
 
 	if kind != 3 {
 		(*Tokens)[where].Value = OGTVAL
@@ -90,7 +92,13 @@ func Error(errno int, args string, Token shared.Token, Stream *[]shared.Token, G
 		label += fmt.Sprintf("%d:", Token.Line)
 	}
 
-	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
+	addtl := " "
+
+	if errno == 10 {
+		addtl = ""
+	}
+
+	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 
 	if Gaze == true {
 		StargazeLite(Stream, find(Token, Stream), 1)
@@ -116,10 +124,18 @@ func Warning(errno int, args string, Token shared.Token, Stream *[]shared.Token,
 		label += fmt.Sprintf("%d:", Token.Line)
 	}
 
-	fmt.Println("\033[1;39m" + label + " \033[1;35mwarning: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
+	addtl := " "
+
+	if errno == 10 {
+		addtl = ""
+	}
+
+	fmt.Println("\033[1;39m" + label + " \033[1;35mwarning: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 
 	if Gaze == true {
 		StargazeLite(Stream, find(Token, Stream), 2)
+	} else {
+		fmt.Printf("\n")
 	}
 	Warnings++
 }

@@ -32,7 +32,7 @@ func PITController() {
 			MemoryPIT[4] = byte(current >> 24)
 			MemoryPIT[5] = byte(current >> 16)
 			MemoryPIT[6] = byte(current >> 8)
-			MemoryPIT[7] = byte(current)
+			MemoryPIT[7] = byte(current & 0xFF)
 		}
 
 		time.Sleep(time.Millisecond)

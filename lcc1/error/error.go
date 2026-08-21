@@ -7,7 +7,6 @@ import (
 	"strings"
 	"regexp"
 	"runtime/debug"
-	"github.com/alexfdev0/lcc_info"
 )
 
 var errors = []string {
@@ -214,10 +213,9 @@ func Note(errno int, args string, token shared.Token, tokens *[]shared.Token) {
 }
 func InternalCompilerError(message string) {
 	fmt.Fprintln(os.Stderr, "\033[1;39mlcc: \033[1;31minternal compiler error: \033[1;39m" + message + "\033[0m")
-	fmt.Fprintln(os.Stderr, "Stack trace:")
+	fmt.Fprintln(os.Stderr, "\033[1;39mlcc: stack trace:\033[0m")
 	debug.PrintStack()
-	fmt.Fprintln(os.Stderr, lcc_info.ICE_MESSAGE)
-	os.Exit(1)
+	os.Exit(2)
 }
 func UnimplementedMessage(message string) {
 	fmt.Fprintln(os.Stderr, "sorry, unimplemented:", message)
