@@ -171,3 +171,24 @@ void fwrite(char* name, char* content) {
     save_sector(sec - 1);
     save_sector(sec + 1);
 }
+
+void fstrap() {
+    long int** fptr = (long int**) 0x618;
+    long int* fstart_addr = *fptr;
+
+    while (1) {
+        if (*fstart_addr != 0x4C465346) {
+            break;
+        }
+
+        long int osector = (long int) fstart_addr / 512;
+        fstart_addr = fstart_addr + 20; // skip over header and name
+
+        long int size = *fstart_addr;
+        long int sectors = size / 512;
+
+        offset_sec_load(sectors, osector);
+
+        fptr = fptr + size;
+    }
+}

@@ -6,8 +6,13 @@
 #include "audio.h"
 #include "stub.h"
 #include "stdbool.h"
+#include "lufs.h"
+#include "util.h"
 
 void boot() __attribute__((noreturn)) {
+    targeted_load((long int) puts32_loc, 2);
+
+    puts32("Loading resources...\n", COLOR_WHITE, COLOR_BLACK);
     targeted_load((long int) BOOT_SOUND, 43);
     targeted_load((long int) BOOT_IMG, 4);
     targeted_load((long int) play_sound_loc, 3);
@@ -19,11 +24,16 @@ void boot() __attribute__((noreturn)) {
     play_sound((void*) fzip_decode(BOOT_SOUND), 41984, false);
     render_buf((void*) fzip_decode(BOOT_IMG));
 
-    linear_sector_load(0x125);
+    video_set_cursor(0, 0);
+    puts32("Loading LunaOS...\n", COLOR_WHITE, COLOR_BLACK);
 
-    sleep(5);
+    linear_sector_load(0xFF);
+
+    puts32("Bootstrapping LUFS...\n", COLOR_WHITE, COLOR_BLACK);
+
+    fstrap();
 
     render_buf((void*) 0x30303030);
-    
+    video_set_cursor(0, 0);
     asm ("jmp _cstart");
 }

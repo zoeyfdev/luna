@@ -35,6 +35,8 @@
 .global printchar
 .global render_picture
 .global malloc_loc
+.global offset_sec_load
+.global puts32_loc
 
 printchar:
     pop e11
@@ -254,6 +256,7 @@ strcpy:
     mov e6, r2
     ret
 
+puts32_loc:
 puts32:
     pop e11
     pop r3
@@ -523,6 +526,30 @@ syscall_ret:
     popa
     jmp irv
 
+offset_sec_load:
+    pop e11
+    pop r5 // origin sector
+    pop r4 // sectors
+
+    mov r6, 0
+
+    int 0x10
+    mov r2, r1 // move drive to r2
+
+    mov r1, r5 // move orig sector to arg
+
+    mov e10, pc
+
+    mov r3, r1
+    int 0xb
+
+    inc r1
+    inc r6
+
+    ilt r7, r6, r4
+    jnz r7, e10
+
+    ret
 
 sleep_loc:
 sleep:

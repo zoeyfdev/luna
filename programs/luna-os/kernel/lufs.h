@@ -12,5 +12,5 @@ extern long int fgetsize(char* filename);
 extern long int* ffnt(char* filename);
 extern void flist();
 extern long int* fntf(char* name);
-
+extern void fstrap();
 

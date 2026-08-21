@@ -19,10 +19,12 @@ extern short short int* strcpy(char* b1, char* b2);
 extern void save_sector(long int sector);
 extern void printchar(char c);
 extern void render_picture(void* framebuffer);
+extern void offset_sec_load(long int sectors, long int orig_sector);
 extern void* PROMPTBUF;
 extern void* renderbuf_loc;
 extern void* sleep_loc;
 extern void* malloc_loc;
+extern void* puts32_loc;
 
 // Console colors, adapted from BIOS colors
 #define COLOR_BLACK   0x00
