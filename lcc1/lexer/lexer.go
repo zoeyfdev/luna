@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"fmt"
 	"lcc1/shared"
+	"strings"
 )
 
 func Lex(code []SmallToken, filename string) []shared.Token {
@@ -20,6 +21,25 @@ func Lex(code []SmallToken, filename string) []shared.Token {
 		tokens = append(tokens, shared.Token{
 			Type: Type,
 			Value: Value,
+			FakeValue: Value,
+			Line: ST.Line,
+			File: ST.Filename,
+			MathToken: MathToken,
+		})
+	}
+
+	AddWithFake := func(Type shared.TokenType, Value string, RealValue string, ST SmallToken) {
+		MathToken := false
+
+		switch Type {
+		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash, shared.TokPercent, shared.TokShiftLeft, shared.TokShiftRight, shared.TokIncrement, shared.TokDecrement:
+			MathToken = true
+		}
+
+		tokens = append(tokens, shared.Token{
+			Type: Type,
+			Value: RealValue,
+			FakeValue: Value,
 			Line: ST.Line,
 			File: ST.Filename,
 			MathToken: MathToken,
@@ -120,9 +140,19 @@ func Lex(code []SmallToken, filename string) []shared.Token {
 		default:
 			num, err := strconv.ParseInt(content, 0, 64)
 			if err == nil {
-				Add(shared.TokNumber, fmt.Sprintf("%d", num), SToken)
+				AddWithFake(shared.TokNumber, content, fmt.Sprintf("%d", num), SToken)
 			} else {
-				Add(shared.TokIdent, content, SToken)
+				switch content[0] {
+				case '\'':
+					str := "0x"
+					content2 := strings.ReplaceAll(content, "'", "")
+					for _, b := range content2 {
+						str += fmt.Sprintf("%02x", b)
+					}
+					AddWithFake(shared.TokNumber, content, str, SToken)
+				default:
+					Add(shared.TokIdent, content, SToken)
+				}	
 			}
 		}	
 	}

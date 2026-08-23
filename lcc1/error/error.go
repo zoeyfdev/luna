@@ -64,6 +64,7 @@ var errors = []string {
 	"member reference type",
 	"unknown type name",
 	"unknown argument:",
+	"unmatched '('",
 }
 
 var Warnings int = 0
@@ -90,10 +91,10 @@ func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	line := (*Tokens)[where].Line
 	file := (*Tokens)[where].File
 
-	OGTVAL := (*Tokens)[where].Value
+	OGTVAL := (*Tokens)[where].FakeValue
 
 	if kind != 3 {
-		(*Tokens)[where].Value = "\033[1;31m" + (*Tokens)[where].Value + "\033[0m"
+		(*Tokens)[where].FakeValue = "\033[1;31m" + (*Tokens)[where].FakeValue + "\033[0m"
 	}
 
 	start := where
@@ -109,11 +110,11 @@ func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	for j := start; j <= end; j++ {
 		switch (*Tokens)[j].Type {
 		case shared.TokType, shared.TokQualifier:
-			words = append(words, "\033[34m" + (*Tokens)[j].Value + "\033[0m")
+			words = append(words, "\033[34m" + (*Tokens)[j].FakeValue + "\033[0m")
 		case shared.TokNumber:
-			words = append(words, "\033[32m" + (*Tokens)[j].Value + "\033[0m")	
+			words = append(words, "\033[32m" + (*Tokens)[j].FakeValue + "\033[0m")	
 		default:
-			words = append(words, (*Tokens)[j].Value)	
+			words = append(words, (*Tokens)[j].FakeValue)	
 		}	
 	}
 
@@ -141,7 +142,7 @@ func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	} 
 
 	if kind != 3 {
-		(*Tokens)[where].Value = OGTVAL
+		(*Tokens)[where].FakeValue = OGTVAL
 	}
 }
 

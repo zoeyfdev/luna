@@ -24,7 +24,6 @@ void boot() __attribute__((noreturn)) {
     play_sound((void*) fzip_decode(BOOT_SOUND), 41984, false);
     render_buf((void*) fzip_decode(BOOT_IMG));
 
-    video_set_cursor(0, 0);
     puts32("Loading LunaOS...\n", COLOR_WHITE, COLOR_BLACK);
 
     linear_sector_load(0xFF);

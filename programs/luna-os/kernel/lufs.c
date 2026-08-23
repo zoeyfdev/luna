@@ -65,7 +65,7 @@ void fcreate(char* name, long int size) {
     long int** nfp = (long int**) 0x61C;
     long int* nfl = *nfp;
 
-    *nfl = 0x4C465346; // Store file header
+    *nfl = 'LFSF'; // Store file header
     nfl = nfl + 4;
 
     strcpy(name, (char*) nfl); // Transfer name to file
@@ -91,7 +91,7 @@ long int* find_file(char* name) {
     long int* fp = *fsp;
 
     while (1) {
-        if (*fp != 0x4C465346) {
+        if (*fp != 'LFSF') {
             break;
         }
         // skip over header
@@ -142,7 +142,7 @@ void flist() {
     long int* fp = *fsp;
 
     while (1) {
-        if (*fp != 0x4C465346) {
+        if (*fp != 'LFSF') {
             break;
         }
         // skip over header
@@ -177,7 +177,7 @@ void fstrap() {
     long int* fstart_addr = *fptr;
 
     while (1) {
-        if (*fstart_addr != 0x4C465346) {
+        if (*fstart_addr != 'LFSF') {
             break;
         }
 

@@ -84,3 +84,47 @@ type TypeMapEntry struct {
 	Const bool
 	EmbeddedStruct Variable_Static
 }
+
+type NewType int
+
+const (
+	I8 = iota
+	I16
+	I32
+	STRUCT
+)
+
+
+// AST stuff
+
+type Node interface {
+	_Node() int
+}
+
+type Declaration interface {
+	_Declaration() int
+}
+
+// Types
+
+type Function_Parameter struct {
+	Name string
+	Type NewType
+}
+
+type Function struct {
+	Name string
+	Parameters []Function_Parameter
+	Children []Node
+}
+
+// Node-types
+
+type SymOp struct {
+	
+}
+
+
+// Membership decls
+func (_ SymOp) _Node() int { return 0 }
+func (_ Function) _Declaration() int { return 0 }

@@ -53,6 +53,7 @@ const (
 type Token struct {
 	Type TokenType
 	Value string
+	FakeValue string
 	Line int
 	File string
 	MathToken bool
