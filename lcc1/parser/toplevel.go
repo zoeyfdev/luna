@@ -15,6 +15,7 @@ var IS_LOCAL bool = false
 var CurrentDisplacement uint32
 
 func Parse(tokens []shared.Token, Scope int) {
+	error.WarningNoGaze(55, "", shared.Token{})
 	i := 0
 	expect := func(toktype shared.TokenType) string {
 		var value string

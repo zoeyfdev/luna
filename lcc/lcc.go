@@ -154,6 +154,8 @@ func main() {
 			i += 2
 		case "-help", "--help":
 			lcc_info.PrintUnifiedHelpMessage()
+		case "-old":
+			cc1args = append(cc1args, "-old")
 		default:
 			if arg[0] == '-' {
 				stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39munknown argument: '" + arg + "'\033[0m")

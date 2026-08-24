@@ -65,6 +65,7 @@ var errors = []string {
 	"unknown type name",
 	"unknown argument:",
 	"unmatched '('",
+	"using old parser",
 }
 
 var Warnings int = 0
@@ -200,6 +201,21 @@ func Warning(errno int, args string, token shared.Token, tokens *[]shared.Token)
 	Stargaze(tokens, find(token, tokens), errno, 2)
 	Warnings = Warnings + 1
 }
+
+func WarningNoGaze(errno int, args string, token shared.Token) {
+	label := "lcc:"
+	if token.Line != 0 {
+		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
+	}
+	addtl := " "
+	if errno == 22 {
+		addtl = ""
+	}
+
+	fmt.Println("\033[1;39m" + label + " \033[1;35mwarning: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
+	Warnings++
+}
+
 func Note(errno int, args string, token shared.Token, tokens *[]shared.Token) {	
 	label := "lcc:"
 	if token.Line != 0 {

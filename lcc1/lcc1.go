@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"lcc1/error"
 	"lcc1/lexer"
-	"lcc1/parser"
 	"lcc1/shared"
+	"lcc1/parser"
+	"lcc1/neoparser"
+	"lcc1/codegen"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -56,6 +58,7 @@ func main() {
 	var errors bool = false
 	var stats bool = false
 	var predefs []lexer.DefineEntry
+	var OLD bool
 	
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -108,6 +111,8 @@ func main() {
 			i += 2
 		case "-help", "--help":
 			lcc_info.PrintUnifiedHelpMessage()
+		case "-old":
+			OLD = true
 		default:
 			if arg[0] == '-' {
 				error.ErrorNoGaze(53, "'" + arg + "'", shared.Token{Line: 0}) 
@@ -152,7 +157,15 @@ func main() {
 		}
 
 		parse_time := time.Now()
-		parser.Parse(tokens, 1)
+		Code := ""
+
+
+		if OLD == false {
+			AST := neoparser.Parse(tokens)
+			Code = codegen.Codegen(AST)
+		} else {
+			parser.Parse(tokens, 1)
+		}
 
 		if stats == true {
 			fmt.Println("\033[1;39mlcc: parser:", time.Since(parse_time), "\033[0m")
@@ -161,24 +174,29 @@ func main() {
 		if error.Errors < 1 && error.FailCompilation == false {
 			name := strings.TrimSuffix(file, filepath.Ext(file))
 			assembly_files = append(assembly_files, name + ".s")
-			dir := ""
 
-			switch shared.Bits {
-			case 16:
-				dir = ".bits 16"
-			case 32:
-				dir = ".bits 32"
-			default:
-				dir = ".bits 16"
-			}
+			if OLD == false {
+				os.WriteFile(name + ".s", []byte(Code), 0644)
+			} else {
+				dir := ""
 
-			for _, variable := range parser.Variables {
-				if variable.HasBasin == true {
-					parser.Code1 = "#define _builtin_lcc_basin_" + variable.Name + " " + fmt.Sprintf("%d", variable.BasinSize) + "\n" + parser.Code1
+				switch shared.Bits {
+				case 16:
+					dir = ".bits 16"
+				case 32:
+					dir = ".bits 32"
+				default:
+					dir = ".bits 16"
 				}
-			}
 
-			os.WriteFile(name + ".s", []byte(dir + "\n" + parser.Code1 + "\n" + parser.Code2), 0644)
+				for _, variable := range parser.Variables {
+					if variable.HasBasin == true {
+						parser.Code1 = "#define _builtin_lcc_basin_" + variable.Name + " " + fmt.Sprintf("%d", variable.BasinSize) + "\n" + parser.Code1
+					}
+				}
+
+				os.WriteFile(name + ".s", []byte(dir + "\n" + parser.Code1 + "\n" + parser.Code2), 0644)
+			}
 		}
 
 		// Reset and clean up for the next file
