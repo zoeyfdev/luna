@@ -8,7 +8,8 @@ import (
 
 type NewType int
 const (
-	VOID NewType = iota
+	NONE NewType = iota
+	VOID
 	I8
 	I16
 	I32
@@ -16,10 +17,6 @@ const (
 )
 
 // Interfaces
-
-type Declaration interface {
-	_Declaration()
-}
 
 type Leaf interface {
 	_Leaf()
@@ -33,7 +30,18 @@ type Statement interface {
 	_Statement()
 }
 
-// Objects
+type Declaration interface {
+	_Declaration()
+}
+
+// Primitive objects
+
+type Scope struct {
+	ID int
+	Parent int
+}
+
+// AST Objects
 
 type AST struct {
 	Declarations []Declaration
@@ -61,6 +69,7 @@ type Function struct {
 	BasinSize int
 	Attributes []string
 	Children []Statement
+	Scope int
 }
 
 type Variable struct {
@@ -69,33 +78,44 @@ type Variable struct {
 	RequiresConstant bool
 	Attributes []string
 	Internal string
+	Scope int
+	PredefinedValue string
 }
 
 type IntLit struct {
 	Value string
-	Scope int
+	Type CompositeType
 }
 
 type Identifier struct {
 	Name string
-	Type CompositeType
+	Scope int
+	IsRead bool
+	AttachedVariable *Variable
 }
 
-type BinaryOp struct {
-	Op shared.Token
+type BinaryOperation struct {
+	Op shared.TokenType
 	Left Expression
 	Right Expression
 	Type CompositeType
 }
+
+type UnaryOperation struct {
+	Op shared.TokenType
+	Left Expression
+}
+
+// Statements
 
 type Assignment struct {
 	Target Expression
 	Value Expression
 }
 
-// List-objects
-
-
+type Return struct {
+	Value Expression
+}
 
 // Membership decls
 func (_ Function) _Declaration() {}
@@ -104,5 +124,7 @@ func (_ IntLit) _Leaf() {}
 func (_ Identifier) _Leaf() {}
 func (_ IntLit) _Expression() {}
 func (_ Identifier) _Expression() {}
-func (_ Assignment) _Expression() {}
 func (_ Assignment) _Statement() {}
+func (_ BinaryOperation) _Expression() {}
+func (_ UnaryOperation) _Expression() {}
+func (_ Return) _Statement() {}

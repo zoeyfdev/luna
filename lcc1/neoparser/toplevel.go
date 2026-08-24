@@ -3,11 +3,20 @@ package neoparser
 import (
 	"lcc1/shared"
 	"lcc1/error"
+	"fmt"
 )
 
+var IDCounter = 1
+
 func Parse(Tokens []shared.Token) *AST {
-	TranslationUnit := AST{}
-	
+	TranslationUnit := AST {}
+
+	ParseTop(Tokens, 0, &TranslationUnit)
+
+	return &TranslationUnit
+}
+
+func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic scoping for DECL	
 	i := 0
 	expect := func(toktype shared.TokenType) string {
 		var value string
@@ -152,16 +161,47 @@ func Parse(Tokens []shared.Token) *AST {
 				}
 			}
 
-			ParseLocal(0, slice, &FObj)
+
+			Scope := CreateScope(0)
+			ParseLocal(0, Scope, slice, &FObj, TU)
 
 			expect(shared.TokRCurly)
 			
-			TranslationUnit.Declarations = append(TranslationUnit.Declarations, FObj)
+			(*TU).Declarations = append((*TU).Declarations, FObj)
 		case shared.TokIdent: // __attribute__
 			fallthrough
 		case shared.TokEqual:
-		}
-	}
+			expect(shared.TokEqual)
+		
+			/*
+			slice := []shared.Token {}
 
-	return &TranslationUnit
+			exit := false
+			for j := i; j < len(Tokens); j++ {
+				switch Tokens[j].Type {
+				case shared.TokSemi:
+					i = j
+					exit = true
+				default:
+					slice = append(slice, Tokens[j])
+				}
+				if exit == true {
+					break
+				}
+			}
+			*/
+
+			expect(shared.TokNumber)
+			expect(shared.TokSemi)
+
+			VObj := Variable {
+				Name: Name,
+			}
+			VObj.TypeInfo = TypeInformation
+			VObj.Internal = "var_" + fmt.Sprintf("%d", IDCounter)
+
+
+			(*TU).Declarations = append((*TU).Declarations, VObj)
+		}
+	}	
 }
