@@ -77,7 +77,7 @@ type Variable struct {
 	Scope int
 	BasinSize int
 	PredefinedValue string
-	Parameters []Function_Parameter // hold that thought
+	Parameters []Variable // hold that thought
 	Children []Statement
 	Kind VariableKind
 }
@@ -91,15 +91,19 @@ type IntLit struct {
 	Type CompositeType
 }
 
+type StringLit struct {
+	Value string
+	Type CompositeType
+	IsRead bool
+}
+
 type Identifier struct {
 	Name string
 	Scope int
 	IsRead bool
+	Type CompositeType
 	AttachedVariable *Variable
-}
-
-type FakeStatement struct {
-	Value Expression
+	AssociatedToken shared.Token
 }
 
 type BinaryOperation struct {
@@ -112,9 +116,14 @@ type BinaryOperation struct {
 type UnaryOperation struct {
 	Op shared.TokenType
 	Left Expression
+	Depth int
 }
 
 // Statements
+
+type ConstAssignStatement struct {
+	Value Expression
+}
 
 type Assignment struct {
 	Target Expression
@@ -141,6 +150,9 @@ func (_ IntLit) _Expression() {}
 func (_ Identifier) _Leaf() {}
 func (_ Identifier) _Expression() {}
 
+func (_ StringLit) _Leaf() {}
+func (_ StringLit) _Expression() {}
+
 func (_ Assignment) _Statement() {}
 func (_ Assignment) _Expression() {}
 
@@ -153,4 +165,4 @@ func (_ Return) _Statement() {}
 func (_ FunctionCall) _Statement() {}
 func (_ FunctionCall) _Expression() {}
 
-func (_ FakeStatement) _Statement() {}
+func (_ ConstAssignStatement) _Statement() {}

@@ -47,16 +47,55 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 		return shared.Token{Type: shared.TokEOF, Value: ""}
 	}
 
-	ParseType := func() CompositeType {
+	ParseType := func() (CompositeType, shared.Token) {
 		Preset := 0
 		PointerLength := 0
 
 		Type := CompositeType {}
 
 		exit := false
+
+		// qualdone := false
+		// typedone := false
+
+		long := false
+		short := false
+
 		for i < len(Tokens) {
 			switch peek(0).Type {
+			case shared.TokQualifier:
+				switch peek(0).Value {
+				case "short":
+					if long == true {
+						error.Error(12, "'long' declaration specifier", peek(0), &Tokens)
+						break
+					}
+
+					if short == false {
+						short = true
+						Preset = 8
+					} else {
+						error.Warning(28, "'short' declaration specifier", peek(0), &Tokens)
+					}
+				case "extern":
+					Type.Extern = true
+				case "long":
+					if short == true {
+						error.Error(12, "'short' declaration specifier", peek(0), &Tokens)
+						break
+					}
+
+					if long == false {
+						long = true
+						Preset = 32
+					} else {
+						error.Warning(28, "'short' declaration specifier", peek(0), &Tokens)
+					}
+				}
+				expect(shared.TokQualifier)
 			case shared.TokType:
+				// qualdone = true
+				// typedone = true
 				TypeTokString := expect(shared.TokType)
 				switch TypeTokString {
 				case "int":
@@ -69,6 +108,8 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 						}
 					} else {
 						switch Preset {
+						case 8:
+							Type.Type = I8
 						case 16:
 							Type.Type = I16
 						case 32:
@@ -76,8 +117,35 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 						}
 					}
 				case "void":
+					str := ""
+					if short == true {
+						str += "short "
+					}
+					if long == true {
+						str += "long "
+					}
+					str += TypeTokString
+
+
+					if short == true || long == true {
+						error.Error(22, "'" + str + "' is invalid", peek(-1), &Tokens)
+					}
 					Type.Type = VOID
 				case "char":
+					str := ""
+					if short == true {
+						str += "short "
+					}
+					if long == true {
+						str += "long "
+					}
+					str += TypeTokString
+
+
+					if short == true || long == true {
+						error.Error(22, "'" + str + "' is invalid", peek(-1), &Tokens)
+					}
+
 					Type.Type = I8
 				}
 			case shared.TokStar:
@@ -98,7 +166,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 		
 		Size := 0
 
-		if Type.PointerLength > 0 {
+		if Type.PointerLength > 0 || Type.Type == VOID {
 			switch shared.Bits {
 			case 16:
 				Size = 2
@@ -118,11 +186,34 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 
 		Type.Size = Size
 
-		return Type
+		return Type, peek(-1)
+	}
+
+	GenerateLocalIVN := func(EnclosingFunction *Variable, TypeInfo CompositeType) string {
+		CurrentOffset := (*EnclosingFunction).BasinSize
+		if TypeInfo.PointerLength > 0 || TypeInfo.Type == VOID {
+			switch shared.Bits {
+			case 16:
+				(*EnclosingFunction).BasinSize += 2	
+			case 32:
+				(*EnclosingFunction).BasinSize += 4
+			}
+		} else {
+			switch TypeInfo.Type {
+			case I8:
+				(*EnclosingFunction).BasinSize += 1
+			case I16:
+				(*EnclosingFunction).BasinSize += 2
+			case I32:
+				(*EnclosingFunction).BasinSize += 4	
+			}
+		}
+
+		return fmt.Sprintf("fp + %d", CurrentOffset)
 	}
 
 	for i < len(Tokens) {
-		TypeInformation := ParseType()
+		TypeInformation, TypeTok := ParseType()
 		Name := expect(shared.TokIdent)
 
 		switch peek(0).Type {
@@ -132,59 +223,93 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 			FObj.Internal = Name
 			FObj.TypeInfo = TypeInformation
 			FObj.Kind = FUNCTION
+			Scope := CreateScope(0)
 
 			expect(shared.TokLParen)
-			expect(shared.TokRParen)
 
-			expect(shared.TokLCurly)
-
-			slice := []shared.Token {}
-
-			depth := 1
 			exit := false
-			for j := i; j < len(Tokens); j++ {
-				switch Tokens[j].Type {
-				case shared.TokLCurly:
-					depth++
-					slice = append(slice, Tokens[j])
-				case shared.TokRCurly:
-					depth--
-					if depth == 0 {
-						i = j
-						exit = true
-					} else {
-						slice = append(slice, Tokens[j])
-					}
+			for {
+				switch peek(0).Type {
 				default:
-					slice = append(slice, Tokens[j])
+					Type, _ := ParseType() // TODO: integrated checking for void type
+					Name := expect(shared.TokIdent)
+					if peek(0).Type != shared.TokRParen {
+						expect(shared.TokComma)
+					}
+					ArgObj := Variable {}
+					ArgObj.TypeInfo = Type
+					ArgObj.Name = Name
+					ArgObj.Scope = Scope
+					ArgObj.Internal = GenerateLocalIVN(&FObj, Type)
+					ArgObj.Kind = VARIABLE
+
+					FObj.Parameters = append(FObj.Parameters, ArgObj)
+					(*TU).Declarations = append((*TU).Declarations, ArgObj)
+				case shared.TokRParen:
+					exit = true
 				}
 				if exit == true {
 					break
 				}
 			}
 
+			expect(shared.TokRParen)
 
-			Scope := CreateScope(0)
-			ParseLocal(0, Scope, slice, &FObj, TU, false)
+			switch peek(0).Type {
+			case shared.TokSemi:
+				FObj.TypeInfo.Extern = true // implicit extern
+				expect(shared.TokSemi)
+			default:
+				expect(shared.TokLCurly)
 
-			expect(shared.TokRCurly)
-			
+				slice := []shared.Token {}
+
+				depth := 1
+				exit = false
+				for j := i; j < len(Tokens); j++ {
+					switch Tokens[j].Type {
+					case shared.TokLCurly:
+						depth++
+						slice = append(slice, Tokens[j])
+					case shared.TokRCurly:
+						depth--
+						if depth == 0 {
+							i = j
+							exit = true
+						} else {
+							slice = append(slice, Tokens[j])
+						}
+					default:
+						slice = append(slice, Tokens[j])
+					}
+					if exit == true {
+						break
+					}
+				}
+	
+				ParseLocal(0, len(slice) - 1, Scope, slice, &FObj, TU, false, false)
+
+				expect(shared.TokRCurly)
+			}
+
 			(*TU).Declarations = append((*TU).Declarations, FObj)
-		case shared.TokIdent: // __attribute__
-			fallthrough
 		case shared.TokEqual:
 			expect(shared.TokEqual)
-		
-			slice := []shared.Token {}
 
+			if TypeInformation.Type == VOID && TypeInformation.PointerLength <= 0 {
+				error.Error(7, "'void'", TypeTok, &Tokens)
+			}
+
+			sloc := i
+		
 			exit := false
+			end := 0
 			for j := i; j < len(Tokens); j++ {
 				switch Tokens[j].Type {
 				case shared.TokSemi:
+					end = j - i
 					i = j
 					exit = true
-				default:
-					slice = append(slice, Tokens[j])
 				}
 				if exit == true {
 					break
@@ -201,7 +326,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 
 			IDCounter++
 
-			ParseLocal(0, Scope, slice, &VObj, TU, true)
+			ParseLocal(sloc, end, Scope, Tokens, &VObj, TU, true, true)
 
 			(*TU).Declarations = append((*TU).Declarations, VObj)
 		}

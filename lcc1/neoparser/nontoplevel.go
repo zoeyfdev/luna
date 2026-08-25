@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func ParseLocal(start int, ScopeID int, Tokens []shared.Token, Function *Variable, TU *AST, ExpressionOnly bool) {
+func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Function *Variable, TU *AST, ExpressionOnly bool, RequireConst bool) {
 	i := start
 	expect := func(toktype shared.TokenType) string {
 		var value string
@@ -77,6 +77,31 @@ func ParseLocal(start int, ScopeID int, Tokens []shared.Token, Function *Variabl
 		}
 	}
 
+	var CheckConstant func(Expy Expression, Allow bool)
+
+	CheckConstant = func(Expy Expression, Allow bool) {
+		switch Expy.(type) {
+		case Identifier:
+			Ident := Expy.(Identifier)
+			if Allow == false {
+				error.Error(35, "", Ident.AssociatedToken, &Tokens)
+			}
+		case IntLit:
+		case UnaryOperation:
+			UnaryOp := Expy.(UnaryOperation)
+			switch UnaryOp.Op {
+			case shared.TokAmpersand:
+				CheckConstant(UnaryOp.Left, true)
+			default:
+				CheckConstant(UnaryOp.Left, false)
+			}
+		case BinaryOperation:
+			BinaryOp := Expy.(BinaryOperation)
+			CheckConstant(BinaryOp.Left, false)
+			CheckConstant(BinaryOp.Right, false)
+		}
+	}
+
 	var ParseUnary func(IsRead bool) Expression
 	var ParseExpression func(IsRead bool) Expression
 
@@ -93,12 +118,15 @@ func ParseLocal(start int, ScopeID int, Tokens []shared.Token, Function *Variabl
 			expect(shared.TokRParen)
 		case shared.TokIdent:
 			Name := expect(shared.TokIdent)
+			ReferenceToken := peek(-1)
 			Variable := SearchVariable(Name)
 
 			IdentObj := Identifier {
 				IsRead: IsRead,
 				Name: Name,
 				AttachedVariable: Variable,
+				AssociatedToken: ReferenceToken,
+				Type: Variable.TypeInfo,
 			}
 
 			switch peek(0).Type {
@@ -147,6 +175,17 @@ func ParseLocal(start int, ScopeID int, Tokens []shared.Token, Function *Variabl
 				Value: Number,
 			}
 			return IntObj
+		case shared.TokString:
+			String := expect(shared.TokString)
+			StringObj := StringLit {
+				Value: String,
+				Type: CompositeType {
+					Type: I8,
+					PointerLength: 1,	
+				},
+				IsRead: IsRead,
+			}
+			return StringObj
 		}
 
 		error.InternalCompilerError("no return value")
@@ -156,17 +195,31 @@ func ParseLocal(start int, ScopeID int, Tokens []shared.Token, Function *Variabl
 	}
 
 	ParseUnary = func(IsRead bool) Expression {
+		Depth := 0
+		var Expy Expression = nil
+
 		switch peek(0).Type {
 		case shared.TokStar:
 			// Dereference
 			expect(shared.TokStar)
-			return UnaryOperation {
+			Expy = UnaryOperation {
 				Op: shared.TokStar,
 				Left: ParseUnary(IsRead),
+				Depth: Depth,
+			}
+		case shared.TokAmpersand:
+			expect(shared.TokAmpersand)
+			Expy = UnaryOperation {
+				Op: shared.TokAmpersand,
+				Left: ParseUnary(IsRead),
+				Depth: Depth,
 			}
 		// TODO: add bang, negative (though L2 at the moment doesn't support negatives)
 		}
 
+		if Expy != nil {
+			return Expy
+		}
 		Expression := ParsePrimary(IsRead)
 		return Expression
 	}
@@ -257,7 +310,7 @@ func ParseLocal(start int, ScopeID int, Tokens []shared.Token, Function *Variabl
 
 	ParseStatement := func() {
 		switch peek(0).Type {
-		case shared.TokIdent, shared.TokStar:
+		case shared.TokIdent, shared.TokStar, shared.TokString:
 			// TODO: change this so it won't crash on non-statement
 			(*Function).Children = append((*Function).Children, ParseExpression(false).(Statement))
 			expect(shared.TokSemi)
@@ -277,13 +330,17 @@ func ParseLocal(start int, ScopeID int, Tokens []shared.Token, Function *Variabl
 		}
 	}
 
+
+
 	if ExpressionOnly == false {
-		for i < len(Tokens) {
+		for i <= last {
 			ParseStatement()
 		}
 	} else {
-		(*Function).Children = append((*Function).Children, FakeStatement {
-			Value: ParseExpression(true),
+		Expy := ParseExpression(true)
+		CheckConstant(Expy, false)
+		(*Function).Children = append((*Function).Children, ConstAssignStatement {
+			Value: Expy,
 		})
 	}
 }

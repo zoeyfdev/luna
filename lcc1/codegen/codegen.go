@@ -22,11 +22,15 @@ func Write(s string, indent bool) {
 	Section2.WriteString(indent_s + s + "\n")
 }
 
-func WritePre(s string) {
-	Section1.WriteString(s + "\n")
+func WritePre(s string, indent bool) {
+	indent_s :=""
+	if indent == true {
+		indent_s = "    "
+	}
+	Section1.WriteString(indent_s + s + "\n")
 }
 
-func CodegenLeaf(Leaf neoparser.Leaf, Constant bool) CodegenResult {
+func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
 	switch Leaf.(type) {
 	case neoparser.IntLit:
 		IntLit := Leaf.(neoparser.IntLit)
@@ -37,6 +41,30 @@ func CodegenLeaf(Leaf neoparser.Leaf, Constant bool) CodegenResult {
 			TypeInfo: neoparser.CompositeType {
 				Type: neoparser.I8,
 			},
+		}
+	case neoparser.StringLit:
+		StringLit := Leaf.(neoparser.StringLit)
+
+		StringName := fmt.Sprintf("var_str_%d", VarTicker)
+		WritePre(StringName + ":", false)
+		WritePre(".asciz \"" + StringLit.Value + "\"", true)
+		VarTicker++
+		
+		LabelName := fmt.Sprintf("var_ptr_%d", VarTicker)
+		WritePre(LabelName + ":", false)
+		WritePre(".ptr " + StringName, true)
+		VarTicker++
+
+		r := TakeRegister()
+		Write("mov " + r + ", " + LabelName, true)
+
+		if StringLit.IsRead == true {
+			Write("lod_ptr " + r + ", " + r, true)
+		}
+
+		return CodegenResult {
+			Register: r,
+			TypeInfo: StringLit.Type,
 		}
 	case neoparser.Identifier:
 		Identifier := Leaf.(neoparser.Identifier)
@@ -61,7 +89,7 @@ func CodegenLeaf(Leaf neoparser.Leaf, Constant bool) CodegenResult {
 		}
 	}
 
-	return CodegenResult{}
+	return CodegenResult {}
 }
 
 func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation) CodegenResult {
@@ -121,7 +149,7 @@ func CodegenExpression(Expression neoparser.Expression) CodegenResult {
 		return CodegenBinaryOp(Expression.(neoparser.BinaryOperation))
 	case neoparser.UnaryOperation:
 		return CodegenUnaryOp(Expression.(neoparser.UnaryOperation))
-	case neoparser.IntLit, neoparser.Identifier:
+	case neoparser.IntLit, neoparser.Identifier, neoparser.StringLit:
 		return CodegenLeaf(Expression.(neoparser.Leaf))
 	case neoparser.Assignment:
 		Assignment := Expression.(neoparser.Assignment)
@@ -179,47 +207,102 @@ func CodegenDecl(Decl neoparser.Declaration) {
 		Var := Decl.(neoparser.Variable)
 		switch Var.Kind {
 		case neoparser.FUNCTION:
-			Name := Var.Internal
-			Write(Name + ":", false)
-			
-			// Write prologue
-			noreturn := false
+			if Var.TypeInfo.Extern == false {
+				Name := Var.Internal
+				Write(Name + ":", false)
+				
+				// Write prologue
+				noreturn := false
 
-			for _, Attr := range Var.Attributes {
-				switch Attr {
-				case "noreturn":
-					noreturn = true
+				for _, Attr := range Var.Attributes {
+					switch Attr {
+					case "noreturn":
+						noreturn = true
+					}
 				}
-			}
 
-			if noreturn == false {
-				Write("pop e11", true)
-			}
-			
-			// TODO: arguments
+				if noreturn == false {
+					Write("pop e11", true)
+				}
+				
+				Write("push fp", true)
+				Write("mov r12, _builtin_lcc_basin_" + Var.Internal, true)
+				Write("sub fp, fp, r12", true)
 
-			Write("push fp", true)
-			Write("mov r12, _builtin_lcc_basin_" + Var.Internal, true)
-			Write("sub fp, fp, r12", true)
-			Write("push e11", true)
+				// Pop arguments to registers and save them
 
-			// Code goes here
+				r := len(Var.Parameters) - 1
+				for i := r; i >= 0; i-- {
+					Write(fmt.Sprintf("pop e%d", r), true)
+					r--
+				}
 
-			for _, Statement := range Var.Children {
-				CodegenStatement(Statement)	
-			}
+				Write("push e11", true)
 
-			// epilogue
-			if noreturn == false {
-				Write("pop e11", true)
-			}
-			Write("pop fp", true)
-			
-			if noreturn == false {
-				Write("ret", true)
+				r = 0
+				for i := r; r < len(Var.Parameters); i++ {
+					Param := Var.Parameters[i]
+					register := fmt.Sprintf("e%d", r)
+
+					Write("mov r0, " + Param.Internal, true)
+
+					if Param.TypeInfo.PointerLength > 0 || Param.TypeInfo.Type == neoparser.VOID {
+						Write("str_ptr r0, " + register, true)
+					} else {
+						switch Param.TypeInfo.Type {
+						case neoparser.I8:
+							Write("str r0, " + register, true)
+						case neoparser.I16:
+							Write("str16 r0, " + register, true)
+						case neoparser.I32:
+							Write("str32 r0, " + register, true)
+						}	
+					}
+
+					r++
+				}
+
+				// Code goes here
+
+
+
+				for _, Statement := range Var.Children {
+					CodegenStatement(Statement)	
+				}
+
+				// epilogue
+				if noreturn == false {
+					Write("pop e11", true)
+				}
+				Write("pop fp", true)
+				
+				if noreturn == false {
+					Write("ret", true)
+				}	
+
+				Write("", false)
 			}	
+		case neoparser.VARIABLE:
+			if Var.Scope == 0 || Var.TypeInfo.Static == true {
+				Value := Const_CodegenExpression(Var.Children[0].(neoparser.ConstAssignStatement).Value, false)
+				WritePre(Var.Internal + ":", false)
+				if Var.TypeInfo.PointerLength > 0 {
+					WritePre(".ptr " + Value, true)
+				} else {
+					switch Var.TypeInfo.Type {
+					case neoparser.I8:
+						WritePre(".byte " + Value, true)
+					case neoparser.I16:
+						WritePre(".word " + Value, true)
+					case neoparser.I32:
+						WritePre(".dword " + Value, true)
+					}
+				}
 
-			Write("", false)
+				WritePre("", false)
+			} else {
+				// Local variable decls...
+			}
 		}	
 	}
 }
@@ -233,9 +316,9 @@ func Codegen(TU *neoparser.AST) string {
 
 	switch shared.Bits {
 	case 16:
-		WritePre(".bits 16")
+		WritePre(".bits 16", false)
 	case 32:
-		WritePre(".bits 32")
+		WritePre(".bits 32", false)
 	}
 
 	for i := 0; i < len((*TU).Declarations); i++ {
@@ -243,20 +326,15 @@ func Codegen(TU *neoparser.AST) string {
 		case neoparser.Variable:
 			Var := (*TU).Declarations[i].(neoparser.Variable)
 			switch Var.Kind {
-			case neoparser.VARIABLE:
-				Write(Var.Internal + ":", false)
-				if Var.Scope == 0 || Var.TypeInfo.Static == true {
-					Write(".word 1\n", true)
-				}
 			case neoparser.FUNCTION:
-				if Var.TypeInfo.Static == false {
-					WritePre(".global " + Var.Name)
+				if Var.TypeInfo.Static == false && Var.TypeInfo.Extern == false {
+					WritePre(".global " + Var.Name, false)
 				}	
 			}	
 		}
 	}
 	
-	WritePre("")
+	WritePre("", false)
 
 	for _, Decl := range (*TU).Declarations {
 		switch Decl.(type) {
@@ -264,7 +342,9 @@ func Codegen(TU *neoparser.AST) string {
 			Variable := Decl.(neoparser.Variable)
 			switch Variable.Kind {
 			case neoparser.FUNCTION:
-				WritePre("#define _builtin_lcc_basin_" + Variable.Internal + " " + fmt.Sprintf("%d", Variable.BasinSize))
+				if Variable.TypeInfo.Extern == false {
+					WritePre("#define _builtin_lcc_basin_" + Variable.Internal + " " + fmt.Sprintf("%d", Variable.BasinSize), false)
+				}
 			}
 		}
 	}	

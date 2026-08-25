@@ -6,6 +6,8 @@ import (
 	"fmt"
 )
 
+var VarTicker int
+
 func SearchVariable(name string, ScopeID int, TU *neoparser.AST) neoparser.Variable {
 		sid := ScopeID
 	TOP:

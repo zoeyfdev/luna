@@ -1,11 +1,9 @@
 #pragma bits 16
 
-void TestFunc() {
-    return; 
+void thing(int y) {
+
 }
 
-int x = 1;
-
-void main() {
-    return TestFunc();
+void main(int x) {
+    thing("Hello world!");
 }
