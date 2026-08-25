@@ -55,7 +55,6 @@ func main() {
 	var output_file string = ""
 	var noassemble bool = false
 	var nolink bool = false
-	var errors bool = false
 	var stats bool = false
 	var predefs []lexer.DefineEntry
 	var OLD bool
@@ -113,6 +112,7 @@ func main() {
 			lcc_info.PrintUnifiedHelpMessage()
 		case "-old":
 			OLD = true
+			shared.OLD = true
 		default:
 			if arg[0] == '-' {
 				error.ErrorNoGaze(53, "'" + arg + "'", shared.Token{Line: 0}) 
@@ -162,7 +162,10 @@ func main() {
 
 		if OLD == false {
 			AST := neoparser.Parse(tokens)
-			Code = codegen.Codegen(AST)
+
+			if error.Errors <= 0 {
+				Code = codegen.Codegen(AST)
+			}
 		} else {
 			parser.Parse(tokens, 1)
 		}
@@ -197,19 +200,12 @@ func main() {
 
 				os.WriteFile(name + ".s", []byte(dir + "\n" + parser.Code1 + "\n" + parser.Code2), 0644)
 			}
-		}
+		}	
+	}
 
-		// Reset and clean up for the next file
-		error.Summary()
+	error.Summary()
 
-		if error.Errors > 0 || error.FailCompilation == true  {
-			errors = true
-		}
-		error.Errors = 0
-		error.Warnings = 0
-	}	
-
-	if error.Errors > 0 || errors == true {
+	if error.Errors > 0 {
 		os.Exit(1)
 	}
 

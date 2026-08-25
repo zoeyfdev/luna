@@ -1,7 +1,11 @@
 #pragma bits 16
 
+void TestFunc() {
+    return; 
+}
+
 int x = 1;
+
 void main() {
-    x = 1;
-    return x;
+    return TestFunc();
 }

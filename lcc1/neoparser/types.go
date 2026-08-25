@@ -16,6 +16,12 @@ const (
 	STRUCT
 )
 
+type VariableKind int
+const (
+	FUNCTION VariableKind = iota
+	VARIABLE
+)
+
 // Interfaces
 
 type Leaf interface {
@@ -62,16 +68,6 @@ type Function_Parameter struct {
 	TypeInfo CompositeType
 }
 
-type Function struct {
-	Name string
-	Parameters []Function_Parameter
-	TypeInfo CompositeType
-	BasinSize int
-	Attributes []string
-	Children []Statement
-	Scope int
-}
-
 type Variable struct {
 	Name string
 	TypeInfo CompositeType
@@ -79,7 +75,15 @@ type Variable struct {
 	Attributes []string
 	Internal string
 	Scope int
+	BasinSize int
 	PredefinedValue string
+	Parameters []Function_Parameter // hold that thought
+	Children []Statement
+	Kind VariableKind
+}
+
+type Assembly struct {
+	String string
 }
 
 type IntLit struct {
@@ -92,6 +96,10 @@ type Identifier struct {
 	Scope int
 	IsRead bool
 	AttachedVariable *Variable
+}
+
+type FakeStatement struct {
+	Value Expression
 }
 
 type BinaryOperation struct {
@@ -113,18 +121,36 @@ type Assignment struct {
 	Value Expression
 }
 
+type FunctionCall struct {
+	AttachedVariable *Variable
+	Children []Expression
+}
+
 type Return struct {
 	Value Expression
 }
 
 // Membership decls
-func (_ Function) _Declaration() {}
 func (_ Variable) _Declaration() {}
+
+func (_ Assembly) _Declaration() {}
+
 func (_ IntLit) _Leaf() {}
-func (_ Identifier) _Leaf() {}
 func (_ IntLit) _Expression() {}
+
+func (_ Identifier) _Leaf() {}
 func (_ Identifier) _Expression() {}
+
 func (_ Assignment) _Statement() {}
+func (_ Assignment) _Expression() {}
+
 func (_ BinaryOperation) _Expression() {}
+
 func (_ UnaryOperation) _Expression() {}
+
 func (_ Return) _Statement() {}
+
+func (_ FunctionCall) _Statement() {}
+func (_ FunctionCall) _Expression() {}
+
+func (_ FakeStatement) _Statement() {}

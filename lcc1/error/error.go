@@ -228,9 +228,15 @@ func Note(errno int, args string, token shared.Token, tokens *[]shared.Token) {
 	fmt.Println("\033[1;39m" + label + " \033[1;36mnote: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens), errno, 3)
 }
+
+func NoteCustom(msg string) {
+	fmt.Println("\033[1;39mlcc: \033[1;36mnote: \033[1;39m" + msg + "\033[0m")
+}
+
+
 func InternalCompilerError(message string) {
 	fmt.Fprintln(os.Stderr, "\033[1;39mlcc: \033[1;31minternal compiler error: \033[1;39m" + message + "\033[0m")
-	fmt.Fprintln(os.Stderr, "\033[1;39mlcc: stack trace:\033[0m")
+	NoteCustom("stack trace:")
 	debug.PrintStack()
 	os.Exit(2)
 }

@@ -48,6 +48,7 @@ const (
 	TokArrow
 	TokShiftLeft
 	TokShiftRight
+	TokString
 )
 
 type Token struct {
@@ -60,3 +61,4 @@ type Token struct {
 }
 
 var Bits int = 16
+var OLD bool = false

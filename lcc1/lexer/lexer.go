@@ -138,6 +138,11 @@ func Lex(code []SmallToken, filename string) []shared.Token {
 		case ">>":
 			Add(shared.TokShiftRight, content, SToken)
 		default:
+			switch content[0] {
+			case '"':
+				Add(shared.TokString, content[1:len(content) - 1], SToken)
+				continue
+			}
 			num, err := strconv.ParseInt(content, 0, 64)
 			if err == nil {
 				AddWithFake(shared.TokNumber, content, fmt.Sprintf("%d", num), SToken)

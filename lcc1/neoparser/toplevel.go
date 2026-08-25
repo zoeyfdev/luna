@@ -127,9 +127,11 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 
 		switch peek(0).Type {
 		case shared.TokLParen:
-			FObj := Function{}
+			FObj := Variable {}
 			FObj.Name = Name
+			FObj.Internal = Name
 			FObj.TypeInfo = TypeInformation
+			FObj.Kind = FUNCTION
 
 			expect(shared.TokLParen)
 			expect(shared.TokRParen)
@@ -163,7 +165,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 
 
 			Scope := CreateScope(0)
-			ParseLocal(0, Scope, slice, &FObj, TU)
+			ParseLocal(0, Scope, slice, &FObj, TU, false)
 
 			expect(shared.TokRCurly)
 			
@@ -173,7 +175,6 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 		case shared.TokEqual:
 			expect(shared.TokEqual)
 		
-			/*
 			slice := []shared.Token {}
 
 			exit := false
@@ -189,17 +190,18 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 					break
 				}
 			}
-			*/
 
-			expect(shared.TokNumber)
 			expect(shared.TokSemi)
-
-			VObj := Variable {
-				Name: Name,
-			}
+			
+			VObj := Variable {}
+			VObj.Name = Name
 			VObj.TypeInfo = TypeInformation
 			VObj.Internal = "var_" + fmt.Sprintf("%d", IDCounter)
+			VObj.Kind = VARIABLE
 
+			IDCounter++
+
+			ParseLocal(0, Scope, slice, &VObj, TU, true)
 
 			(*TU).Declarations = append((*TU).Declarations, VObj)
 		}

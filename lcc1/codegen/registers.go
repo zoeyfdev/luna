@@ -34,10 +34,11 @@ func TakeRegister() string {
 	for i := 0; i < len(Registers); i++ {
 		if Registers[i].Taken == false {
 			Registers[i].Taken = true
-			println("Allocating register", Registers[i].Name)
+			error.NoteCustom("allocating register " + Registers[i].Name)
 			return Registers[i].Name
 		}
 	}
+
 	error.InternalCompilerError("no more free registers!")
 	return ""
 }
@@ -45,7 +46,7 @@ func TakeRegister() string {
 func FreeRegister(name string) {
 	for i := 0; i < len(Registers); i++ {
 		if Registers[i].Name == name {
-			println("Freeing register", Registers[i].Name)
+			error.NoteCustom("freeing register " + Registers[i].Name)
 			Registers[i].Taken = false
 		}
 	}

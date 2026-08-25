@@ -7,4 +7,5 @@ import (
 type CodegenResult struct {
 	Register string
 	TypeInfo neoparser.CompositeType
+	ConstantReturn string
 }
