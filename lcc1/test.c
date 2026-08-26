@@ -1,7 +1,5 @@
-int* b = 2;
-
-int** x();
+#pragma bits 16
 
 int foo() {
-    b = x();
+    foo();
 }

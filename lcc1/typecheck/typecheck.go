@@ -17,7 +17,37 @@ func ReturnUintPtrType() neoparser.NewType {
 	return neoparser.I16
 }
 
-func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token) TypeCheckReturn {
+func ReturnTypeName(Type neoparser.CompositeType) string {
+	str := ""
+	switch Type.Type {
+	case neoparser.I8:
+		str += "char"
+	case neoparser.I16:
+		str += "int"
+	case neoparser.I32:
+		str += "long int"
+	default:
+		str += "void"
+	}
+
+	if Type.PointerLength > 0 {
+		str += " "
+	}
+	for i := 0; i < Type.PointerLength; i++ {
+		str += "*"
+	}
+
+	if str != "" {
+		return str
+	}
+
+	return "void"
+}
+
+func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token, Strictness int) TypeCheckReturn {
+	// Types:
+	// 0: permissive (allows mixing of integers and non-integers)
+	// 1: strict (does not allow mixing of integers and non-integers)
 	TCR := TypeCheckReturn {
 		Token: OpToken,
 	}
@@ -42,9 +72,15 @@ func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token)
 		Type2 = T2.Type.Type
 	}
 
-	if T1.Type.PointerLength != T2.Type.PointerLength {
-		if T1.Type.PointerLength > 0 && T2.Type.PointerLength > 0 {
-			error.Error(37, "('PLACEHOLDER' and 'PLACEHOLDER')", OpToken, T1.TokenSet)
+	if Strictness == 0 {
+		if T1.Type.PointerLength != T2.Type.PointerLength {
+			if T1.Type.PointerLength > 0 && T2.Type.PointerLength > 0 {
+				error.Error(37, "('" + ReturnTypeName(T1.Type) + "' and '" + ReturnTypeName(T2.Type) + "')", OpToken, T1.TokenSet)
+			}
+		}
+	} else if Strictness == 1 {
+		if T1.Type.PointerLength != T2.Type.PointerLength {
+			error.Error(37, "('" + ReturnTypeName(T1.Type) + "' and '" + ReturnTypeName(T2.Type) + "')", OpToken, T1.TokenSet)
 		}
 	}
 	
@@ -61,7 +97,7 @@ func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token)
 	return TCR
 }
 
-func TypeCheckLeaf(Leaf neoparser.Leaf) TypeCheckReturn {
+func TypeCheckLeaf(Leaf neoparser.Leaf, Strictness int) TypeCheckReturn {
 	switch Leaf.(type) {
 	case neoparser.IntLit:
 		IntLit := Leaf.(neoparser.IntLit)
@@ -92,41 +128,41 @@ func TypeCheckLeaf(Leaf neoparser.Leaf) TypeCheckReturn {
 	return TypeCheckReturn {}
 }
 
-func TypeCheckUnaryOp(UnaryOp neoparser.UnaryOperation) TypeCheckReturn {
-	Left := TypeCheckExpression(UnaryOp.Left)
+func TypeCheckUnaryOp(UnaryOp neoparser.UnaryOperation, Strictness int) TypeCheckReturn {
+	Left := TypeCheckExpression(UnaryOp.Left, Strictness)
 	switch UnaryOp.Op {
 	case shared.TokStar:
 		// Dereference
-		if Left.OriginalType.PointerLength <= 0 {
-			error.Error(26, "", Left.Token, Left.TokenSet)
+		if Left.Type.PointerLength <= 0 {
+			error.Error(26, "('" + ReturnTypeName(Left.Type) + "' invalid)", Left.Token, Left.TokenSet)
 		}
 		Left.Type.PointerLength--
 	case shared.TokAmpersand:
 		Left.Type.PointerLength++
 
 		if Left.Type.PointerLength > Left.OriginalType.PointerLength + 1 {
-			error.Error(27, "'PLACEHOLDER'", Left.Token, Left.TokenSet)
+			error.Error(27, "'" + ReturnTypeName(Left.Type) + "'", Left.Token, Left.TokenSet)
 		}
 	}
 
 	return Left
 }
 
-func TypeCheckBinaryOp(BinaryOp neoparser.BinaryOperation) TypeCheckReturn {
-	Left := TypeCheckExpression(BinaryOp.Left)
-	Right := TypeCheckExpression(BinaryOp.Right)
+func TypeCheckBinaryOp(BinaryOp neoparser.BinaryOperation, Strictness int) TypeCheckReturn {
+	Left := TypeCheckExpression(BinaryOp.Left, Strictness)
+	Right := TypeCheckExpression(BinaryOp.Right, Strictness)
 
-	return TypeMediation(Left, Right, BinaryOp.Token)
+	return TypeMediation(Left, Right, BinaryOp.Token, Strictness)
 }
 
-func TypeCheckExpression(Expression neoparser.Expression) TypeCheckReturn {
+func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCheckReturn {
 	switch Expression.(type) {
 	case neoparser.Assignment:
 		Assignment := Expression.(neoparser.Assignment)
-		Target := TypeCheckExpression(Assignment.Target)
-		Value := TypeCheckExpression(Assignment.Value)
+		Target := TypeCheckExpression(Assignment.Target, Strictness)
+		Value := TypeCheckExpression(Assignment.Value, Strictness)
 
-		TypeMediation(Target, Value, Assignment.Token)
+		TypeMediation(Target, Value, Assignment.Token, Strictness)
 	case neoparser.FunctionCall:
 		FunctionCall := Expression.(neoparser.FunctionCall)
 
@@ -137,11 +173,11 @@ func TypeCheckExpression(Expression neoparser.Expression) TypeCheckReturn {
 			TokenSet: FunctionCall.TokenSet,
 		}	
 	case neoparser.BinaryOperation:
-		return TypeCheckBinaryOp(Expression.(neoparser.BinaryOperation))
+		return TypeCheckBinaryOp(Expression.(neoparser.BinaryOperation), Strictness)
 	case neoparser.UnaryOperation:
-		return TypeCheckUnaryOp(Expression.(neoparser.UnaryOperation))
+		return TypeCheckUnaryOp(Expression.(neoparser.UnaryOperation), Strictness)
 	case neoparser.Leaf:
-		return TypeCheckLeaf(Expression.(neoparser.Leaf))
+		return TypeCheckLeaf(Expression.(neoparser.Leaf), Strictness)
 	}
 
 	return TypeCheckReturn {}
@@ -150,7 +186,7 @@ func TypeCheckExpression(Expression neoparser.Expression) TypeCheckReturn {
 func TypeCheckStatement(Statement neoparser.Statement) {
 	switch Statement.(type) {
 	case neoparser.Assignment, neoparser.FunctionCall:
-		TypeCheckExpression(Statement.(neoparser.Expression))
+		TypeCheckExpression(Statement.(neoparser.Expression), 0)
 	}
 }
 

@@ -155,8 +155,22 @@ func CodegenExpression(Expression neoparser.Expression) CodegenResult {
 		Assignment := Expression.(neoparser.Assignment)
 		Target := CodegenExpression(Assignment.Target)
 		Value := CodegenExpression(Assignment.Value)
-		
-		Write("str " + Target.Register + ", " + Value.Register, true)
+
+		op := "str"
+		if Target.TypeInfo.PointerLength > 0 {
+			op = "str_ptr"
+		} else {
+			switch Target.TypeInfo.Type {
+			case neoparser.I8:
+				op = "str"
+			case neoparser.I16:
+				op = "str16"
+			case neoparser.I32:
+				op = "str32"
+			}
+		}
+
+		Write(op + " " + Target.Register + ", " + Value.Register, true)
 
 		FreeRegister(Target.Register)
 

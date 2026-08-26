@@ -148,6 +148,12 @@ type Return struct {
 	Value Expression
 }
 
+type IfStatement struct {
+	Condition Expression
+	SuccessChildren []Statement
+	ElseChildren []Statement
+}
+
 // Membership decls
 func (_ Variable) _Declaration() {}
 

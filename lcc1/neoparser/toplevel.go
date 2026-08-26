@@ -11,12 +11,12 @@ var IDCounter = 1
 func Parse(Tokens []shared.Token) *AST {
 	TranslationUnit := AST {}
 
-	ParseTop(Tokens, 0, &TranslationUnit)
+	ParseTop(Tokens, 0, &TranslationUnit, &Variable {})
 
 	return &TranslationUnit
 }
 
-func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic scoping for DECL	
+func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Variable) { // TODO: add dynamic scoping for DECL	
 	i := 0
 	expect := func(toktype shared.TokenType) string {
 		var value string
@@ -211,6 +211,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 
 	for i < len(Tokens) {
 		TypeInformation, TypeTok := ParseType()
+		NameLocation := i
 		Name := expect(shared.TokIdent)
 
 		switch peek(0).Type {
@@ -252,6 +253,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 
 			expect(shared.TokRParen)
 
+			(*TU).Declarations = append((*TU).Declarations, FObj)
 			switch peek(0).Type {
 			case shared.TokSemi:
 				FObj.TypeInfo.Extern = true // implicit extern
@@ -287,9 +289,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 				ParseLocal(0, len(slice) - 1, Scope, slice, &FObj, TU, false, false)
 
 				expect(shared.TokRCurly)
-			}
-
-			(*TU).Declarations = append((*TU).Declarations, FObj)
+			}	
 		case shared.TokEqual:
 			expect(shared.TokEqual)
 
@@ -313,19 +313,32 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 				}
 			}
 
+			end2 := i
+
 			expect(shared.TokSemi)
-			
+
 			VObj := Variable {}
 			VObj.Name = Name
 			VObj.TypeInfo = TypeInformation
-			VObj.Internal = "var_" + fmt.Sprintf("%d", IDCounter)
 			VObj.Kind = VARIABLE
+			VObj.Scope = Scope
+		
+			switch Scope {
+			case 0:
+				VObj.Internal = "var_" + fmt.Sprintf("%d", IDCounter)
+				IDCounter++	
 
-			IDCounter++
+				ParseLocal(sloc, end, Scope, Tokens, &VObj, TU, true, true)
 
-			ParseLocal(sloc, end, Scope, Tokens, &VObj, TU, true, true)
+				(*TU).Declarations = append((*TU).Declarations, VObj)
+			default:
+				VObj.Internal =	GenerateLocalIVN(EnclosingFunction, TypeInformation) 
 
-			(*TU).Declarations = append((*TU).Declarations, VObj)
+				(*TU).Declarations = append((*TU).Declarations, VObj)
+ 
+				ParseLocal(NameLocation, end2, Scope, Tokens, EnclosingFunction, TU, false, false)	
+			}
+				
 		}
 	}	
 }

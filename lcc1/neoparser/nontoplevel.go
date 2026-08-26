@@ -336,6 +336,64 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 				})
 			}
 			expect(shared.TokSemi)
+		case shared.TokQualifier, shared.TokType:
+			slice := []shared.Token {}
+			
+			exit := false
+			for j := i; j < len(Tokens); j++ {
+				slice = append(slice, Tokens[j])
+				switch Tokens[j].Type {
+				case shared.TokSemi:
+					i = j + 1
+					exit = true
+				}
+				if exit == true {
+					break
+				}
+			}
+
+			ParseTop(slice, ScopeID, TU, Function)
+		case shared.TokIf:
+			expect(shared.TokIf)
+			expect(shared.TokLParen)
+
+			IfObj := IfStatement {}
+
+			IfObj.Condition = ParseExpression(true)
+			
+			expect(shared.TokRParen)
+
+			expect(shared.TokLCurly)
+
+			slice := []shared.Token {}
+
+			depth := 1
+			exit := false
+			_Scope := CreateScope(ScopeID)
+
+			for j := i; j < len(Tokens); j++ {
+				switch Tokens[j].Type {
+				case shared.TokLCurly:
+					slice = append(slice, Tokens[j])
+					depth++
+				case shared.TokRCurly:
+					depth--
+					if depth <= 0 {
+						exit = true	
+					} else {
+						slice = append(slice, Tokens[j])
+					}
+				default:
+					slice = append(slice, Tokens[j])
+				}
+				if exit == true {
+					break
+				}
+			}
+
+			expect(shared.TokRCurly)
+
+			ParseLocal(0, len(slice) - 1, _Scope, slice, &IfObj, TU, false, false)
 		default:
 			error.Error(1, "'" + peek(0).Value + "'", peek(0), &Tokens)
 			i++
