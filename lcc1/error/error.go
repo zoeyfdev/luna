@@ -47,7 +47,7 @@ var errors = []string {
 	"attribute",
 	"initializer element is not a compile-time constant",
 	"implicit conversion from",
-	"taking the address of a function argument is not supported",
+	"invalid operands to expression",
 	"'break' statement not in loop or switch statement",
 	"'continue' statement not in loop statement",
 	"subscripted value is not an array or pointer", // 40

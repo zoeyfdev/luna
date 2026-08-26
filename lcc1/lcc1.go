@@ -8,6 +8,7 @@ import (
 	"lcc1/parser"
 	"lcc1/neoparser"
 	"lcc1/codegen"
+	"lcc1/typecheck"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -162,6 +163,7 @@ func main() {
 
 		if OLD == false {
 			AST := neoparser.Parse(tokens)
+			typecheck.TypeCheck(AST)
 
 			if error.Errors <= 0 {
 				Code = codegen.Codegen(AST)

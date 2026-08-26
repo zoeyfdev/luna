@@ -151,9 +151,6 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST) { // TODO: add dynamic 
 			case shared.TokStar:
 				expect(shared.TokStar)
 				PointerLength++
-			case shared.TokAmpersand:
-				expect(shared.TokAmpersand)
-				PointerLength--
 			default:
 				exit = true
 			}

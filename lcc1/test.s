@@ -1,40 +1,24 @@
 .bits 16
-.global thing
-.global main
+.global foo
 
-#define _builtin_lcc_basin_thing 2
-#define _builtin_lcc_basin_main 2
-var_str_0:
-    .asciz "Hello world!"
-var_ptr_1:
-    .ptr var_str_0
+#define _builtin_lcc_basin_foo 0
+var_1:
+    .ptr 2
 
-thing:
+var_2:
+    .ptr 1
+
+
+foo:
     pop e11
     push fp
-    mov r12, _builtin_lcc_basin_thing
+    mov r12, _builtin_lcc_basin_foo
     sub fp, fp, r12
-    pop e0
     push e11
-    mov r0, fp + 0
-    str16 r0, e0
-    pop e11
-    pop fp
-    ret
-
-main:
-    pop e11
-    push fp
-    mov r12, _builtin_lcc_basin_main
-    sub fp, fp, r12
-    pop e0
-    push e11
-    mov r0, fp + 0
-    str16 r0, e0
-    mov r1, var_ptr_1
-    push r1
-    call thing
-    mov r1, e6
+    mov r1, var_1
+    mov r2, var_2
+    lod16 r2, r2
+    str r1, r2
     pop e11
     pop fp
     ret

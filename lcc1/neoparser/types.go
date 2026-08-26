@@ -89,12 +89,16 @@ type Assembly struct {
 type IntLit struct {
 	Value string
 	Type CompositeType
+	Token shared.Token
+	TokenSet *[]shared.Token
 }
 
 type StringLit struct {
 	Value string
 	Type CompositeType
 	IsRead bool
+	Token shared.Token
+	TokenSet *[]shared.Token
 }
 
 type Identifier struct {
@@ -102,8 +106,9 @@ type Identifier struct {
 	Scope int
 	IsRead bool
 	Type CompositeType
-	AttachedVariable *Variable
-	AssociatedToken shared.Token
+	AttachedVariable Variable
+	Token shared.Token
+	TokenSet *[]shared.Token
 }
 
 type BinaryOperation struct {
@@ -111,12 +116,13 @@ type BinaryOperation struct {
 	Left Expression
 	Right Expression
 	Type CompositeType
+	Token shared.Token
 }
 
 type UnaryOperation struct {
 	Op shared.TokenType
 	Left Expression
-	Depth int
+	Type CompositeType
 }
 
 // Statements
@@ -128,11 +134,14 @@ type ConstAssignStatement struct {
 type Assignment struct {
 	Target Expression
 	Value Expression
+	Token shared.Token
 }
 
 type FunctionCall struct {
-	AttachedVariable *Variable
+	AttachedVariable Variable
 	Children []Expression
+	Token shared.Token
+	TokenSet *[]shared.Token
 }
 
 type Return struct {

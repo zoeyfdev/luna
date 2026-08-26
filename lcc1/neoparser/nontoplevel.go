@@ -38,7 +38,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 	
 	}
 
-	SearchVariable := func(name string) *Variable {
+	SearchVariable := func(name string) Variable {
 		sid := ScopeID
 	TOP:
 		ScopeObj := Scope {}
@@ -62,7 +62,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 				V := Declaration.(Variable)
 				if V.Scope != sid || V.Name != name { continue }
 
-				return &V
+				return V
 			}
 		}
 
@@ -72,7 +72,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 		}
 		
 		error.Error(4, "'" + name + "'", peek(-1), &Tokens)
-		return &Variable {
+		return Variable {
 			Name: "__ZERO",
 		}
 	}
@@ -84,7 +84,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 		case Identifier:
 			Ident := Expy.(Identifier)
 			if Allow == false {
-				error.Error(35, "", Ident.AssociatedToken, &Tokens)
+				error.Error(35, "", Ident.Token, &Tokens)
 			}
 		case IntLit:
 		case UnaryOperation:
@@ -124,9 +124,10 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 			IdentObj := Identifier {
 				IsRead: IsRead,
 				Name: Name,
-				AttachedVariable: Variable,
-				AssociatedToken: ReferenceToken,
+				AttachedVariable: Variable,	
 				Type: Variable.TypeInfo,
+				Token: ReferenceToken,
+				TokenSet: &Tokens,
 			}
 
 			switch peek(0).Type {
@@ -134,7 +135,10 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 				// Function call
 				expect(shared.TokLParen)
 				
-				CallObj := FunctionCall {}
+				CallObj := FunctionCall {
+					Token: peek(-2),
+					TokenSet: &Tokens,
+				}
 
 				exit := false
 				pushed := 0
@@ -173,6 +177,8 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 			Number := expect(shared.TokNumber)
 			IntObj := IntLit {
 				Value: Number,
+				Token: peek(-1),
+				TokenSet: &Tokens,
 			}
 			return IntObj
 		case shared.TokString:
@@ -184,6 +190,8 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 					PointerLength: 1,	
 				},
 				IsRead: IsRead,
+				Token: peek(-1),
+				TokenSet: &Tokens,
 			}
 			return StringObj
 		}
@@ -195,7 +203,6 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 	}
 
 	ParseUnary = func(IsRead bool) Expression {
-		Depth := 0
 		var Expy Expression = nil
 
 		switch peek(0).Type {
@@ -205,14 +212,12 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 			Expy = UnaryOperation {
 				Op: shared.TokStar,
 				Left: ParseUnary(IsRead),
-				Depth: Depth,
-			}
+			}	
 		case shared.TokAmpersand:
 			expect(shared.TokAmpersand)
 			Expy = UnaryOperation {
 				Op: shared.TokAmpersand,
 				Left: ParseUnary(IsRead),
-				Depth: Depth,
 			}
 		// TODO: add bang, negative (though L2 at the moment doesn't support negatives)
 		}
@@ -237,6 +242,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 					Op: shared.TokStar,
 					Left: LHS,
 					Right: RHS,
+					Token: peek(-1),
 				}
 			case shared.TokSlash:
 				expect(shared.TokSlash)
@@ -245,6 +251,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 					Op: shared.TokSlash,
 					Left: LHS,
 					Right: RHS,
+					Token: peek(-1),
 				}
 			default:
 				exit = true
@@ -271,6 +278,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 					Op: shared.TokPlus,
 					Left: LHS,
 					Right: RHS,
+					Token: peek(-1),
 				}
 			case shared.TokMinus:
 				expect(shared.TokMinus)
@@ -279,6 +287,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 					Op: shared.TokMinus,
 					Left: LHS,
 					Right: RHS,
+					Token: peek(-1),
 				}
 			default:
 				exit = true
@@ -296,10 +305,13 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 		switch peek(0).Type {
 		case shared.TokEqual:
 			// Assignment
-			expect(shared.TokEqual)
-			RHS := ParseAddSub(true)
+			AssignmentObj := Assignment {
+				Token: peek(0),
+			}
 
-			AssignmentObj := Assignment {}
+			expect(shared.TokEqual)
+
+			RHS := ParseAddSub(true)
 			AssignmentObj.Target = LHS
 			AssignmentObj.Value = RHS
 			return AssignmentObj

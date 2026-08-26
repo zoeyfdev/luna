@@ -1,9 +1,7 @@
-#pragma bits 16
+int* b = 2;
 
-void thing(int y) {
+int** x();
 
-}
-
-void main(int x) {
-    thing("Hello world!");
+int foo() {
+    b = x();
 }
