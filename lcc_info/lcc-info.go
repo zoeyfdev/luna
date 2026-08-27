@@ -36,6 +36,8 @@ OPTIONS:
 -define <name> <value> - defines a macro with a given value from the command line
 -si - print and execute all commands LCC will use to compile
 -scs - print performance statistics about compilation
+-sast - specifies to LCC1 to dump the translation unit
+-sra - specifies to LCC1 to log all register allocations
 -Werror - upgrade all compiler/assembler warnings to errors
 -fpie - specifies to all that your program will be compiled in PIE mode
 -fpie-16 - specifies to L2LD that it should link your PIE executable in 16-bit mode

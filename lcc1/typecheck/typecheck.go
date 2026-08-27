@@ -6,17 +6,6 @@ import (
 	"lcc1/error"
 )
 
-func ReturnUintPtrType() neoparser.NewType {
-	switch shared.Bits {
-	case 16:
-		return neoparser.I16
-	case 32:
-		return neoparser.I32
-	}
-
-	return neoparser.I16
-}
-
 func ReturnTypeName(Type neoparser.CompositeType) string {
 	str := ""
 	switch Type.Type {
@@ -61,13 +50,13 @@ func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token,
 	Hierarchy[neoparser.I32] = 3
 
 	if T1.Type.PointerLength > 0 {
-		Type1 = ReturnUintPtrType()
+		Type1 = neoparser.ReturnUintPtrType()
 	} else {
 		Type1 = T1.Type.Type
 	}
 
 	if T2.Type.PointerLength > 0 {
-		Type2 = ReturnUintPtrType()
+		Type2 = neoparser.ReturnUintPtrType()
 	} else {
 		Type2 = T2.Type.Type
 	}

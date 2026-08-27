@@ -30,11 +30,16 @@ var Registers = []Register {
 	Register { Name: "e12", Taken: false, },
 }
 
+var ShowRegisterAllocation bool = false
 func TakeRegister() string {
 	for i := 0; i < len(Registers); i++ {
 		if Registers[i].Taken == false {
 			Registers[i].Taken = true
-			error.NoteCustom("allocating register " + Registers[i].Name)
+			
+			if ShowRegisterAllocation == true {
+				error.NoteCustom("allocating register " + Registers[i].Name)
+			}
+
 			return Registers[i].Name
 		}
 	}
@@ -46,7 +51,11 @@ func TakeRegister() string {
 func FreeRegister(name string) {
 	for i := 0; i < len(Registers); i++ {
 		if Registers[i].Name == name {
-			error.NoteCustom("freeing register " + Registers[i].Name)
+
+			if ShowRegisterAllocation == true {
+				error.NoteCustom("freeing register " + Registers[i].Name)
+			}
+
 			Registers[i].Taken = false
 		}
 	}

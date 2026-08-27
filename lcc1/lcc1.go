@@ -79,6 +79,10 @@ func main() {
 			parser.PIE = true
 		case "-scs":
 			stats = true
+		case "-sast":
+			codegen.DumpTU = true
+		case "-sra":
+			codegen.ShowRegisterAllocation = true
 		case "-define":
 			if i + 2 > len(os.Args) - 1 {
 				continue

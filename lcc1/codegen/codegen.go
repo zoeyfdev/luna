@@ -6,13 +6,15 @@ import (
 	"lcc1/error"
 	"strings"
 	"fmt"
-	// "github.com/davecgh/go-spew/spew"
+	"github.com/davecgh/go-spew/spew"
 )
 
 var Section1 strings.Builder
 var Section2 strings.Builder
 
 var IDCounter int = 1
+
+var DumpTU bool = false
 
 func Write(s string, indent bool) {
 	indent_s :=""
@@ -67,26 +69,33 @@ func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
 			TypeInfo: StringLit.Type,
 		}
 	case neoparser.Identifier:
-		Identifier := Leaf.(neoparser.Identifier)
+		Identifier := Leaf.(neoparser.Identifier)	
 		r := TakeRegister()
+		Result := CodegenResult {
+			Register: r,
+			TypeInfo: Identifier.Type,
+		}
+
 		Write("mov " + r + ", " + Identifier.AttachedVariable.Internal, true)
 
 		if Identifier.IsRead == true {
-			switch Identifier.AttachedVariable.TypeInfo.Type {
-			// TODO: add pointers
-			case neoparser.I8:
-				Write("lod " + r + ", " + r, true)
-			case neoparser.I16:
-				Write("lod16 " + r + ", " + r, true)
-			case neoparser.I32:
-				Write("lod32 " + r + ", " + r, true)
+			if Identifier.Type.PointerLength > 0 {
+				Write("lod_ptr " + r + ", " + r, true)
+				Result.TypeInfo.PointerLength--
+			} else {
+				switch Identifier.Type.Type {
+				// TODO: add pointers
+				case neoparser.I8:
+					Write("lod " + r + ", " + r, true)
+				case neoparser.I16:
+					Write("lod16 " + r + ", " + r, true)
+				case neoparser.I32:
+					Write("lod32 " + r + ", " + r, true)
+				}
 			}
 		}	
 
-		return CodegenResult {
-			Register: r,
-			TypeInfo: Identifier.AttachedVariable.TypeInfo,
-		}
+		return Result
 	}
 
 	return CodegenResult {}
@@ -326,7 +335,10 @@ func Codegen(TU *neoparser.AST) string {
 	Section1 = strings.Builder {}
 	Section2 = strings.Builder {}
 
-	// spew.Dump((*TU))	
+	if DumpTU == true {
+		error.NoteCustom("current translation unit:")
+		spew.Dump((*TU))
+	}
 
 	switch shared.Bits {
 	case 16:

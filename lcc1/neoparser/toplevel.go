@@ -45,7 +45,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 			return Tokens[i + lookahead]
 		}
 		return shared.Token{Type: shared.TokEOF, Value: ""}
-	}
+	}	
 
 	ParseType := func() (CompositeType, shared.Token) {
 		Preset := 0
@@ -254,6 +254,8 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 			expect(shared.TokRParen)
 
 			(*TU).Declarations = append((*TU).Declarations, FObj)
+			Location := len((*TU).Declarations) - 1
+	
 			switch peek(0).Type {
 			case shared.TokSemi:
 				FObj.TypeInfo.Extern = true // implicit extern
@@ -287,6 +289,8 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 				}
 	
 				ParseLocal(0, len(slice) - 1, Scope, slice, &FObj, TU, false, false)
+
+				(*TU).Declarations[Location] = FObj
 
 				expect(shared.TokRCurly)
 			}	
