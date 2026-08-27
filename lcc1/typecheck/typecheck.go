@@ -86,107 +86,27 @@ func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token,
 	return TCR
 }
 
-func TypeCheckLeaf(Leaf neoparser.Leaf, Strictness int) TypeCheckReturn {
-	switch Leaf.(type) {
-	case neoparser.IntLit:
-		IntLit := Leaf.(neoparser.IntLit)
-		return TypeCheckReturn {
-			OriginalType: IntLit.Type,
-			Type: IntLit.Type,
-			Token: IntLit.Token,
-			TokenSet: IntLit.TokenSet,
-		}
-	case neoparser.StringLit:
-		StringLit := Leaf.(neoparser.StringLit)
-		return TypeCheckReturn {
-			OriginalType: StringLit.Type,
-			Type: StringLit.Type,
-			Token: StringLit.Token,
-			TokenSet: StringLit.TokenSet,
-		}
-	case neoparser.Identifier:
-		Identifier := Leaf.(neoparser.Identifier)
-		return TypeCheckReturn {
-			OriginalType: Identifier.Type,
-			Type: Identifier.Type,
-			Token: Identifier.Token,
-			TokenSet: Identifier.TokenSet,
-		}
-	}
+var CurrentFunction neoparser.Variable
 
-	return TypeCheckReturn {}
+func TypeCheckStatement(Expression neoparser.Expression) {
+
 }
 
-func TypeCheckUnaryOp(UnaryOp neoparser.UnaryOperation, Strictness int) TypeCheckReturn {
-	Left := TypeCheckExpression(UnaryOp.Left, Strictness)
-	switch UnaryOp.Op {
-	case shared.TokStar:
-		// Dereference
-		if Left.Type.PointerLength <= 0 {
-			error.Error(26, "('" + ReturnTypeName(Left.Type) + "' invalid)", Left.Token, Left.TokenSet)
-		}
-		Left.Type.PointerLength--
-	case shared.TokAmpersand:
-		Left.Type.PointerLength++
-
-		if Left.Type.PointerLength > Left.OriginalType.PointerLength + 1 {
-			error.Error(27, "'" + ReturnTypeName(Left.Type) + "'", Left.Token, Left.TokenSet)
-		}
-	}
-
-	return Left
-}
-
-func TypeCheckBinaryOp(BinaryOp neoparser.BinaryOperation, Strictness int) TypeCheckReturn {
-	Left := TypeCheckExpression(BinaryOp.Left, Strictness)
-	Right := TypeCheckExpression(BinaryOp.Right, Strictness)
-
-	return TypeMediation(Left, Right, BinaryOp.Token, Strictness)
-}
-
-func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCheckReturn {
-	switch Expression.(type) {
-	case neoparser.Assignment:
-		Assignment := Expression.(neoparser.Assignment)
-		Target := TypeCheckExpression(Assignment.Target, Strictness)
-		Value := TypeCheckExpression(Assignment.Value, Strictness)
-
-		TypeMediation(Target, Value, Assignment.Token, Strictness)
-	case neoparser.FunctionCall:
-		FunctionCall := Expression.(neoparser.FunctionCall)
-
-		return TypeCheckReturn {
-			OriginalType: FunctionCall.AttachedVariable.TypeInfo,
-			Type: FunctionCall.AttachedVariable.TypeInfo,
-			Token: FunctionCall.Token,
-			TokenSet: FunctionCall.TokenSet,
-		}	
-	case neoparser.BinaryOperation:
-		return TypeCheckBinaryOp(Expression.(neoparser.BinaryOperation), Strictness)
-	case neoparser.UnaryOperation:
-		return TypeCheckUnaryOp(Expression.(neoparser.UnaryOperation), Strictness)
-	case neoparser.Leaf:
-		return TypeCheckLeaf(Expression.(neoparser.Leaf), Strictness)
-	}
-
-	return TypeCheckReturn {}
-}
-
-func TypeCheckStatement(Statement neoparser.Statement) {
+func TypeCheckStatement(Statement neoparser.Statement) neoparser.Statement {
 	switch Statement.(type) {
-	case neoparser.Assignment, neoparser.FunctionCall:
-		TypeCheckExpression(Statement.(neoparser.Expression), 0)
+	case neoparser.Assignment:
+		Assignment := Statement.(neoparser.Statement)
+		return TypeCheckExpression()
 	}
 }
 
-func TypeCheck(TranslationUnit *neoparser.AST) {
-	for _, Declaration := range (*TranslationUnit).Declarations {
-		Var := Declaration.(neoparser.Variable)
-		switch Var.Kind {
-		case neoparser.FUNCTION:
-			for _, Statement := range Var.Children {
-				TypeCheckStatement(Statement)
-			}	
+func TypeCheck(TU *neoparser.AST) {
+	for i, Declaration := range (*TU).Declaration {
+		if Declaration.Kind == neoparser.FUNCTION {
+			CurrentFunction = Declaration
+			for j, Statement := range Declaration.Children {
+				Statement = TypeCheckStatement(Statement)
+			}
 		}
-	} 
+	}
 }

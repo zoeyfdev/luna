@@ -89,6 +89,7 @@ type Assembly struct {
 type IntLit struct {
 	Value string
 	Type CompositeType
+	OGType CompositeType
 	Token shared.Token
 	TokenSet *[]shared.Token
 }
@@ -96,6 +97,7 @@ type IntLit struct {
 type StringLit struct {
 	Value string
 	Type CompositeType
+	OGType CompositeType
 	IsRead bool
 	Token shared.Token
 	TokenSet *[]shared.Token
@@ -106,6 +108,7 @@ type Identifier struct {
 	Scope int
 	IsRead bool
 	Type CompositeType
+	OGType CompositeType
 	AttachedVariable Variable
 	Token shared.Token
 	TokenSet *[]shared.Token
@@ -122,6 +125,11 @@ type BinaryOperation struct {
 type UnaryOperation struct {
 	Op shared.TokenType
 	Left Expression
+	Type CompositeType
+}
+
+type Cast struct {
+	Value Expression
 	Type CompositeType
 }
 
@@ -180,4 +188,5 @@ func (_ Return) _Statement() {}
 func (_ FunctionCall) _Statement() {}
 func (_ FunctionCall) _Expression() {}
 
+func (_ Cast) _Expression() {}
 func (_ ConstAssignStatement) _Statement() {}

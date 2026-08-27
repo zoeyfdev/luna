@@ -16,10 +16,7 @@ foo:
     mov r2, 2
     str_ptr r1, r2
     mov r1, fp + 0
-    mov r2, fp + 2
-    lod_ptr r2, r2
-    lod16 r2, r2
-    str_ptr r1, r2
+    str_ptr r1, 
     pop e11
     pop fp
     ret

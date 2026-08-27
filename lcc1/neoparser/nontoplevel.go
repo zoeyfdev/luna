@@ -371,9 +371,11 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Functio
 			switch peek(1).Type {
 			case shared.TokQualifier, shared.TokType:
 				expect(shared.TokLParen)
-				ForcedType, _ = ParseType()
+				Type, _ := ParseType()
 				expect(shared.TokRParen)
-				return ParseUnary(IsRead, ForcedType)	
+				return Cast {
+					Value: ParseUnary(IsRead, Type),
+				}
 			}
 		case shared.TokStar:
 			// Dereference
