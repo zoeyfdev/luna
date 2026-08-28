@@ -6,8 +6,8 @@ import (
 )
 
 type TypeCheckReturn struct {
+	Expression neoparser.Expression
 	Type neoparser.CompositeType
-	OriginalType neoparser.CompositeType
 	Token shared.Token
 	TokenSet *[]shared.Token
 }
