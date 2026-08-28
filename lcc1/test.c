@@ -1,8 +1,12 @@
 #pragma bits 16
 
-int foo() {
-    int* a = 1;
-    int** b = 2;
+extern void print(char* str);
 
-    a = (int*) *b;
+int foo() {
+    int a = 1;
+    int** b = (int**) 2;
+
+    if (a == 1) {
+        print("Hello world!");
+    } 
 }

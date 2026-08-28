@@ -168,7 +168,7 @@ func Error(errno int, args string, token shared.Token, tokens *[]shared.Token) {
 	} 
 	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens), errno, 1)
-	Errors = Errors + 1	
+	Errors = Errors + 1
 }
 
 func ErrorNoGaze(errno int, args string, token shared.Token) {

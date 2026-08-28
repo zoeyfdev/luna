@@ -253,6 +253,31 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 
 			expect(shared.TokRParen)
 
+			if peek(0).Value == "__attribute__" {
+				expect(shared.TokIdent)
+				expect(shared.TokLParen)
+				expect(shared.TokLParen)
+
+				exit := false
+				for i < len(Tokens) {
+					switch peek(0).Type {
+					case shared.TokIdent:
+						FObj.Attributes = append(FObj.Attributes, expect(shared.TokIdent))
+						if peek(0).Type != shared.TokRParen {
+							expect(shared.TokComma)
+						}
+					case shared.TokRParen:
+						exit = true
+					}
+					if exit == true {
+						break
+					}
+				}
+
+				expect(shared.TokRParen)
+				expect(shared.TokRParen)
+			}
+
 			(*TU).Declarations = append((*TU).Declarations, FObj)
 			Location := len((*TU).Declarations) - 1
 	
@@ -287,8 +312,9 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 						break
 					}
 				}
-	
-				ParseLocal(0, len(slice) - 1, Scope, slice, &FObj, TU, false, false)
+
+				CurrentFunction = &FObj
+				ParseLocal(0, len(slice) - 1, Scope, slice, &FObj.Children, TU, false, false)
 
 				(*TU).Declarations[Location] = FObj
 
@@ -332,7 +358,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 				VObj.Internal = "var_" + fmt.Sprintf("%d", IDCounter)
 				IDCounter++	
 
-				ParseLocal(sloc, end, Scope, Tokens, &VObj, TU, true, true)
+				ParseLocal(sloc, end, Scope, Tokens, &VObj.Children, TU, true, true)
 
 				(*TU).Declarations = append((*TU).Declarations, VObj)
 			default:
@@ -340,7 +366,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 
 				(*TU).Declarations = append((*TU).Declarations, VObj)
  
-				ParseLocal(NameLocation, end2, Scope, Tokens, EnclosingFunction, TU, false, false)	
+				ParseLocal(NameLocation, end2, Scope, Tokens, &EnclosingFunction.Children, TU, false, false)	
 			}
 				
 		}

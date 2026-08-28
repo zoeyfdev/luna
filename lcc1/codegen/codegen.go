@@ -32,20 +32,33 @@ func WritePre(s string, indent bool) {
 	Section1.WriteString(indent_s + s + "\n")
 }
 
-func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
+func CodegenLeaf(Leaf neoparser.Leaf, Shielded bool) CodegenResult {
 	switch Leaf.(type) {
 	case neoparser.IntLit:
 		IntLit := Leaf.(neoparser.IntLit)
 		r := TakeRegister()
-		Write("mov " + r + ", " + IntLit.Value, true)
-		return CodegenResult {
+		Result := CodegenResult {
 			Register: r,
 			TypeInfo: neoparser.CompositeType {
 				Type: neoparser.I8,
 			},
 		}
+
+		/*
+		if IsRead == true {
+			Result.Read = true
+		}
+		*/
+
+		Write("mov " + r + ", " + IntLit.Value, true)
+		return Result
 	case neoparser.StringLit:
 		StringLit := Leaf.(neoparser.StringLit)
+		r := TakeRegister()
+		Result := CodegenResult {
+			Register: r,
+			TypeInfo: StringLit.Type,
+		} 
 
 		StringName := fmt.Sprintf("var_str_%d", VarTicker)
 		WritePre(StringName + ":", false)
@@ -56,18 +69,19 @@ func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
 		WritePre(LabelName + ":", false)
 		WritePre(".ptr " + StringName, true)
 		VarTicker++
-
-		r := TakeRegister()
+	
 		Write("mov " + r + ", " + LabelName, true)
 
 		if StringLit.IsRead == true {
-			Write("lod_ptr " + r + ", " + r, true)
+			if Shielded == false {
+				Result.Read = true
+				Write("lod_ptr " + r + ", " + r, true)
+			} else {
+				Result.ReadRequest = true
+			}
 		}
 
-		return CodegenResult {
-			Register: r,
-			TypeInfo: StringLit.Type,
-		}
+		return Result
 	case neoparser.Identifier:
 		Identifier := Leaf.(neoparser.Identifier)	
 		r := TakeRegister()
@@ -79,19 +93,24 @@ func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
 		Write("mov " + r + ", " + Identifier.AttachedVariable.Internal, true)
 
 		if Identifier.IsRead == true {
-			if Identifier.Type.PointerLength > 0 {
-				Write("lod_ptr " + r + ", " + r, true)
-				Result.TypeInfo.PointerLength--
-			} else {
-				switch Identifier.Type.Type {
-				// TODO: add pointers
-				case neoparser.I8:
-					Write("lod " + r + ", " + r, true)
-				case neoparser.I16:
-					Write("lod16 " + r + ", " + r, true)
-				case neoparser.I32:
-					Write("lod32 " + r + ", " + r, true)
+			if Shielded == false {
+				Result.Read = true
+				if Identifier.Type.PointerLength > 0 {
+					Write("lod_ptr " + r + ", " + r, true)
+					Result.TypeInfo.PointerLength--
+				} else {
+					switch Identifier.Type.Type {
+					// TODO: add pointers
+					case neoparser.I8:
+						Write("lod " + r + ", " + r, true)
+					case neoparser.I16:
+						Write("lod16 " + r + ", " + r, true)
+					case neoparser.I32:
+						Write("lod32 " + r + ", " + r, true)
+					}
 				}
+			} else {
+				Result.ReadRequest = true
 			}
 		}	
 
@@ -101,12 +120,11 @@ func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
 	return CodegenResult {}
 }
 
-func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation) CodegenResult {
-	Result := CodegenExpression(UnaryOp.Left)
+func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation, Shielded bool) CodegenResult {
+	Result := CodegenExpression(UnaryOp.Left, Shielded)
 	switch UnaryOp.Op {
 	case shared.TokStar:
 		// Dereference
-			
 		if Result.TypeInfo.PointerLength > 0 {
 			Write("lod_ptr " + Result.Register + ", " + Result.Register, true)
 			Result.TypeInfo.PointerLength--
@@ -131,39 +149,63 @@ func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation) CodegenResult {
 	return CodegenResult {}
 }
 
-func CodegenBinaryOp(BinaryOp neoparser.BinaryOperation) CodegenResult {
-	Left := CodegenExpression(BinaryOp.Left)
-	Right := CodegenExpression(BinaryOp.Right)
+func CodegenBinaryOp(BinaryOp neoparser.BinaryOperation, Shielded bool) CodegenResult {
+	Left := CodegenExpression(BinaryOp.Left, Shielded)
+	Right := CodegenExpression(BinaryOp.Right, Shielded)
 
 	OpMap := make(map[shared.TokenType]string)
 	OpMap[shared.TokPlus] = "add"
 	OpMap[shared.TokMinus] = "sub"
 	OpMap[shared.TokStar] = "mul"
 	OpMap[shared.TokSlash] = "div"
+	OpMap[shared.TokEquality] = "cmp"
+	OpMap[shared.TokInequality] = "cmp"
 
 	if OpMap[BinaryOp.Op] == "" {
 		error.InternalCompilerError("invalid binary operation")
 	}
 
 	Write(OpMap[BinaryOp.Op] + " " + Left.Register + ", " + Left.Register + ", " + Right.Register, true)
+
+	if BinaryOp.Op == shared.TokInequality {
+		r := TakeRegister()
+		Write("mov " + r + ", 1", true)
+		Write("xor " + Left.Register + ", " + Left.Register + ", " + r, true)
+		FreeRegister(r)
+	}
+
+
 	FreeRegister(Right.Register)
 	return CodegenResult {
 		Register: Left.Register,
 	}
 }
 
-func CodegenExpression(Expression neoparser.Expression) CodegenResult {
+func CodegenCast(Cast neoparser.Cast) CodegenResult {
+	Value := CodegenExpression(Cast.Value, false)	
+	Value.TypeInfo = Cast.Type
+
+	if Value.Read == true {
+		Value.TypeInfo.PointerLength--
+	}
+
+	return Value
+}
+
+func CodegenExpression(Expression neoparser.Expression, Shielded bool) CodegenResult {
 	switch Expression.(type) {
 	case neoparser.BinaryOperation:
-		return CodegenBinaryOp(Expression.(neoparser.BinaryOperation))
+		return CodegenBinaryOp(Expression.(neoparser.BinaryOperation), Shielded)
 	case neoparser.UnaryOperation:
-		return CodegenUnaryOp(Expression.(neoparser.UnaryOperation))
+		return CodegenUnaryOp(Expression.(neoparser.UnaryOperation), Shielded)
 	case neoparser.IntLit, neoparser.Identifier, neoparser.StringLit:
-		return CodegenLeaf(Expression.(neoparser.Leaf))
+		return CodegenLeaf(Expression.(neoparser.Leaf), Shielded)
+	case neoparser.Cast:
+		return CodegenCast(Expression.(neoparser.Cast))
 	case neoparser.Assignment:
 		Assignment := Expression.(neoparser.Assignment)
-		Target := CodegenExpression(Assignment.Target)
-		Value := CodegenExpression(Assignment.Value)
+		Target := CodegenExpression(Assignment.Target, false)
+		Value := CodegenExpression(Assignment.Value, false)
 
 		op := "str"
 		if Target.TypeInfo.PointerLength > 0 {
@@ -188,7 +230,7 @@ func CodegenExpression(Expression neoparser.Expression) CodegenResult {
 		FunctionCall := Expression.(neoparser.FunctionCall)
 
 		for _, Child := range FunctionCall.Children {
-			Value := CodegenExpression(Child)
+			Value := CodegenExpression(Child, false)
 			Write("push " + Value.Register, true)
 			FreeRegister(Value.Register)
 		}
@@ -209,18 +251,35 @@ func CodegenExpression(Expression neoparser.Expression) CodegenResult {
 func CodegenStatement(Statement neoparser.Statement) {
 	switch Statement.(type) {
 	case neoparser.Assignment:
-		FreeRegister(CodegenExpression(Statement.(neoparser.Expression)).Register)
+		FreeRegister(CodegenExpression(Statement.(neoparser.Expression), false).Register)
 	case neoparser.FunctionCall:
-		FreeRegister(CodegenExpression(Statement.(neoparser.Expression)).Register)
+		FreeRegister(CodegenExpression(Statement.(neoparser.Expression), false).Register)
 	case neoparser.Return:
 		Return := Statement.(neoparser.Return)
-
-		Value := CodegenExpression(Return.Value)
+		Value := CodegenExpression(Return.Value, false)
 
 		Write("mov e6, " + Value.Register, true)
 		Write("ret", true)
 
 		FreeRegister(Value.Register)
+	case neoparser.IfStatement:
+		IfStatement := Statement.(neoparser.IfStatement)
+		VT := VarTicker
+		VarTicker++
+
+		Write(fmt.Sprintf("if_stmt_%d_check:", VT), false)
+
+		Result := CodegenExpression(IfStatement.Condition, false)
+		Write("jnz " + Result.Register + ", " + fmt.Sprintf("if_stmt_%d_success", VT), true)
+		Write("jmp " + fmt.Sprintf("if_stmt_%d_after", VT), true)
+
+		FreeRegister(Result.Register)
+
+		Write(fmt.Sprintf("if_stmt_%d_success:", VT), false)
+		for _, Stmt := range IfStatement.SuccessChildren {
+			CodegenStatement(Stmt)
+		}
+		Write(fmt.Sprintf("if_stmt_%d_after:", VT), false)
 	}
 }
 

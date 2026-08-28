@@ -6,3 +6,5 @@ var Scopes = []Scope {
 		Parent: -1,
 	},
 }
+
+var CurrentFunction *Variable

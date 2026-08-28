@@ -102,23 +102,26 @@ func TypeCheckLeaf(Leaf neoparser.Leaf, Strictness int) TypeCheckReturn {
 	case neoparser.IntLit:
 		IntLit := Leaf.(neoparser.IntLit)
 		return TypeCheckReturn {
-			Type: IntLit.Type,
+			Type: IntLit.Annotated,
 			Token: IntLit.Token,
 			TokenSet: IntLit.TokenSet,
+			Expression: IntLit,
 		}
 	case neoparser.StringLit:
 		StringLit := Leaf.(neoparser.StringLit)
 		return TypeCheckReturn {
-			Type: StringLit.Type,
+			Type: StringLit.Annotated,
 			Token: StringLit.Token,
 			TokenSet: StringLit.TokenSet,
+			Expression: StringLit,
 		}
 	case neoparser.Identifier:
 		Identifier := Leaf.(neoparser.Identifier)
 		return TypeCheckReturn {
-			Type: Identifier.Type,
+			Type: Identifier.Annotated,
 			Token: Identifier.Token,
 			TokenSet: Identifier.TokenSet,
+			Expression: Identifier,
 		}
 	}
 
@@ -129,15 +132,15 @@ func TypeSweep(Expression neoparser.Expression, Type neoparser.CompositeType) ne
 	switch Expression.(type) {
 	case neoparser.IntLit:
 		IntLit := Expression.(neoparser.IntLit)
-		IntLit.Type = Type
+		IntLit.Annotated = Type
 		return IntLit
 	case neoparser.StringLit:
 		StringLit := Expression.(neoparser.StringLit)
-		StringLit.Type = Type
+		StringLit.Annotated = Type
 		return StringLit
 	case neoparser.Identifier:
 		Identifier := Expression.(neoparser.Identifier)
-		Identifier.Type = Type
+		Identifier.Annotated = Type
 		return Identifier
 	case neoparser.UnaryOperation:
 		UnaryOp := Expression.(neoparser.UnaryOperation)
@@ -156,9 +159,13 @@ func TypeSweep(Expression neoparser.Expression, Type neoparser.CompositeType) ne
 
 func TypeCheckUnaryOp(UnaryOp neoparser.UnaryOperation, Strictness int) TypeCheckReturn {
 	Left := TypeCheckExpression(UnaryOp.Left, Strictness)
+	
+	if Left.Expression != nil { UnaryOp.Left = Left.Expression }
+
 	switch UnaryOp.Op {
 	case shared.TokStar:
 		// Dereference
+		println("Len", Left.Type.PointerLength)
 		if Left.Type.PointerLength <= 0 {
 			error.Error(26, "('" + ReturnTypeName(Left.Type) + "' invalid)", Left.Token, Left.TokenSet)
 		}
@@ -170,6 +177,9 @@ func TypeCheckUnaryOp(UnaryOp neoparser.UnaryOperation, Strictness int) TypeChec
 			error.Error(27, "'" + ReturnTypeName(Left.Type) + "'", Left.Token, Left.TokenSet)
 		}
 	}
+
+	UnaryOp.Type = Left.Type
+	Left.Expression = UnaryOp
 
 	return Left
 }
@@ -194,6 +204,9 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 		Target := TypeCheckExpression(Assignment.Target, Strictness)
 		Value := TypeCheckExpression(Assignment.Value, Strictness)
 
+		if Target.Expression != nil { Assignment.Target = Target.Expression }
+		if Value.Expression != nil { Assignment.Value = Value.Expression }
+
 		ReturnStmt := TypeMediation(Target, Value, Assignment.Token, Strictness)
 		ReturnStmt.Expression = Assignment
 		return ReturnStmt
@@ -213,11 +226,11 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 	case neoparser.Leaf:
 		return TypeCheckLeaf(Expression.(neoparser.Leaf), Strictness)
 	case neoparser.Cast:
-		println("Cast")
 		Cast := Expression.(neoparser.Cast)
 		Expression = TypeSweep(Cast.Value, Cast.Type)
 		return TypeCheckReturn {
 			Expression: Expression,
+			Type: Cast.Type,
 		}
 	}
 
@@ -241,10 +254,8 @@ func TypeCheck(TranslationUnit *neoparser.AST) {
 			switch Var.Kind {
 			case neoparser.FUNCTION:
 				for j := 0; j < len(Var.Children); j++ {
-					Statement := TypeCheckStatement(Var.Children[j])	
-					Var.Children[j] = Statement
+					TypeCheckStatement(Var.Children[j])	
 				}	
-				(*TranslationUnit).Declarations[i] = Var
 			}
 		}
 	} 
