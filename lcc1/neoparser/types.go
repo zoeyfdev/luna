@@ -92,6 +92,7 @@ type IntLit struct {
 	Annotated CompositeType
 	Token shared.Token
 	TokenSet *[]shared.Token
+	IsRead bool
 }
 
 type StringLit struct {
@@ -150,6 +151,7 @@ type FunctionCall struct {
 	Children []Expression
 	Token shared.Token
 	TokenSet *[]shared.Token
+	Pushed int
 }
 
 type Return struct {
@@ -162,10 +164,16 @@ type IfStatement struct {
 	ElseChildren []Statement
 }
 
+type WhileStatement struct {
+	Condition Expression
+	Children []Statement
+}
+
 // Membership decls
 func (_ Variable) _Declaration() {}
 
 func (_ Assembly) _Declaration() {}
+func (_ Assembly) _Statement() {}
 
 func (_ IntLit) _Leaf() {}
 func (_ IntLit) _Expression() {}
@@ -193,3 +201,5 @@ func (_ Cast) _Expression() {}
 func (_ ConstAssignStatement) _Statement() {}
 
 func (_ IfStatement) _Statement() {}
+
+func (_ WhileStatement) _Statement() {}

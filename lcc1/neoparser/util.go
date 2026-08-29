@@ -25,3 +25,8 @@ func ReturnUintPtrType() NewType {
 
 	return I16
 }
+
+func ChildAppend(Slice *[]Statement, Child Statement) {
+	*Slice = append(*Slice, Child)
+}
+

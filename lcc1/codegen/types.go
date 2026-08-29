@@ -10,4 +10,5 @@ type CodegenResult struct {
 	ConstantReturn string
 	Read bool
 	ReadRequest bool
+	IsRValue bool
 }

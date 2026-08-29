@@ -165,7 +165,6 @@ func TypeCheckUnaryOp(UnaryOp neoparser.UnaryOperation, Strictness int) TypeChec
 	switch UnaryOp.Op {
 	case shared.TokStar:
 		// Dereference
-		println("Len", Left.Type.PointerLength)
 		if Left.Type.PointerLength <= 0 {
 			error.Error(26, "('" + ReturnTypeName(Left.Type) + "' invalid)", Left.Token, Left.TokenSet)
 		}

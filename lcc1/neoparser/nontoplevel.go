@@ -237,20 +237,51 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		return Type, peek(-1)
 	}
 
-	var ParseUnary func(IsRead bool, ForcedType CompositeType) Expression
-	var ParseExpression func(IsRead bool, ForcedType CompositeType) Expression
+	ConstructSlice := func() []shared.Token {
+		slice := []shared.Token {}
 
-	ParsePrimary := func(IsRead bool, ForcedType CompositeType) Expression {
+		depth := 1
+		exit := false	
+
+		for j := i; j < len(Tokens); j++ {
+			switch Tokens[j].Type {
+			case shared.TokLCurly:
+				slice = append(slice, Tokens[j])
+				depth++
+			case shared.TokRCurly:
+				depth--
+				if depth <= 0 {
+					i = j
+					exit = true	
+				} else {
+					slice = append(slice, Tokens[j])
+				}
+			default:
+				slice = append(slice, Tokens[j])
+			}
+			if exit == true {
+				break
+			}
+		}
+
+		return slice
+	}
+
+	var ParseUnary func(IsRead bool) Expression
+	var ParseExpression func(IsRead bool) Expression
+	var ParseStatement func(Slice *[]Statement)
+
+	ParsePrimary := func(IsRead bool) Expression {
 		switch peek(0).Type {
 		case shared.TokLParen:
 			switch peek(1).Type {
 			case shared.TokQualifier, shared.TokType:
-				return ParseUnary(IsRead, ForcedType)
+				return ParseUnary(IsRead)
 			}
 			expect(shared.TokLParen)
 			switch peek(0).Type {
 			default:
-				Expy := ParseExpression(IsRead, ForcedType)
+				Expy := ParseExpression(IsRead)
 				expect(shared.TokRParen)
 				return Expy
 			}
@@ -260,17 +291,12 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			ReferenceToken := peek(-1)
 			Variable := SearchVariable(Name)
 
-			ActualType := Variable.TypeInfo
-			if ForcedType.Type != NONE {
-				ActualType = ForcedType
-			}
-
 			IdentObj := Identifier {
 				IsRead: IsRead,
 				Name: Name,
 				AttachedVariable: Variable,	
-				Type: ActualType,
-				Annotated: ActualType,
+				Type: Variable.TypeInfo,
+				Annotated: Variable.TypeInfo,
 				Token: ReferenceToken,
 				TokenSet: &Tokens,
 			}
@@ -286,7 +312,6 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				}
 
 				exit := false
-				pushed := 0
 				for {
 					switch peek(0).Type {
 					case shared.TokRParen:
@@ -294,10 +319,8 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 						goto DONE
 					}
 
-					CallObj.Children = append(CallObj.Children, ParseExpression(true, CompositeType {
-						Type: NONE,
-					}))
-					pushed++
+					CallObj.Children = append(CallObj.Children, ParseExpression(true))
+					CallObj.Pushed++
 
 					switch peek(0).Type {
 					case shared.TokRParen:
@@ -321,38 +344,31 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 
 			return IdentObj
 		case shared.TokNumber:
-			ActualType := CompositeType {
+			Type := CompositeType {
 				Type: ReturnUintPtrType(),
-			}
-			if ForcedType.Type != NONE {
-				ActualType = ForcedType
-			}
+			}	
 
 			Number := expect(shared.TokNumber)
 			IntObj := IntLit {
 				Value: Number,
 				Token: peek(-1),
 				TokenSet: &Tokens,
-				Annotated: ActualType,
-				Type: ActualType,
+				Annotated: Type,
+				Type: Type,
+				IsRead: IsRead,
 			}
 			return IntObj
 		case shared.TokString:
 			String := expect(shared.TokString)
-
-			ActualType := CompositeType {
+			Type := CompositeType {
 				Type: I8,
 				PointerLength: 1,
 			}
 
-			if ForcedType.Type != NONE {
-				ActualType = ForcedType
-			}
-
 			StringObj := StringLit {
 				Value: String,
-				Annotated: ActualType,
-				Type: ActualType,
+				Annotated: Type,
+				Type: Type,
 				IsRead: IsRead,
 				Token: peek(-1),
 				TokenSet: &Tokens,
@@ -360,14 +376,13 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			return StringObj
 		}
 
-		println(peek(0).Value)
 		error.InternalCompilerError("no return value")
 		return Identifier {
 			Name: "__ZERO",
 		}
 	}
 
-	ParseUnary = func(IsRead bool, ForcedType CompositeType) Expression {
+	ParseUnary = func(IsRead bool) Expression {
 		var Expy Expression = nil
 
 		switch peek(0).Type {
@@ -378,7 +393,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				Type, _ := ParseType()
 				expect(shared.TokRParen)
 				return Cast {
-					Value: ParseUnary(IsRead, ForcedType),
+					Value: ParseUnary(IsRead),
 					Type: Type,
 				}
 			}
@@ -387,13 +402,13 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			expect(shared.TokStar)
 			Expy = UnaryOperation {
 				Op: shared.TokStar,
-				Left: ParseUnary(IsRead, ForcedType),
+				Left: ParseUnary(IsRead),
 			}	
 		case shared.TokAmpersand:
 			expect(shared.TokAmpersand)
 			Expy = UnaryOperation {
 				Op: shared.TokAmpersand,
-				Left: ParseUnary(IsRead, ForcedType),
+				Left: ParseUnary(IsRead),
 			}
 		// TODO: add bang, negative (though L2 at the moment doesn't support negatives)
 		}
@@ -401,19 +416,19 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		if Expy != nil {
 			return Expy
 		}
-		Expression := ParsePrimary(IsRead, ForcedType)
+		Expression := ParsePrimary(IsRead)
 		return Expression
 	}
 
-	ParseMulDiv := func(IsRead bool, ForcedType CompositeType) Expression {
-		LHS := ParseUnary(IsRead, ForcedType)
+	ParseMulDiv := func(IsRead bool) Expression {
+		LHS := ParseUnary(IsRead)
 
 		exit := false
 		for {
 			switch peek(0).Type {
 			case shared.TokStar:
 				expect(shared.TokStar)
-				RHS := ParseUnary(IsRead, ForcedType)
+				RHS := ParseUnary(IsRead)
 				LHS = BinaryOperation {
 					Op: shared.TokStar,
 					Left: LHS,
@@ -422,7 +437,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				}
 			case shared.TokSlash:
 				expect(shared.TokSlash)
-				RHS := ParseUnary(IsRead, ForcedType)
+				RHS := ParseUnary(IsRead)
 				LHS = BinaryOperation {
 					Op: shared.TokSlash,
 					Left: LHS,
@@ -441,15 +456,15 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		return LHS
 	}
 
-	ParseAddSub := func(IsRead bool, ForcedType CompositeType) Expression {
-		LHS := ParseMulDiv(IsRead, ForcedType)
+	ParseAddSub := func(IsRead bool) Expression {
+		LHS := ParseMulDiv(IsRead)
 
 		exit := false
 		for {
 			switch peek(0).Type {
 			case shared.TokPlus:
 				expect(shared.TokPlus)
-				RHS := ParseMulDiv(IsRead, ForcedType)
+				RHS := ParseMulDiv(IsRead)
 				LHS = BinaryOperation {
 					Op: shared.TokPlus,
 					Left: LHS,
@@ -458,7 +473,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				}
 			case shared.TokMinus:
 				expect(shared.TokMinus)
-				RHS := ParseMulDiv(IsRead, ForcedType)
+				RHS := ParseMulDiv(IsRead)
 				LHS = BinaryOperation {
 					Op: shared.TokMinus,
 					Left: LHS,
@@ -476,13 +491,13 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		return LHS	
 	}
 
-	ParseComparator := func(IsRead bool, ForcedType CompositeType) Expression {
-		LHS := ParseAddSub(IsRead, ForcedType)
+	ParseComparator := func(IsRead bool) Expression {
+		LHS := ParseAddSub(IsRead)
 		switch peek(0).Type {
-		case shared.TokEquality, shared.TokInequality:
+		case shared.TokEquality, shared.TokInequality, shared.TokLAngle, shared.TokRAngle, shared.TokGEqual, shared.TokLEqual:
 			expect(peek(0).Type)
 			Op := peek(-1).Type
-			RHS := ParseAddSub(IsRead, ForcedType)	
+			RHS := ParseAddSub(IsRead)	
 			return BinaryOperation {
 				Left: LHS,
 				Right: RHS,
@@ -493,8 +508,8 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		return LHS
 	}
 
-	ParseExpression = func(IsRead bool, ForcedType CompositeType) Expression {
-		LHS := ParseComparator(IsRead, ForcedType)
+	ParseExpression = func(IsRead bool) Expression {
+		LHS := ParseComparator(IsRead)
 		switch peek(0).Type {
 		case shared.TokEqual:
 			// Assignment
@@ -504,7 +519,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 
 			expect(shared.TokEqual)
 
-			RHS := ParseComparator(true, ForcedType)
+			RHS := ParseComparator(true)
 			AssignmentObj.Target = LHS
 			AssignmentObj.Value = RHS
 			return AssignmentObj
@@ -513,23 +528,32 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		return LHS
 	}
 
-	ParseStatement := func() {
+	ParseStatement = func(Slice *[]Statement) {
 		switch peek(0).Type {
-		case shared.TokIdent, shared.TokStar, shared.TokString:
-			// TODO: change this so it won't crash on non-statement
-			*Children = append(*Children, ParseExpression(false, CompositeType {
-				Type: NONE,
-			}).(Statement))
+		case shared.TokSemi:
+			expect(shared.TokSemi);
+		case shared.TokAsm:
+			AsmObj := Assembly {}
+
+			expect(shared.TokAsm)
+			if peek(0).Value == "volatile" {
+				expect(shared.TokQualifier)
+			}
+			expect(shared.TokLParen)
+			String := expect(shared.TokString)
+			expect(shared.TokRParen)
 			expect(shared.TokSemi)
+
+			AsmObj.String = String
+
+			ChildAppend(Slice, AsmObj)
 		case shared.TokReturn:
 			expect(shared.TokReturn)
 			switch peek(0).Type {
 			case shared.TokSemi:
 			default:
-				*Children = append(*Children, Return {
-					Value: ParseExpression(true, CompositeType {
-						Type: NONE,
-					}),
+				ChildAppend(Slice, Return {
+					Value: ParseExpression(true),
 				})
 			}
 			expect(shared.TokSemi)
@@ -551,67 +575,86 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 
 			ParseTop(slice, ScopeID, TU, CurrentFunction)
 		case shared.TokIf:
+			IfObj := IfStatement {}
+			_Scope := CreateScope(ScopeID)
+
 			expect(shared.TokIf)
 			expect(shared.TokLParen)
 
-			IfObj := IfStatement {}
-
-			IfObj.Condition = ParseExpression(true, CompositeType {
-				Type: NONE,
-			})
+			IfObj.Condition = ParseExpression(true)
 			
 			expect(shared.TokRParen)
 
-			expect(shared.TokLCurly)
+			switch peek(0).Type {
+			case shared.TokLCurly:
+				expect(shared.TokLCurly)
 
-			slice := []shared.Token {}
+				Slice := ConstructSlice()	
 
-			depth := 1
-			exit := false
-			_Scope := CreateScope(ScopeID)
+				expect(shared.TokRCurly)
+				ParseLocal(0, len(Slice) - 1, _Scope, Slice, &IfObj.SuccessChildren, TU, false, false)
+			default:
+				ParseStatement(&IfObj.SuccessChildren)	
+			}
 
-			for j := i; j < len(Tokens); j++ {
-				switch Tokens[j].Type {
+			switch peek(0).Type {
+			case shared.TokElse:
+				expect(shared.TokElse)
+				switch peek(0).Type {
 				case shared.TokLCurly:
-					slice = append(slice, Tokens[j])
-					depth++
-				case shared.TokRCurly:
-					depth--
-					if depth <= 0 {
-						i = j
-						exit = true	
-					} else {
-						slice = append(slice, Tokens[j])
-					}
+					expect(shared.TokLCurly)
+
+					Slice := ConstructSlice()	
+
+					expect(shared.TokRCurly)
+					ParseLocal(0, len(Slice) - 1, _Scope, Slice, &IfObj.ElseChildren, TU, false, false)
 				default:
-					slice = append(slice, Tokens[j])
-				}
-				if exit == true {
-					break
+					ParseStatement(&IfObj.ElseChildren)
 				}
 			}
 
-			expect(shared.TokRCurly)
+			ChildAppend(Slice, IfObj)
+		case shared.TokWhile:
+			WhileObj := WhileStatement {}
+			_Scope := CreateScope(ScopeID)
 
-			ParseLocal(0, len(slice) - 1, _Scope, slice, &IfObj.SuccessChildren, TU, false, false)
+			expect(shared.TokWhile)
+			
+			expect(shared.TokLParen)
+			
+			Condition := ParseExpression(true)
+			WhileObj.Condition = Condition
 
-			*Children = append(*Children, IfObj)
+			expect(shared.TokRParen)
+
+			switch peek(0).Type {
+			case shared.TokLCurly:
+				expect(shared.TokLCurly)
+				
+				Slice := ConstructSlice()
+
+				expect(shared.TokRCurly)
+				ParseLocal(0, len(Slice) - 1, _Scope, Slice, &WhileObj.Children, TU, false, false)
+			default:
+				ParseStatement(&WhileObj.Children)
+			}
+
+			ChildAppend(Slice, WhileObj)
 		default:
-			error.Error(1, "'" + peek(0).Value + "'", peek(0), &Tokens)
-			i++
+			// assume expression
+			ChildAppend(Slice, ParseExpression(false).(Statement))
+			expect(shared.TokSemi)
 		}
 	}
 
 	if ExpressionOnly == false {
 		for i <= last {
-			ParseStatement()
+			ParseStatement(Children)
 		}
 	} else {
-		Expy := ParseExpression(true, CompositeType {
-			Type: NONE,
-		})
+		Expy := ParseExpression(true)
 		CheckConstant(Expy, false)
-		*Children = append(*Children, ConstAssignStatement {
+		ChildAppend(Children, ConstAssignStatement {
 			Value: Expy,
 		})
 	}

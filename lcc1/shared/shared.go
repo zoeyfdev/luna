@@ -49,6 +49,7 @@ const (
 	TokShiftLeft
 	TokShiftRight
 	TokString
+	TokAsm
 )
 
 type Token struct {

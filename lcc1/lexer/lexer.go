@@ -137,17 +137,19 @@ func Lex(code []SmallToken, filename string) []shared.Token {
 			Add(shared.TokShiftLeft, content, SToken)
 		case ">>":
 			Add(shared.TokShiftRight, content, SToken)
+		case "asm", "__asm__":
+			Add(shared.TokAsm, content, SToken)
 		default:
 			if shared.OLD == false {
 				switch content[0] {
 				case '"':
-					Add(shared.TokString, content[1:len(content) - 1], SToken)
+					AddWithFake(shared.TokString, content, content[1:len(content) - 1], SToken)
 					continue
 				}
 			}
-			num, err := strconv.ParseInt(content, 0, 64)
+			_, err := strconv.ParseInt(content, 0, 64)
 			if err == nil {
-				AddWithFake(shared.TokNumber, content, fmt.Sprintf("%d", num), SToken)
+				Add(shared.TokNumber, content, SToken)
 			} else {
 				switch content[0] {
 				case '\'':
