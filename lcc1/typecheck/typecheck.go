@@ -26,8 +26,10 @@ func ReturnTypeName(Type neoparser.CompositeType) string {
 		str += "int"
 	case neoparser.I32:
 		str += "long int"
-	default:
+	case neoparser.VOID:
 		str += "void"
+	default:
+		str += Type.HighName
 	}
 
 	if Type.PointerLength > 0 {
@@ -83,6 +85,8 @@ func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token,
 			error.Error(37, "('" + ReturnTypeName(T1.Type) + "' and '" + ReturnTypeName(T2.Type) + "')", OpToken, T1.TokenSet)
 		}
 	}
+
+	TCR.Type.PointerLength = T1.Type.PointerLength
 	
 	if Type1 != Type2 {
 		if Hierarchy[Type1] > Hierarchy[Type2] {
@@ -95,37 +99,6 @@ func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token,
 	}
 
 	return TCR
-}
-
-func TypeCheckLeaf(Leaf neoparser.Leaf, Strictness int) TypeCheckReturn {
-	switch Leaf.(type) {
-	case neoparser.IntLit:
-		IntLit := Leaf.(neoparser.IntLit)
-		return TypeCheckReturn {
-			Type: IntLit.Annotated,
-			Token: IntLit.Token,
-			TokenSet: IntLit.TokenSet,
-			Expression: IntLit,
-		}
-	case neoparser.StringLit:
-		StringLit := Leaf.(neoparser.StringLit)
-		return TypeCheckReturn {
-			Type: StringLit.Annotated,
-			Token: StringLit.Token,
-			TokenSet: StringLit.TokenSet,
-			Expression: StringLit,
-		}
-	case neoparser.Identifier:
-		Identifier := Leaf.(neoparser.Identifier)
-		return TypeCheckReturn {
-			Type: Identifier.Annotated,
-			Token: Identifier.Token,
-			TokenSet: Identifier.TokenSet,
-			Expression: Identifier,
-		}
-	}
-
-	return TypeCheckReturn {}
 }
 
 func TypeSweep(Expression neoparser.Expression, Type neoparser.CompositeType) neoparser.Expression {
@@ -157,6 +130,38 @@ func TypeSweep(Expression neoparser.Expression, Type neoparser.CompositeType) ne
 	return neoparser.IntLit{}
 }
 
+func TypeCheckLeaf(Leaf neoparser.Leaf, Strictness int) TypeCheckReturn {
+	switch Leaf.(type) {
+	case neoparser.IntLit:
+		IntLit := Leaf.(neoparser.IntLit)
+		return TypeCheckReturn {
+			Type: IntLit.Annotated,
+			Token: IntLit.Token,
+			TokenSet: IntLit.TokenSet,
+			Expression: IntLit,
+			RValue: true,
+		}
+	case neoparser.StringLit:
+		StringLit := Leaf.(neoparser.StringLit)
+		return TypeCheckReturn {
+			Type: StringLit.Annotated,
+			Token: StringLit.Token,
+			TokenSet: StringLit.TokenSet,
+			Expression: StringLit,
+		}
+	case neoparser.Identifier:
+		Identifier := Leaf.(neoparser.Identifier)
+		return TypeCheckReturn {
+			Type: Identifier.Annotated,
+			Token: Identifier.Token,
+			TokenSet: Identifier.TokenSet,
+			Expression: Identifier,
+		}
+	}
+
+	return TypeCheckReturn {}
+}
+
 func TypeCheckUnaryOp(UnaryOp neoparser.UnaryOperation, Strictness int) TypeCheckReturn {
 	Left := TypeCheckExpression(UnaryOp.Left, Strictness)
 	
@@ -164,17 +169,19 @@ func TypeCheckUnaryOp(UnaryOp neoparser.UnaryOperation, Strictness int) TypeChec
 
 	switch UnaryOp.Op {
 	case shared.TokStar:
-		// Dereference
+		// Dereference	
 		if Left.Type.PointerLength <= 0 {
 			error.Error(26, "('" + ReturnTypeName(Left.Type) + "' invalid)", Left.Token, Left.TokenSet)
 		}
 		Left.Type.PointerLength--
+		Left.RValue = false
 	case shared.TokAmpersand:
-		Left.Type.PointerLength++
+		Left.AddrCount++
 
-		if Left.Type.PointerLength > Left.Type.PointerLength + 1 {
+		if Left.AddrCount > Left.Type.PointerLength + 1 {
 			error.Error(27, "'" + ReturnTypeName(Left.Type) + "'", Left.Token, Left.TokenSet)
 		}
+		Left.RValue = true
 	}
 
 	UnaryOp.Type = Left.Type
@@ -192,6 +199,9 @@ func TypeCheckBinaryOp(BinaryOp neoparser.BinaryOperation, Strictness int) TypeC
 
 	TCR := TypeMediation(Left, Right, BinaryOp.Token, Strictness)
 	TCR.Expression = BinaryOp
+	TCR.RValue = true
+	TCR.Token = BinaryOp.Token
+	TCR.TokenSet = BinaryOp.TokenSet
 
 	return TCR
 }
@@ -202,6 +212,10 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 		Assignment := Expression.(neoparser.Assignment)
 		Target := TypeCheckExpression(Assignment.Target, Strictness)
 		Value := TypeCheckExpression(Assignment.Value, Strictness)
+
+		if Target.RValue == true {
+			error.Error(45, "", Assignment.Token, Assignment.TokenSet)
+		}
 
 		if Target.Expression != nil { Assignment.Target = Target.Expression }
 		if Value.Expression != nil { Assignment.Value = Value.Expression }
@@ -217,6 +231,7 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 			Type: FunctionCall.AttachedVariable.TypeInfo,
 			Token: FunctionCall.Token,
 			TokenSet: FunctionCall.TokenSet,
+			RValue: true,
 		} 
 	case neoparser.BinaryOperation:
 		return TypeCheckBinaryOp(Expression.(neoparser.BinaryOperation), Strictness)
@@ -239,7 +254,7 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 func TypeCheckStatement(Statement neoparser.Statement) neoparser.Statement {
 	switch Statement.(type) {
 	case neoparser.Assignment, neoparser.FunctionCall:
-		return TypeCheckExpression(Statement.(neoparser.Expression), 0).Expression.(neoparser.Statement)
+		return TypeCheckExpression(Statement.(neoparser.Expression), 1).Expression.(neoparser.Statement)
 	}
 	
 	return neoparser.Assignment {}

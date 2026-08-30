@@ -1,12 +1,8 @@
-#pragma bits 16
+extern void printf(char* str);
 
-extern void print(char* str);
-
-static int foo() {
-    int a = 1;
-    int** b = (int**) 2;
-
-    if (a == 1) {
-        print("Hello world!");
-    } 
+int main() {
+    for (int i = 1; i < 5; i = i + 1) {
+        printf("hi");
+    }
+    return 0;
 }

@@ -22,6 +22,12 @@ const (
 	VARIABLE
 )
 
+type TypeMapKind int
+const (
+	NORMAL TypeMapKind = iota
+	_STRUCT
+)
+
 // Interfaces
 
 type Leaf interface {
@@ -61,6 +67,9 @@ type CompositeType struct {
 	Static bool
 	Signed bool
 	Extern bool
+	Children []CompositeType
+	MemberName string
+	HighName string
 }
 
 type Function_Parameter struct {
@@ -121,6 +130,7 @@ type BinaryOperation struct {
 	Right Expression
 	Type CompositeType
 	Token shared.Token
+	TokenSet *[]shared.Token
 }
 
 type UnaryOperation struct {
@@ -144,6 +154,7 @@ type Assignment struct {
 	Target Expression
 	Value Expression
 	Token shared.Token
+	TokenSet *[]shared.Token
 }
 
 type FunctionCall struct {
@@ -166,6 +177,12 @@ type IfStatement struct {
 
 type WhileStatement struct {
 	Condition Expression
+	Children []Statement
+}
+
+type ForStatement struct {
+	Condition Expression
+	Iterator Expression
 	Children []Statement
 }
 
@@ -203,3 +220,8 @@ func (_ ConstAssignStatement) _Statement() {}
 func (_ IfStatement) _Statement() {}
 
 func (_ WhileStatement) _Statement() {}
+
+func (_ ForStatement) _Statement() {}
+
+// Other
+var TypeMap []CompositeType

@@ -63,6 +63,18 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 
 		for i < len(Tokens) {
 			switch peek(0).Type {
+			case shared.TokIdent:
+				// Custom type
+				Name := expect(shared.TokIdent)
+
+				for _, Type := range TypeMap {
+					if Type.HighName == Name {
+						return Type, peek(-1)
+					}
+				}
+
+				error.Error(46, "'" + Name + "'", peek(-1), &Tokens)
+				exit = true
 			case shared.TokQualifier:
 				switch peek(0).Value {
 				case "short":
@@ -148,11 +160,22 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 						error.Error(22, "'" + str + "' is invalid", peek(-1), &Tokens)
 					}
 
-					Type.Type = I8
+					Type.Type = I8	
+				}
+				switch peek(0).Type {
+				case shared.TokStar:
+				default:
+					exit = true
 				}
 			case shared.TokStar:
 				expect(shared.TokStar)
 				PointerLength++
+
+				switch peek(0).Type {
+				case shared.TokStar:
+				default:
+					exit = true
+				}
 			default:
 				exit = true
 			}
@@ -217,7 +240,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 
 	for i < len(Tokens) {
 		switch peek(0).Type {
-		case shared.TokQualifier, shared.TokType:
+		case shared.TokQualifier, shared.TokType, shared.TokIdent:
 			TypeInformation, TypeTok := ParseType()
 			NameLocation := i
 			Name := expect(shared.TokIdent)
@@ -270,7 +293,13 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 					for i < len(Tokens) {
 						switch peek(0).Type {
 						case shared.TokIdent:
-							FObj.Attributes = append(FObj.Attributes, expect(shared.TokIdent))
+							Attr := expect(shared.TokIdent)
+							switch Attr {
+							case "noreturn":
+							default:
+								error.Warning(11, "'" + Attr + "'", peek(-1), &Tokens)
+							}
+							FObj.Attributes = append(FObj.Attributes, Attr)
 							if peek(0).Type != shared.TokRParen {
 								expect(shared.TokComma)
 							}
@@ -328,11 +357,37 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 
 					expect(shared.TokRCurly)
 				}	
-			case shared.TokEqual:
-				expect(shared.TokEqual)
+			case shared.TokEqual, shared.TokSemi:
+				VObj := Variable {}
+				VObj.Name = Name
+				VObj.TypeInfo = TypeInformation
+				VObj.Kind = VARIABLE
+				VObj.Scope = Scope
+				VObj.Internal = fmt.Sprintf("var_%d", IDCounter)
+				IDCounter++
+
+				if Scope != 0 {
+					VObj.Internal =	GenerateLocalIVN(EnclosingFunction, TypeInformation)
+				}
+
+				DeclAppend(VObj)
+				Location := len((*TU).Declarations) - 1
 
 				if TypeInformation.Type == VOID && TypeInformation.PointerLength <= 0 {
 					error.Error(7, "'void'", TypeTok, &Tokens)
+				}
+
+				if TypeInformation.Extern == true {	
+					expect(shared.TokSemi)
+					continue
+				}
+
+				switch peek(0).Type {
+				case shared.TokSemi:
+					expect(shared.TokSemi)
+					continue
+				default:
+					expect(shared.TokEqual)
 				}
 
 				sloc := i
@@ -354,29 +409,15 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 				end2 := i
 
 				expect(shared.TokSemi)
-
-				VObj := Variable {}
-				VObj.Name = Name
-				VObj.TypeInfo = TypeInformation
-				VObj.Kind = VARIABLE
-				VObj.Scope = Scope
-			
+	
 				switch Scope {
 				case 0:
-					VObj.Internal = "var_" + fmt.Sprintf("%d", IDCounter)
-					IDCounter++	
-
 					ParseLocal(sloc, end, Scope, Tokens, &VObj.Children, TU, true, true)
-
-					DeclAppend(VObj)
+					(*TU).Declarations[Location] = VObj
 				default:
-					VObj.Internal =	GenerateLocalIVN(EnclosingFunction, TypeInformation) 
-
-					DeclAppend(VObj)
-	 
 					ParseLocal(NameLocation, end2, Scope, Tokens, &EnclosingFunction.Children, TU, false, false)	
+					(*TU).Declarations[Location] = VObj
 				}
-				
 			}
 		case shared.TokAsm:
 			AsmObj := Assembly {}
@@ -393,6 +434,15 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 			AsmObj.String = String
 
 			DeclAppend(AsmObj)
+		case shared.TokTypedef:
+			expect(shared.TokTypedef)
+			
+			switch peek(0).Type {
+			case shared.TokStruct:
+				expect(shared.TokStruct)
+			default:
+				
+			}
 		}
 	}	
 }

@@ -6,6 +6,8 @@ import (
 )
 
 type TypeCheckReturn struct {
+	RValue bool
+	AddrCount int
 	Expression neoparser.Expression
 	Type neoparser.CompositeType
 	Token shared.Token

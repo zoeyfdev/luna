@@ -208,7 +208,7 @@ func main() {
 		case ".asm", ".s", ".S":
 			assembly_files = append(assembly_files, file)	
 		case ".o", ".obj", ".a":
-			object_files = append(object_files, file)
+			assembly_files = append(assembly_files, file)
 		default:
 			stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39munknown file type in '" + file + "'\033[0m")
 		}
@@ -230,17 +230,23 @@ func main() {
 	// Second pass: assemble all assembly files
 	astart := time.Now()
 	for _, file := range assembly_files {
-		name, _ := splitFile(file)		
-		success := execute("las -c " + strings.Join(lasargs, " ") + " " + file + " -o " + name + ".o", false)
+		name, _ := splitFile(file)
+		ext := filepath.Ext(file)
 
-		if success != true {
-			asm_error = true
-			continue
-		}
+		switch ext {
+		case ".o", ".obj", ".a":
+			object_files = append(object_files, file)
+		default:
+			success := execute("las -c " + strings.Join(lasargs, " ") + " " + file + " -o " + name + ".o", false)
+			if success != true {
+				asm_error = true
+				continue
+			}
 
-		object_files = append(object_files, name + ".o")
-		if nolink == false {
-			cleanup = append(cleanup, name + ".o")
+			object_files = append(object_files, name + ".o")
+			if nolink == false {
+				cleanup = append(cleanup, name + ".o")
+			}	
 		}	
 	}
 

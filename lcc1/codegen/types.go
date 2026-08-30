@@ -9,6 +9,6 @@ type CodegenResult struct {
 	TypeInfo neoparser.CompositeType
 	ConstantReturn string
 	Read bool
-	ReadRequest bool
-	IsRValue bool
+	IsRvalue bool
+	RValueDerefs int
 }

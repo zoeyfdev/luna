@@ -6,8 +6,10 @@ import (
 	"fmt"
 )
 
+var ScopeCurrent int
 func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Children *[]Statement, TU *AST, ExpressionOnly bool, RequireConst bool) {
 	i := start
+	ScopeCurrent = ScopeID
 	expect := func(toktype shared.TokenType) string {
 		var value string
 		if i >= len(Tokens) {
@@ -39,7 +41,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 	}
 
 	SearchVariable := func(name string) Variable {
-		sid := ScopeID
+		sid := ScopeCurrent
 	TOP:
 		ScopeObj := Scope {}
 		
@@ -267,9 +269,40 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		return slice
 	}
 
+	var SetRead func(Expression Expression, Value bool) Expression
+	SetRead = func(Expression Expression, Value bool) Expression {
+		switch Expression.(type) {
+		case IntLit:
+			IntLit := Expression.(IntLit)
+			IntLit.IsRead = Value
+			return IntLit
+		case StringLit:
+			StringLit := Expression.(StringLit)
+			StringLit.IsRead = Value
+			return StringLit
+		case Identifier:
+			Identifier := Expression.(Identifier)
+			Identifier.IsRead = Value
+			return Identifier
+		case UnaryOperation:
+			UnaryOp := Expression.(UnaryOperation)
+			UnaryOp.Left = SetRead(UnaryOp.Left, Value)
+			return UnaryOp
+		case BinaryOperation:
+			BinaryOp := Expression.(BinaryOperation)
+			BinaryOp.Left = SetRead(BinaryOp.Left, Value)
+			BinaryOp.Right = SetRead(BinaryOp.Right, Value)
+			return BinaryOp
+		default:
+			error.InternalCompilerError("Unsupported op to SetReadTrue")
+		}
+
+		return IntLit {}
+	}
+
 	var ParseUnary func(IsRead bool) Expression
 	var ParseExpression func(IsRead bool) Expression
-	var ParseStatement func(Slice *[]Statement)
+	var ParseStatement func(Slice *[]Statement, DefinedScope int)
 
 	ParsePrimary := func(IsRead bool) Expression {
 		switch peek(0).Type {
@@ -426,23 +459,15 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		exit := false
 		for {
 			switch peek(0).Type {
-			case shared.TokStar:
-				expect(shared.TokStar)
+			case shared.TokStar, shared.TokSlash:
+				expect(peek(0).Type)
 				RHS := ParseUnary(IsRead)
 				LHS = BinaryOperation {
-					Op: shared.TokStar,
+					Op: peek(-1).Type,
 					Left: LHS,
 					Right: RHS,
 					Token: peek(-1),
-				}
-			case shared.TokSlash:
-				expect(shared.TokSlash)
-				RHS := ParseUnary(IsRead)
-				LHS = BinaryOperation {
-					Op: shared.TokSlash,
-					Left: LHS,
-					Right: RHS,
-					Token: peek(-1),
+					TokenSet: &Tokens,
 				}
 			default:
 				exit = true
@@ -462,23 +487,16 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		exit := false
 		for {
 			switch peek(0).Type {
-			case shared.TokPlus:
-				expect(shared.TokPlus)
+			case shared.TokPlus, shared.TokMinus:
+				expect(peek(0).Type)
+				Op := peek(-1).Type
 				RHS := ParseMulDiv(IsRead)
 				LHS = BinaryOperation {
-					Op: shared.TokPlus,
+					Op: Op,
 					Left: LHS,
 					Right: RHS,
 					Token: peek(-1),
-				}
-			case shared.TokMinus:
-				expect(shared.TokMinus)
-				RHS := ParseMulDiv(IsRead)
-				LHS = BinaryOperation {
-					Op: shared.TokMinus,
-					Left: LHS,
-					Right: RHS,
-					Token: peek(-1),
+					TokenSet: &Tokens,
 				}
 			default:
 				exit = true
@@ -513,8 +531,10 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		switch peek(0).Type {
 		case shared.TokEqual:
 			// Assignment
+			LHS = SetRead(LHS, false)
 			AssignmentObj := Assignment {
 				Token: peek(0),
+				TokenSet: &Tokens,
 			}
 
 			expect(shared.TokEqual)
@@ -528,7 +548,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		return LHS
 	}
 
-	ParseStatement = func(Slice *[]Statement) {
+	ParseStatement = func(Slice *[]Statement, DefinedScope int) {
 		switch peek(0).Type {
 		case shared.TokSemi:
 			expect(shared.TokSemi);
@@ -573,10 +593,11 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				}
 			}
 
-			ParseTop(slice, ScopeID, TU, CurrentFunction)
+			ParseTop(slice, DefinedScope, TU, CurrentFunction)
 		case shared.TokIf:
 			IfObj := IfStatement {}
 			_Scope := CreateScope(ScopeID)
+			_Scope2 := CreateScope(ScopeID)
 
 			expect(shared.TokIf)
 			expect(shared.TokLParen)
@@ -594,7 +615,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				expect(shared.TokRCurly)
 				ParseLocal(0, len(Slice) - 1, _Scope, Slice, &IfObj.SuccessChildren, TU, false, false)
 			default:
-				ParseStatement(&IfObj.SuccessChildren)	
+				ParseStatement(&IfObj.SuccessChildren, _Scope)	
 			}
 
 			switch peek(0).Type {
@@ -607,9 +628,9 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 					Slice := ConstructSlice()	
 
 					expect(shared.TokRCurly)
-					ParseLocal(0, len(Slice) - 1, _Scope, Slice, &IfObj.ElseChildren, TU, false, false)
+					ParseLocal(0, len(Slice) - 1, _Scope2, Slice, &IfObj.ElseChildren, TU, false, false)
 				default:
-					ParseStatement(&IfObj.ElseChildren)
+					ParseStatement(&IfObj.ElseChildren, _Scope2)
 				}
 			}
 
@@ -636,10 +657,40 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				expect(shared.TokRCurly)
 				ParseLocal(0, len(Slice) - 1, _Scope, Slice, &WhileObj.Children, TU, false, false)
 			default:
-				ParseStatement(&WhileObj.Children)
+				ParseStatement(&WhileObj.Children, _Scope)
 			}
 
 			ChildAppend(Slice, WhileObj)
+		case shared.TokFor:
+			ForObj := ForStatement {}
+			_Scope := CreateScope(ScopeID)
+
+			expect(shared.TokFor)
+				
+			expect(shared.TokLParen)
+		
+			ScopeCurrent = _Scope
+			ParseStatement(&CurrentFunction.Children, _Scope) // Parse decl
+			ForObj.Condition = ParseExpression(true) // Parse condition
+			expect(shared.TokSemi)
+			ForObj.Iterator = ParseExpression(true) // Parse iterator
+			ScopeCurrent = ScopeID
+
+			expect(shared.TokRParen)
+
+			switch peek(0).Type {
+			case shared.TokLCurly:
+				expect(shared.TokLCurly)
+				
+				Slice := ConstructSlice()
+
+				expect(shared.TokRCurly)
+				ParseLocal(0, len(Slice) - 1, _Scope, Slice, &ForObj.Children, TU, false, false)
+			default:
+				ParseStatement(&ForObj.Children, _Scope)
+			}	
+
+			ChildAppend(Children, ForObj)
 		default:
 			// assume expression
 			ChildAppend(Slice, ParseExpression(false).(Statement))
@@ -649,7 +700,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 
 	if ExpressionOnly == false {
 		for i <= last {
-			ParseStatement(Children)
+			ParseStatement(Children, ScopeID)
 		}
 	} else {
 		Expy := ParseExpression(true)

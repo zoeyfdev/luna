@@ -138,7 +138,11 @@ func Lex(code []SmallToken, filename string) []shared.Token {
 		case ">>":
 			Add(shared.TokShiftRight, content, SToken)
 		case "asm", "__asm__":
-			Add(shared.TokAsm, content, SToken)
+			if shared.OLD == false {
+				Add(shared.TokAsm, content, SToken)
+			} else {
+				Add(shared.TokIdent, content, SToken)
+			}
 		default:
 			if shared.OLD == false {
 				switch content[0] {
