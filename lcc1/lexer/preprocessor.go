@@ -155,6 +155,12 @@ func Tokenize (text string, filename string) []SmallToken {
 			continue
 		}
 
+		if r == '.' && peek(1) == '.' && peek(2) == '.' {
+			Write("...")
+			i += 3
+			continue
+		}
+
 		if strings.ContainsRune("+-*/%&|^~<>=!?:;.,()[]{}@", r) {
 			Write(string(r))
 			i++

@@ -50,6 +50,7 @@ const (
 	TokShiftRight
 	TokString
 	TokAsm
+	TokEllipsis
 )
 
 type Token struct {

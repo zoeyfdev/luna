@@ -143,6 +143,8 @@ func Lex(code []SmallToken, filename string) []shared.Token {
 			} else {
 				Add(shared.TokIdent, content, SToken)
 			}
+		case "...":
+			Add(shared.TokEllipsis, content, SToken)	
 		default:
 			if shared.OLD == false {
 				switch content[0] {

@@ -1,8 +1,13 @@
 extern void printf(char* str);
 
+
+typedef struct {
+    int a;
+} MyStruct;
+
 int main() {
-    for (int i = 1; i < 5; i = i + 1) {
-        printf("hi");
-    }
+    MyStruct a;
+
+    a.a = 1;
     return 0;
 }

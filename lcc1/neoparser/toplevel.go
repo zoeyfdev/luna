@@ -227,7 +227,9 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 			case I16:
 				(*EnclosingFunction).BasinSize += 2
 			case I32:
-				(*EnclosingFunction).BasinSize += 4	
+				(*EnclosingFunction).BasinSize += 4
+			case STRUCT:
+				(*EnclosingFunction).BasinSize += TypeInfo.Size
 			}
 		}
 
@@ -260,6 +262,9 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 				for {
 					switch peek(0).Type {
 					default:
+						if peek(0).Type == shared.TokEllipsis {
+							error.UnimplementedMessage("ellipsis operators are currently not supported.")
+						}
 						Type, _ := ParseType() // TODO: integrated checking for void type
 						Name := expect(shared.TokIdent)
 						if peek(0).Type != shared.TokRParen {
@@ -322,6 +327,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 				case shared.TokSemi:
 					FObj.TypeInfo.Extern = true // implicit extern
 					expect(shared.TokSemi)
+					(*TU).Declarations[Location] = FObj
 				default:
 					expect(shared.TokLCurly)
 
@@ -440,8 +446,43 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 			switch peek(0).Type {
 			case shared.TokStruct:
 				expect(shared.TokStruct)
+				expect(shared.TokLCurly)
+
+				MajorType := CompositeType {
+					Type: STRUCT,
+				}
+
+				CurrentSize := 0
+
+				for peek(0).Type != shared.TokRCurly {
+					Type, _ := ParseType()
+					CurrentSize += Type.Size
+					Name := expect(shared.TokIdent)
+					expect(shared.TokSemi)
+
+					MemberObject := Type
+					MemberObject.MemberName = Name
+
+					MajorType.Children = append(MajorType.Children, MemberObject)
+				}
+				expect(shared.TokRCurly)
+
+				MajorType.HighName = expect(shared.TokIdent)
+				MajorType.Size = CurrentSize
+				expect(shared.TokSemi)
+
+				TypeMap = append(TypeMap, MajorType)
 			default:
-				
+				Type, _ := ParseType()		
+				Name := expect(shared.TokIdent)
+
+				expect(shared.TokSemi)
+
+				RealType := Type
+				RealType.HighName = Name
+				RealType.Size = Type.Size
+
+				TypeMap = append(TypeMap, RealType)
 			}
 		}
 	}	

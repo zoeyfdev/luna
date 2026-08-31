@@ -95,6 +95,8 @@ type Assembly struct {
 	String string
 }
 
+// Expressions
+
 type IntLit struct {
 	Value string
 	Type CompositeType
@@ -143,6 +145,18 @@ type Cast struct {
 	Value Expression
 	Type CompositeType
 }
+
+type StructAccess struct {
+	Target Expression
+	Pointer bool
+	Member string
+	Type CompositeType
+	Token shared.Token
+	TokenSet *[]shared.Token
+	IsRead bool
+}
+
+type EmptyExpression struct {}
 
 // Statements
 
@@ -222,6 +236,10 @@ func (_ IfStatement) _Statement() {}
 func (_ WhileStatement) _Statement() {}
 
 func (_ ForStatement) _Statement() {}
+
+func (_ EmptyExpression) _Expression() {}
+
+func (_ StructAccess) _Expression() {}
 
 // Other
 var TypeMap []CompositeType

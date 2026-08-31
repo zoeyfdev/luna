@@ -269,6 +269,104 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		return slice
 	}
 
+	BinaryTypeResolution := func(LHS CompositeType, RHS CompositeType) CompositeType {
+		IsInt := func(Type NewType) bool {
+			switch Type {
+			case I8, I16, I32:
+				return true
+			}
+			return false
+		}
+		MostWideType := func(T1 NewType, T2 NewType) NewType {
+			Hierarchy := make(map[NewType]int)
+
+			Hierarchy[I8] = 1
+			Hierarchy[I16] = 2
+			Hierarchy[I32] = 3
+
+			if Hierarchy[T1] > Hierarchy[T2] {
+				return T1
+			}
+			return T2
+		}
+		ReturnHighName := func(LHS CompositeType, RHS CompositeType) string {
+			HN := ""
+
+			switch LHS.Type {
+			case STRUCT:
+				return LHS.HighName
+			}
+
+			switch RHS.Type {
+			case STRUCT:
+				return RHS.HighName
+			}
+
+			return HN
+		}
+
+		RT := CompositeType {}
+
+		if LHS.PointerLength <= 0 && RHS.PointerLength < 0 {
+			if IsInt(LHS.Type) && IsInt(RHS.Type) {
+				RT.Type = MostWideType(LHS.Type, RHS.Type)
+			} else {
+				// Illegal, will be caught
+			}
+		} else {
+			if (LHS.PointerLength > 0 && RHS.PointerLength <= 0) || (RHS.PointerLength > 0 && LHS.PointerLength <= 0) {
+				RT.PointerLength = max(RT.PointerLength, LHS.PointerLength, RHS.PointerLength)
+				RT.HighName = ReturnHighName(LHS, RHS)	
+			} else {
+				// Illegal operation, will be caught by typechecker
+			}
+		}
+
+		return RT
+	}
+
+	ReturnTypeOfExpression := func(Expression Expression) CompositeType {
+		switch Expression.(type) {
+		case IntLit:
+			IntLit := Expression.(IntLit)
+			return IntLit.Type
+		case StringLit:
+			StringLit := Expression.(StringLit)
+			return StringLit.Type
+		case Identifier:
+			Identifier := Expression.(Identifier)
+			return Identifier.Type
+		case UnaryOperation:
+			UnaryOp := Expression.(UnaryOperation)
+			return UnaryOp.Type
+		case BinaryOperation:
+			BinaryOp := Expression.(BinaryOperation)
+			return BinaryOp.Type
+		}
+
+		error.InternalCompilerError("Invalid expression to returntypeofexpression!")
+		return IntLit {}.Type
+	}
+
+	LocalDefine := func(DefinedScope int) {
+		slice := []shared.Token {}
+			
+		exit := false
+		for j := i; j < len(Tokens); j++ {
+			slice = append(slice, Tokens[j])
+			switch Tokens[j].Type {
+			case shared.TokSemi:
+				i = j + 1
+				exit = true
+			}
+			if exit == true {
+				break
+			}
+		}
+
+		ParseTop(slice, DefinedScope, TU, CurrentFunction)
+	}
+
 	var SetRead func(Expression Expression, Value bool) Expression
 	SetRead = func(Expression Expression, Value bool) Expression {
 		switch Expression.(type) {
@@ -293,12 +391,31 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			BinaryOp.Left = SetRead(BinaryOp.Left, Value)
 			BinaryOp.Right = SetRead(BinaryOp.Right, Value)
 			return BinaryOp
+		case EmptyExpression:
+		case StructAccess:
+			StructAccess := Expression.(StructAccess)
+			StructAccess.IsRead = Value
+			return StructAccess
 		default:
 			error.InternalCompilerError("Unsupported op to SetReadTrue")
 		}
 
 		return IntLit {}
 	}
+
+	CheckStructMemberAccess := func(Struct string, Member string) CompositeType {
+		for _, Type := range TypeMap {
+			if Type.Type == STRUCT && Type.HighName == Struct {
+				for _, M := range Type.Children {
+					if M.MemberName == Member {
+						return M
+					}
+				}
+			}	
+		}
+
+		return CompositeType {}
+	} 
 
 	var ParseUnary func(IsRead bool) Expression
 	var ParseExpression func(IsRead bool) Expression
@@ -407,12 +524,47 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				TokenSet: &Tokens,
 			}
 			return StringObj
+		case shared.TokSemi:
+			return EmptyExpression {}
 		}
 
-		error.InternalCompilerError("no return value")
+		error.InternalCompilerError("no return value at " + peek(-1).Value + " " + peek(0).Value + " " + peek(1).Value + " on line " + fmt.Sprintf("%d", peek(0).Line))
 		return Identifier {
 			Name: "__ZERO",
 		}
+	}
+
+	ParseAccess := func(IsRead bool) Expression {
+		Expression := ParsePrimary(IsRead)
+		switch peek(0).Type {
+		case shared.TokPeriod, shared.TokArrow:
+			println("oh yeah baby")
+			expect(peek(0).Type)
+			Name := expect(shared.TokIdent)
+
+			AccessObj := StructAccess {
+				Target: Expression,
+				Member: Name,
+				Token: peek(-1),
+				TokenSet: &Tokens,
+			}
+
+			EType := ReturnTypeOfExpression(Expression)
+			MemberType := CheckStructMemberAccess(EType.HighName, Name)
+			if MemberType.Type == NONE {
+				error.Error(49, "'" + Name + "' in '" + EType.HighName + "'", peek(-2), &Tokens)
+			}
+
+			AccessObj.Type = MemberType
+
+			if peek(-2).Type == shared.TokArrow {
+				AccessObj.Pointer = true
+			}
+
+			return AccessObj
+		}
+
+		return Expression
 	}
 
 	ParseUnary = func(IsRead bool) Expression {
@@ -449,7 +601,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		if Expy != nil {
 			return Expy
 		}
-		Expression := ParsePrimary(IsRead)
+		Expression := ParseAccess(IsRead)
 		return Expression
 	}
 
@@ -468,6 +620,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 					Right: RHS,
 					Token: peek(-1),
 					TokenSet: &Tokens,
+					Type: BinaryTypeResolution(ReturnTypeOfExpression(LHS), ReturnTypeOfExpression(RHS)),
 				}
 			default:
 				exit = true
@@ -497,6 +650,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 					Right: RHS,
 					Token: peek(-1),
 					TokenSet: &Tokens,
+					Type: BinaryTypeResolution(ReturnTypeOfExpression(LHS), ReturnTypeOfExpression(RHS)),
 				}
 			default:
 				exit = true
@@ -515,11 +669,12 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		case shared.TokEquality, shared.TokInequality, shared.TokLAngle, shared.TokRAngle, shared.TokGEqual, shared.TokLEqual:
 			expect(peek(0).Type)
 			Op := peek(-1).Type
-			RHS := ParseAddSub(IsRead)	
+			RHS := ParseAddSub(IsRead)
 			return BinaryOperation {
 				Left: LHS,
 				Right: RHS,
 				Op: Op,
+				Type: BinaryTypeResolution(ReturnTypeOfExpression(LHS), ReturnTypeOfExpression(RHS)),
 			}
 		}
 	
@@ -692,9 +847,19 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 
 			ChildAppend(Children, ForObj)
 		default:
+			if peek(0).Type == shared.TokIdent {
+				for _, Type := range TypeMap {
+					if Type.HighName == peek(0).Value {
+						LocalDefine(DefinedScope)
+						goto DefaultDone
+					}
+				}	
+			}
+			
 			// assume expression
 			ChildAppend(Slice, ParseExpression(false).(Statement))
 			expect(shared.TokSemi)
+			DefaultDone:
 		}
 	}
 
