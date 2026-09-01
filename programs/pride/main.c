@@ -4,19 +4,21 @@
     #pragma bits 16
 #endif
 
-extern void putc(char c, short short int color);
+extern void putc(char c, char color);
 extern void sleep(int seconds);
 extern void* flags_start;
 
 void render_flags() {
-    short short int* fptr = (short short int*) flags_start;
+    char* fptr = (char*) flags_start;
     while (*fptr != 0xFE) {
-        for (int i = 0; i < 40; i++) {
+        int i = 0;
+        for (; i < 40; i++) {
             putc(0x20, *fptr);
         }
+        asm (".byte 0x21");
         fptr++;
         if (*fptr == 0x00) {
-            sleep(1);
+            // sleep(1);
         }
     }
 }

@@ -69,7 +69,8 @@ type CompositeType struct {
 	Extern bool
 	Children []CompositeType
 	MemberName string
-	HighName string
+	HighName string // TODO: consolidate these
+	Offset int
 }
 
 type Function_Parameter struct {
@@ -158,6 +159,15 @@ type StructAccess struct {
 
 type EmptyExpression struct {}
 
+type IncrementDecrement struct {
+	Target Expression
+	Decrement bool
+	Type CompositeType
+	Token shared.Token
+	TokenSet *[]shared.Token
+	Post bool
+}
+
 // Statements
 
 type ConstAssignStatement struct {
@@ -200,6 +210,10 @@ type ForStatement struct {
 	Children []Statement
 }
 
+type StatementExpression struct {
+	Expression Expression
+}
+
 // Membership decls
 func (_ Variable) _Declaration() {}
 
@@ -240,6 +254,10 @@ func (_ ForStatement) _Statement() {}
 func (_ EmptyExpression) _Expression() {}
 
 func (_ StructAccess) _Expression() {}
+
+func (_ IncrementDecrement) _Expression() {}
+
+func (_ StatementExpression) _Statement() {}
 
 // Other
 var TypeMap []CompositeType

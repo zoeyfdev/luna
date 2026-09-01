@@ -5,16 +5,16 @@
 #include "stdbool.h"
 #include "fzip.h"
 
-void tohex(long int number, short short int capitalized) {
+void tohex(long int number, char capitalized) {
     puts32("0x", 255, 0);
     puts32((char*) itoa(number, capitalized, (char*) malloc(11)), 255, 0);
     puts32("\n", 255, 0);
     free(11);
 }
 
-short short int pause() {
+char pause() {
     puts32("Press any key to continue...\n\n", COLOR_WHITE, COLOR_BLACK);
-    short short int code = wait_for_key();
+    char code = wait_for_key();
     return code;
 }
 
@@ -67,11 +67,11 @@ void video_load_cursor() {
     video_set_cursor(cursor_x, cursor_y);
 }
 
-int query_drive_inserted(short short int drive) {
+int query_drive_inserted(char drive) {
     asm ("mov r1, e0"); // Move drive number to r1
     asm ("int 0x3"); // Query drive inserted, return in r1
     asm ("mov e12, r1");
-    return (int) _e12;
+    asm ("mov e6, e12");
 }
 
 void reboot() {
@@ -79,7 +79,7 @@ void reboot() {
     asm ("int 0xf");
 }
 
-void load_sector(short short int drive, long int* dest_sector, long int real_sector) {
+void load_sector(char drive, long int* dest_sector, long int real_sector) {
     asm ("mov r2, e0");
     asm ("mov r1, e1");
     asm ("mov r3, e2");
@@ -114,9 +114,9 @@ void app_error() __attribute__((noreturn)) {
     goto lexec_done; 
 }
 
-short short int* get_word(char* string, int pos) {
-    short short int* buffer = (short short int*) malloc(1024);
-    short short int* ogbuf = buffer;
+char* get_word(char* string, int pos) {
+    char* buffer = (char*) malloc(1024);
+    char* ogbuf = buffer;
     int cpos = 1;
 
     while (*string != 0x00) {
@@ -140,10 +140,10 @@ short short int* get_word(char* string, int pos) {
     return ogbuf;
 }
 
-short short int* atoi(long int n) {
-    short short int* buf = (short short int*) malloc(32);
-    short short int* buf2 = (short short int*) malloc(32);
-    short short int* ogbufptr = buf2;
+char* atoi(long int n) {
+    char* buf = (char*) malloc(32);
+    char* buf2 = (char*) malloc(32);
+    char* ogbufptr = buf2;
     
     long int i = 0;
     

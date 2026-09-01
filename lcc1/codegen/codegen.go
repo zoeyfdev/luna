@@ -210,6 +210,47 @@ func CodegenExpression(Expression neoparser.Expression, IsWrite bool) CodegenRes
 		return CodegenLeaf(Expression.(neoparser.Leaf))
 	case neoparser.Cast:
 		return CodegenCast(Expression.(neoparser.Cast), IsWrite)
+	case neoparser.IncrementDecrement:
+		IncrementDecrement := Expression.(neoparser.IncrementDecrement)
+
+		// TODO: pre-increment/post-increment
+
+		_Value := IncrementDecrement.Target
+		IncrementDecrement.Target =neoparser.SetRead(IncrementDecrement.Target, false)
+		_Value = neoparser.SetRead(_Value, true)
+
+		r := TakeRegister()
+		Target := CodegenExpression(IncrementDecrement.Target, true)
+		Value := CodegenExpression(_Value, false)
+		
+		Write("mov " + r + ", " + Value.Register, true)
+		
+		if IncrementDecrement.Decrement == false {
+			Write("inc " + r, true)
+		} else {
+			Write("dec " + r, true)
+		}
+
+		op := "str"
+		if Target.TypeInfo.PointerLength > 0 {
+			op = "str_ptr"
+		} else {
+			switch Target.TypeInfo.Type {
+			case neoparser.I8:
+				op = "str"
+			case neoparser.I16:
+				op = "str16"
+			case neoparser.I32:
+				op = "str32"
+			}
+		}
+
+		Write(op + " " + Target.Register + ", " + r, true)
+
+		FreeRegister(Target.Register)
+		FreeRegister(r)
+
+		return Value
 	case neoparser.Assignment:
 		Assignment := Expression.(neoparser.Assignment)
 		Target := CodegenExpression(Assignment.Target, true)
@@ -262,6 +303,9 @@ func CodegenStatement(Statement neoparser.Statement) {
 		FreeRegister(CodegenExpression(Statement.(neoparser.Expression), false).Register)
 	case neoparser.FunctionCall:
 		FreeRegister(CodegenExpression(Statement.(neoparser.Expression), false).Register)
+	case neoparser.StatementExpression:
+		StatementExpression := Statement.(neoparser.StatementExpression)
+		FreeRegister(CodegenExpression(StatementExpression.Expression, false).Register)
 	case neoparser.Return:
 		Return := Statement.(neoparser.Return)
 		Value := CodegenExpression(Return.Value, false)
@@ -345,7 +389,7 @@ func CodegenStatement(Statement neoparser.Statement) {
 		Write(AfterLabel + ":", false)
 	case neoparser.Assembly:
 		Assembly := Statement.(neoparser.Assembly)
-		Write(Assembly.String + "    # User-defined inline assembly", true)
+		Write(Assembly.String + "    // User-defined inline assembly", true)
 	}
 }
 
@@ -459,7 +503,7 @@ func CodegenDecl(Decl neoparser.Declaration) {
 		}
 	case neoparser.Assembly:
 		Assembly := Decl.(neoparser.Assembly)
-		Write(Assembly.String + "    # User-defined inline assembly", false)
+		Write(Assembly.String + "    // User-defined inline assembly", false)
 	}
 }
 

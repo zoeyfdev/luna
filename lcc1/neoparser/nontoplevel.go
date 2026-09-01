@@ -342,7 +342,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		case BinaryOperation:
 			BinaryOp := Expression.(BinaryOperation)
 			return BinaryOp.Type
-		}
+	}
 
 		error.InternalCompilerError("Invalid expression to returntypeofexpression!")
 		return IntLit {}.Type

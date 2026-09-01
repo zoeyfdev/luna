@@ -214,7 +214,6 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 		Value := TypeCheckExpression(Assignment.Value, Strictness)
 
 		if Target.RValue == true {
-			println("Rval")
 			error.Error(45, "", Assignment.Token, Assignment.TokenSet)
 		}
 
@@ -248,7 +247,6 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 			Type: Cast.Type,
 		}
 	case neoparser.StructAccess:
-		println("SA")
 		StructAccess := Expression.(neoparser.StructAccess)
 		return TypeCheckReturn {
 			Expression: StructAccess,
@@ -256,6 +254,21 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 			Token: StructAccess.Token,
 			TokenSet: StructAccess.TokenSet,
 			RValue: false,
+		}
+	case neoparser.IncrementDecrement:
+		IncrementDecrement := Expression.(neoparser.IncrementDecrement)
+		Target := TypeCheckExpression(IncrementDecrement.Target, Strictness)
+
+		if Target.RValue == true {
+			error.Error(45, "", IncrementDecrement.Token, IncrementDecrement.TokenSet)
+		}
+
+		return TypeCheckReturn {
+			Expression: IncrementDecrement,
+			Type: Target.Type,
+			Token: IncrementDecrement.Token,
+			TokenSet: IncrementDecrement.TokenSet,
+			RValue: true,	
 		}
 	}
 
