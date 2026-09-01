@@ -165,7 +165,7 @@ type IncrementDecrement struct {
 	Type CompositeType
 	Token shared.Token
 	TokenSet *[]shared.Token
-	Post bool
+	Pre bool
 }
 
 // Statements
@@ -205,6 +205,7 @@ type WhileStatement struct {
 }
 
 type ForStatement struct {
+	Initializer []Statement
 	Condition Expression
 	Iterator Expression
 	Children []Statement

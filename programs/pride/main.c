@@ -11,14 +11,12 @@ extern void* flags_start;
 void render_flags() {
     char* fptr = (char*) flags_start;
     while (*fptr != 0xFE) {
-        int i = 0;
-        for (; i < 40; i++) {
+        for (int i = 0; i < 40; i++) {
             putc(0x20, *fptr);
         }
-        asm (".byte 0x21");
         fptr++;
         if (*fptr == 0x00) {
-            // sleep(1);
+            sleep(1);
         }
     }
 }

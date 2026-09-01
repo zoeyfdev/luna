@@ -367,10 +367,16 @@ func CodegenStatement(Statement neoparser.Statement) {
 		VT := VarTicker
 		VarTicker++
 
+		InitLabel := fmt.Sprintf("for_stmt_%d_init", VT) 
 		CheckLabel := fmt.Sprintf("for_stmt_%d_check", VT)
 		BodyLabel := fmt.Sprintf("for_stmt_%d_body", VT)
 		IteratorLabel := fmt.Sprintf("for_stmt_%d_iterator", VT)
 		AfterLabel := fmt.Sprintf("for_stmt_%d_after", VT)
+
+		Write(InitLabel + ":", false)
+		for _, Statement := range ForStatement.Initializer {
+			CodegenStatement(Statement)
+		}
 
 		Write(CheckLabel + ":", false)
 		Result := CodegenExpression(ForStatement.Condition, false)

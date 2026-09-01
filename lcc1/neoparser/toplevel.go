@@ -11,12 +11,12 @@ var IDCounter = 1
 func Parse(Tokens []shared.Token) *AST {
 	TranslationUnit := AST {}
 
-	ParseTop(Tokens, 0, &TranslationUnit, &Variable {})
+	ParseTop(Tokens, 0, &TranslationUnit, &Variable {}, &[]Statement {})
 
 	return &TranslationUnit
 }
 
-func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Variable) { // TODO: add dynamic scoping for DECL	
+func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Variable, VInitChildrenSlice *[]Statement) { // TODO: add dynamic scoping for DECL	
 	i := 0
 	expect := func(toktype shared.TokenType) string {
 		var value string
@@ -421,7 +421,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 					ParseLocal(sloc, end, Scope, Tokens, &VObj.Children, TU, true, true)
 					(*TU).Declarations[Location] = VObj
 				default:
-					ParseLocal(NameLocation, end2, Scope, Tokens, &EnclosingFunction.Children, TU, false, false)	
+					ParseLocal(NameLocation, end2, Scope, Tokens, VInitChildrenSlice, TU, false, false)	
 					(*TU).Declarations[Location] = VObj
 				}
 			}

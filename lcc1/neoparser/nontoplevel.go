@@ -348,7 +348,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		return IntLit {}.Type
 	}
 
-	LocalDefine := func(DefinedScope int) {
+	LocalDefine := func(DefinedScope int, _Slice *[]Statement) {
 		slice := []shared.Token {}
 			
 		exit := false
@@ -364,7 +364,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			}
 		}
 
-		ParseTop(slice, DefinedScope, TU, CurrentFunction)
+		ParseTop(slice, DefinedScope, TU, CurrentFunction, _Slice)
 	}
 
 	var SetRead func(Expression Expression, Value bool) Expression
@@ -537,8 +537,22 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 	ParseAccess := func(IsRead bool) Expression {
 		Expression := ParsePrimary(IsRead)
 		switch peek(0).Type {
+		case shared.TokIncrement, shared.TokDecrement:
+			expect(peek(0).Type)
+
+			IDObj := IncrementDecrement {
+				Target: Expression,
+				Type: ReturnTypeOfExpression(Expression),
+				Token: peek(-1),
+				TokenSet: &Tokens,
+			}
+
+			if peek(-1).Type == shared.TokDecrement {
+				IDObj.Decrement = true
+			}
+
+			return IDObj
 		case shared.TokPeriod, shared.TokArrow:
-			println("oh yeah baby")
 			expect(peek(0).Type)
 			Name := expect(shared.TokIdent)
 
@@ -733,22 +747,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			}
 			expect(shared.TokSemi)
 		case shared.TokQualifier, shared.TokType:
-			slice := []shared.Token {}
-			
-			exit := false
-			for j := i; j < len(Tokens); j++ {
-				slice = append(slice, Tokens[j])
-				switch Tokens[j].Type {
-				case shared.TokSemi:
-					i = j + 1
-					exit = true
-				}
-				if exit == true {
-					break
-				}
-			}
-
-			ParseTop(slice, DefinedScope, TU, CurrentFunction)
+			LocalDefine(ScopeCurrent, Slice)	
 		case shared.TokIf:
 			IfObj := IfStatement {}
 			_Scope := CreateScope(ScopeID)
@@ -825,7 +824,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			expect(shared.TokLParen)
 		
 			ScopeCurrent = _Scope
-			ParseStatement(&CurrentFunction.Children, _Scope) // Parse decl
+			ParseStatement(&ForObj.Initializer, _Scope) // Parse decl
 			ForObj.Condition = ParseExpression(true) // Parse condition
 			expect(shared.TokSemi)
 			ForObj.Iterator = ParseExpression(true) // Parse iterator
@@ -850,14 +849,16 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			if peek(0).Type == shared.TokIdent {
 				for _, Type := range TypeMap {
 					if Type.HighName == peek(0).Value {
-						LocalDefine(DefinedScope)
+						LocalDefine(DefinedScope, Slice)
 						goto DefaultDone
 					}
 				}	
 			}
 			
 			// assume expression
-			ChildAppend(Slice, ParseExpression(false).(Statement))
+			ChildAppend(Slice, StatementExpression {
+				Expression: ParseExpression(false),
+			})
 			expect(shared.TokSemi)
 			DefaultDone:
 		}
