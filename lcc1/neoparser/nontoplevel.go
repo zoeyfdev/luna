@@ -4,6 +4,7 @@ import (
 	"lcc1/shared"
 	"lcc1/error"
 	"fmt"
+	"reflect"
 )
 
 var ScopeCurrent int
@@ -342,9 +343,15 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		case BinaryOperation:
 			BinaryOp := Expression.(BinaryOperation)
 			return BinaryOp.Type
-	}
+		case IncrementDecrement:
+			IncrementDecrement := Expression.(IncrementDecrement)
+			return IncrementDecrement.Type
+		case FunctionCall:
+			FunctionCall := Expression.(FunctionCall)
+			return FunctionCall.AttachedVariable.TypeInfo
+		}
 
-		error.InternalCompilerError("Invalid expression to returntypeofexpression!")
+		error.InternalCompilerError("Invalid expression to ReturnTypeOfExpression, got '" + reflect.TypeOf(Expression).String() + "'")
 		return IntLit {}.Type
 	}
 
