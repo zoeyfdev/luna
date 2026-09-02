@@ -16,7 +16,7 @@ var errors = []string {
 	"redefinition of",
 	"use of undeclared identifier",
 	"incompatible type conversion",
-	"could not evaluate mathematical expression",
+	"'short short int' is deprecated in LCC v9.0+, use 'char' instead",
 	"variable has incomplete type",
 	"comparison between pointer and non-pointer",
 	"too many arguments passed to function (max 6)",

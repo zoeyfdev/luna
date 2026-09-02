@@ -11,7 +11,9 @@ var IDCounter = 1
 func Parse(Tokens []shared.Token) *AST {
 	TranslationUnit := AST {}
 
+	BootstrapRegisters(&TranslationUnit)
 	ParseTop(Tokens, 0, &TranslationUnit, &Variable {}, &[]Statement {})
+	
 
 	return &TranslationUnit
 }
@@ -60,21 +62,27 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 
 		long := false
 		short := false
+		ctype := false
 
 		for i < len(Tokens) {
 			switch peek(0).Type {
 			case shared.TokIdent:
 				// Custom type
 				Name := expect(shared.TokIdent)
+				Found := false
 
-				for _, Type := range TypeMap {
-					if Type.HighName == Name {
-						return Type, peek(-1)
+				for _, T := range TypeMap {
+					if T.HighName == Name {
+						ctype = true
+						Type = T
+						Found = true
 					}
 				}
 
-				error.Error(46, "'" + Name + "'", peek(-1), &Tokens)
-				exit = true
+				if Found == false {
+					error.Error(46, "'" + Name + "'", peek(-1), &Tokens)
+					exit = true
+				}
 			case shared.TokQualifier:
 				switch peek(0).Value {
 				case "short":
@@ -85,9 +93,10 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 
 					if short == false {
 						short = true
-						Preset = 8
+						Preset = 16
 					} else {
-						error.Warning(28, "'short' declaration specifier", peek(0), &Tokens)
+						Preset = 8
+						error.Warning(6, "", peek(0), &Tokens)
 					}
 				case "extern":
 					Type.Extern = true
@@ -182,6 +191,9 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 			if exit == true {
 				break
 			}
+			if ctype == true && peek(0).Type != shared.TokStar {
+				break
+			}
 		}
 
 		Type.PointerLength = PointerLength
@@ -203,6 +215,8 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 				Size = 2
 			case I32:
 				Size = 4
+			case STRUCT:
+				Size = Type.Size
 			}
 		}
 
@@ -393,6 +407,9 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 					expect(shared.TokSemi)
 					continue
 				default:
+					if TypeInformation.Type == STRUCT && TypeInformation.PointerLength <= 0 {
+						error.UnimplementedMessage("directly assigning to structs is not currently supported.")
+					}
 					expect(shared.TokEqual)
 				}
 
@@ -456,12 +473,14 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 
 				for peek(0).Type != shared.TokRCurly {
 					Type, _ := ParseType()
+					Offset := CurrentSize
 					CurrentSize += Type.Size
 					Name := expect(shared.TokIdent)
 					expect(shared.TokSemi)
 
 					MemberObject := Type
 					MemberObject.MemberName = Name
+					MemberObject.Offset = Offset
 
 					MajorType.Children = append(MajorType.Children, MemberObject)
 				}

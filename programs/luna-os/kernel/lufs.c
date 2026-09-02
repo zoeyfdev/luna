@@ -10,7 +10,7 @@ typedef struct {
 } File;
 
 long int* ffnt(char* filename) {
-    short short int* buffer = (short short int*) malloc((long int) strlen(filename));
+    char* buffer = (char*) malloc((long int) strlen(filename));
     long int* bufptr = (long int*) buffer;
 
     bool seen = false;
@@ -32,8 +32,8 @@ long int* ffnt(char* filename) {
 }
 
 long int* fntf(char* name) {
-    short short int* buffer = (short short int*) malloc(16);
-    short short int* ogbufptr = buffer; 
+    char* buffer = (char*) malloc(16);
+    char* ogbufptr = buffer; 
     bool seen = false;
     int copied = 0;
 
@@ -120,6 +120,10 @@ File* fopen(char* filename, bool complain_on_not_found) {
             puts32("File '", COLOR_LRED, COLOR_BLACK);
             puts32((char*) ffnt(filename), COLOR_LRED, COLOR_BLACK);
             puts32("' not found!\n", COLOR_LRED, COLOR_BLACK);
+            f.Address = NULLPTR;
+            return &f;
+        } else {
+            f.Address = NULLPTR;
             return &f;
         }
     }

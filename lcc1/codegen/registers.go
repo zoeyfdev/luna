@@ -60,3 +60,20 @@ func FreeRegister(name string) {
 		}
 	}
 }
+
+func PushAllocated() {
+	for _, Register := range Registers {
+		if Register.Taken == true {
+			Write("push " + Register.Name, true)
+		}
+	}
+}
+
+func PopAllocated() {
+	for i := len(Registers) - 1; i >= 0; i-- {
+		Register := Registers[i]
+		if Register.Taken == true {
+			Write("pop " + Register.Name, true)
+		}
+	}
+}

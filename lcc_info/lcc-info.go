@@ -8,7 +8,7 @@ import (
 
 const (
 	VERSION string = "9.0 (preview)"
-	ICE_MESSAGE string = "Please send a bug report to alex@alexflax.xyz or make an issue on the GitHub repository and provide the source code file(s) you used."
+	ICE_MESSAGE string = "\033[1;39mlcc: \033[1;36minfo: \033[1;39mPlease send a bug report to alex@alexflax.xyz or make an issue on the GitHub repository and provide the source code file(s) you used.\033[0m"
 )
 
 

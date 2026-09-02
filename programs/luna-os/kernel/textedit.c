@@ -3,7 +3,7 @@
 #include "stdlib.h"
 #include "util.h"
 
-void textedit_init(short short int* buffer) {
+void textedit_init(char* buffer) {
     save_graphics_buf();
     video_save_cursor();
     render_buf((void*) 0x40404040);

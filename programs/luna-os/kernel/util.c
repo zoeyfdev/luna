@@ -105,7 +105,7 @@ void load_executable() {
         puts32("Invalid executable file format.\n", COLOR_WHITE, COLOR_BLACK);
         return;
     }
-    lexec_core((long int) address);
+    lexec_core(address);
 }
 
 void app_error() __attribute__((noreturn)) {
@@ -175,4 +175,8 @@ char* atoi(long int n) {
 void toint(long int n) {
     puts32((char*) atoi(n), COLOR_WHITE, COLOR_BLACK);
     puts32("\n", COLOR_WHITE, COLOR_BLACK);
+}
+
+void printf(char* str) {
+    puts32(str, COLOR_WHITE, COLOR_BLACK);
 }

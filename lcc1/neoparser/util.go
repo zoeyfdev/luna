@@ -3,6 +3,7 @@ package neoparser
 import (
 	"lcc1/shared"
 	"lcc1/error"
+	"fmt"
 )
 
 var ScopeTicker int = 1
@@ -32,40 +33,133 @@ func ChildAppend(Slice *[]Statement, Child Statement) {
 }
 
 func SetRead(Expression Expression, Value bool) Expression {
-		switch Expression.(type) {
-		case IntLit:
-			IntLit := Expression.(IntLit)
-			IntLit.IsRead = Value
-			return IntLit
-		case StringLit:
-			StringLit := Expression.(StringLit)
-			StringLit.IsRead = Value
-			return StringLit
-		case Identifier:
-			Identifier := Expression.(Identifier)
-			Identifier.IsRead = Value
-			return Identifier
-		case UnaryOperation:
-			UnaryOp := Expression.(UnaryOperation)
-			UnaryOp.Left = SetRead(UnaryOp.Left, Value)
-			return UnaryOp
-		case BinaryOperation:
-			BinaryOp := Expression.(BinaryOperation)
-			BinaryOp.Left = SetRead(BinaryOp.Left, Value)
-			BinaryOp.Right = SetRead(BinaryOp.Right, Value)
-			return BinaryOp
-		case EmptyExpression:
-		case StructAccess:
-			StructAccess := Expression.(StructAccess)
-			StructAccess.IsRead = Value
-			return StructAccess
-		case IncrementDecrement:
-			IncrementDecrement := Expression.(IncrementDecrement)
-			return IncrementDecrement
-		default:
-			error.InternalCompilerError("Unsupported op to SetRead")
-		}
-
-		error.InternalCompilerError("No return value for SetRead")
-		return IntLit {}
+	switch Expression.(type) {
+	case IntLit:
+		IntLit := Expression.(IntLit)
+		IntLit.IsRead = Value
+		return IntLit
+	case StringLit:
+		StringLit := Expression.(StringLit)
+		StringLit.IsRead = Value
+		return StringLit
+	case Identifier:
+		Identifier := Expression.(Identifier)
+		Identifier.IsRead = Value
+		return Identifier
+	case UnaryOperation:
+		UnaryOp := Expression.(UnaryOperation)
+		UnaryOp.Left = SetRead(UnaryOp.Left, Value)
+		return UnaryOp
+	case BinaryOperation:
+		BinaryOp := Expression.(BinaryOperation)
+		BinaryOp.Left = SetRead(BinaryOp.Left, Value)
+		BinaryOp.Right = SetRead(BinaryOp.Right, Value)
+		return BinaryOp
+	case EmptyExpression:
+	case StructAccess:
+		StructAccess := Expression.(StructAccess)
+		StructAccess.IsRead = Value
+		return StructAccess
+	case IncrementDecrement:
+		IncrementDecrement := Expression.(IncrementDecrement)
+		return IncrementDecrement
+	default:
+		error.InternalCompilerError("Unsupported op to SetRead")
 	}
+
+	error.InternalCompilerError("No return value for SetRead")
+	return IntLit {}
+}
+
+func BootstrapRegisters(TU *AST) {
+	for i := 0; i <= 12; i++ { // r0 - r12
+		(*TU).Declarations = append((*TU).Declarations, Variable {
+			Name: fmt.Sprintf("_r%d", i),
+			Internal: fmt.Sprintf("r%d", i),
+			Register: true,
+			Kind: VARIABLE,
+			TypeInfo: CompositeType {
+				Type: ReturnUintPtrType(),
+				Extern: true,
+			},	
+		})
+	}
+	for i := 0; i <= 14; i++ { // e0 - e14
+		(*TU).Declarations = append((*TU).Declarations, Variable {
+			Name: fmt.Sprintf("_e%d", i),
+			Internal: fmt.Sprintf("e%d", i),
+			Register: true,
+			Kind: VARIABLE,
+			TypeInfo: CompositeType {
+				Type: ReturnUintPtrType(),
+				Extern: true,
+			},
+		})
+	}
+
+	(*TU).Declarations = append((*TU).Declarations, Variable {
+		Name: "_sp",
+		Internal: "sp",
+		Register: true,
+		Kind: VARIABLE,
+		TypeInfo: CompositeType {
+			Type: ReturnUintPtrType(),
+			Extern: true,
+		},
+	})
+
+	(*TU).Declarations = append((*TU).Declarations, Variable {
+		Name: "_pc",
+		Internal: "pc",
+		Register: true,
+		Kind: VARIABLE,
+		TypeInfo: CompositeType {
+			Type: ReturnUintPtrType(),
+			Extern: true,
+		},
+	})
+
+	(*TU).Declarations = append((*TU).Declarations, Variable {
+		Name: "_irv",
+		Internal: "irv",
+		Register: true,
+		Kind: VARIABLE,
+		TypeInfo: CompositeType {
+			Type: ReturnUintPtrType(),
+			Extern: true,
+		},
+	})
+
+	(*TU).Declarations = append((*TU).Declarations, Variable {
+		Name: "_ir",
+		Internal: "ir",
+		Register: true,
+		Kind: VARIABLE,
+		TypeInfo: CompositeType {
+			Type: ReturnUintPtrType(),
+			Extern: true,
+		},
+	})
+
+	(*TU).Declarations = append((*TU).Declarations, Variable {
+		Name: "_b",
+		Internal: "b",
+		Register: true,
+		Kind: VARIABLE,
+		TypeInfo: CompositeType {
+			Type: ReturnUintPtrType(),
+			Extern: true,
+		},
+	})
+
+	(*TU).Declarations = append((*TU).Declarations, Variable {
+		Name: "_fp",
+		Internal: "fp",
+		Register: true,
+		Kind: VARIABLE,
+		TypeInfo: CompositeType {
+			Type: ReturnUintPtrType(),
+			Extern: true,
+		},
+	})
+}

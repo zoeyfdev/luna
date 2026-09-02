@@ -1,9 +1,9 @@
 CC=lcc
 
 all:
-	$(CC) -old boot/stage1.s -o stage1.bin
-	$(CC) -old boot/stage2.s -o stage2.bin
-	$(CC) -old kernel/kernel_stub.s kernel/boot.c audio.o kernel/fzip.s kernel/util.c kernel/textedit.c kernel/entry.c kernel/shell.c kernel/stdlib.s kernel/lufs.c kernel/image_file.c kernel/audio_file.c -o kernel.bin
+	$(CC) boot/stage1.s -o stage1.bin
+	$(CC) boot/stage2.s -o stage2.bin
+	$(CC) kernel/kernel_stub.s kernel/boot.c kernel/audio.c kernel/fzip.s kernel/util.c kernel/textedit.c kernel/entry.c kernel/shell.c kernel/stdlib.s kernel/lufs.c kernel/image_file.s kernel/audio_file.s -o kernel.bin
 	dd if=stage1.bin of=os.img bs=512
 	dd if=stage2.bin of=os.img bs=1 seek=492 conv=notrunc
 	dd if=kernel.bin of=os.img bs=512 seek=3 conv=notrunc

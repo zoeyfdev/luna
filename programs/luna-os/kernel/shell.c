@@ -12,7 +12,7 @@ char* notepad_file = "NOTEPAD.SYS";
 
 bool tried = false;
 void teststack() {
-    long int* rand = 0x90909090;
+    long int* rand = (long int*) 0x90909090;
     long int val = *rand;
 
     tohex(val, 1);
@@ -62,10 +62,10 @@ void shell() {
                 continue;
             }
 
-            short short int* final = strcpy((char*) file, (char*) buf);
+            char* final = strcpy((char*) file, (char*) buf);
             *final = 0;
 
-            textedit_init((short short int*) buf);
+            textedit_init((char*) buf);
             fwrite((char*) fntf(notepad_file), (char*) buf);
 
             puts32("\n", COLOR_WHITE, COLOR_BLACK);
@@ -102,7 +102,7 @@ void shell() {
 
         if (strcmp("battery", (char*) buf) == 1) {
             puts32("Battery level: ", COLOR_WHITE, COLOR_BLACK);
-            short short int* bat_ptr = 0x80000026;
+            char* bat_ptr = 0x80000026;
             puts32((char*) atoi((long int) *bat_ptr), COLOR_WHITE, COLOR_BLACK);
             puts32("%\n", COLOR_WHITE, COLOR_BLACK);
             continue;

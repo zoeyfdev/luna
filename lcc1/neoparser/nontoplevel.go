@@ -14,10 +14,15 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 	expect := func(toktype shared.TokenType) string {
 		var value string
 		if i >= len(Tokens) {
-			if toktype != shared.TokSemi {
-				error.Error(1, "'<EOF>'", Tokens[i - 1], &Tokens)
+			if len(Tokens) <= 0 {
+				FakeStream := []shared.Token { shared.Token {}, }
+				error.Error(1, "'<EOF>' (???)", FakeStream[0], &FakeStream)
 			} else {
-				error.Error(18, "", Tokens[i - 1], &Tokens)
+				if toktype != shared.TokSemi {
+					error.Error(1, "'<EOF>'", Tokens[len(Tokens) - 1], &Tokens)
+				} else {
+					error.Error(18, "", Tokens[len(Tokens) - 1], &Tokens)
+				}
 			}
 			return ""
 		}
@@ -27,14 +32,16 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			if toktype != shared.TokSemi {
 				error.Error(1, "'" + Tokens[i].Value + "'", Tokens[i], &Tokens)
 			} else {
-				error.Error(18, "", Tokens[i - 1], &Tokens)
+				x := i - 1
+				if x < 0 { x = 0 }
+				error.Error(18, "", Tokens[x], &Tokens)
 			}
 		}
 		i++
 		return value
 	}	
 	peek := func(lookahead int) shared.Token {
-		if i + lookahead < len(Tokens) {
+		if i + lookahead < len(Tokens) && i + lookahead >= 0 {
 			return Tokens[i + lookahead]
 		}
 		return shared.Token{Type: shared.TokEOF, Value: ""}
@@ -349,6 +356,12 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		case FunctionCall:
 			FunctionCall := Expression.(FunctionCall)
 			return FunctionCall.AttachedVariable.TypeInfo
+		case StructAccess:
+			StructAccess := Expression.(StructAccess)
+			return StructAccess.Type
+		case Cast:
+			Cast := Expression.(Cast)
+			return Cast.Type
 		}
 
 		error.InternalCompilerError("Invalid expression to ReturnTypeOfExpression, got '" + reflect.TypeOf(Expression).String() + "'")
@@ -403,8 +416,16 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			StructAccess := Expression.(StructAccess)
 			StructAccess.IsRead = Value
 			return StructAccess
+		case Cast:
+			Cast := Expression.(Cast)
+			Cast.Value = SetRead(Cast.Value, Value)
+			return Cast
+		case FunctionCall:
+			FunctionCall := Expression.(FunctionCall)
+			FunctionCall.IsRead = Value
+			return FunctionCall
 		default:
-			error.InternalCompilerError("Unsupported op to SetReadTrue")
+			error.InternalCompilerError("Unsupported op to SetReadTrue, got '" + reflect.TypeOf(Expression).String() + "'")
 		}
 
 		return IntLit {}
@@ -506,6 +527,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			}	
 
 			Number := expect(shared.TokNumber)
+	
 			IntObj := IntLit {
 				Value: Number,
 				Token: peek(-1),
@@ -535,9 +557,9 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			return EmptyExpression {}
 		}
 
-		error.InternalCompilerError("no return value at " + peek(-1).Value + " " + peek(0).Value + " " + peek(1).Value + " on line " + fmt.Sprintf("%d", peek(0).Line))
-		return Identifier {
-			Name: "__ZERO",
+		error.Error(1, "'" + peek(0).Value + "'", peek(0), &Tokens)
+		return IntLit {
+			Value: "0xDEADBEEF",
 		}
 	}
 
@@ -563,11 +585,14 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			expect(peek(0).Type)
 			Name := expect(shared.TokIdent)
 
+			Expression = SetRead(Expression, false)
+
 			AccessObj := StructAccess {
 				Target: Expression,
 				Member: Name,
 				Token: peek(-1),
 				TokenSet: &Tokens,
+				IsRead: IsRead,
 			}
 
 			EType := ReturnTypeOfExpression(Expression)
@@ -577,6 +602,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			}
 
 			AccessObj.Type = MemberType
+			AccessObj.Offset = MemberType.Offset
 
 			if peek(-2).Type == shared.TokArrow {
 				AccessObj.Pointer = true
@@ -632,14 +658,15 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		exit := false
 		for {
 			switch peek(0).Type {
-			case shared.TokStar, shared.TokSlash:
+			case shared.TokStar, shared.TokSlash, shared.TokPercent:
 				expect(peek(0).Type)
+				OpToken := peek(-1)
 				RHS := ParseUnary(IsRead)
 				LHS = BinaryOperation {
-					Op: peek(-1).Type,
+					Op: OpToken.Type,
 					Left: LHS,
 					Right: RHS,
-					Token: peek(-1),
+					Token: OpToken,
 					TokenSet: &Tokens,
 					Type: BinaryTypeResolution(ReturnTypeOfExpression(LHS), ReturnTypeOfExpression(RHS)),
 				}
@@ -774,9 +801,13 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				Slice := ConstructSlice()	
 
 				expect(shared.TokRCurly)
+				ScopeCurrent = _Scope
 				ParseLocal(0, len(Slice) - 1, _Scope, Slice, &IfObj.SuccessChildren, TU, false, false)
+				ScopeCurrent = ScopeID
 			default:
-				ParseStatement(&IfObj.SuccessChildren, _Scope)	
+				ScopeCurrent = _Scope
+				ParseStatement(&IfObj.SuccessChildren, _Scope)
+				ScopeCurrent = ScopeID
 			}
 
 			switch peek(0).Type {
@@ -789,9 +820,14 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 					Slice := ConstructSlice()	
 
 					expect(shared.TokRCurly)
+
+					ScopeCurrent = _Scope2
 					ParseLocal(0, len(Slice) - 1, _Scope2, Slice, &IfObj.ElseChildren, TU, false, false)
+					ScopeCurrent = ScopeID
 				default:
+					ScopeCurrent = _Scope2
 					ParseStatement(&IfObj.ElseChildren, _Scope2)
+					ScopeCurrent = ScopeID
 				}
 			}
 
@@ -852,6 +888,24 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			}	
 
 			ChildAppend(Children, ForObj)
+		case shared.TokGoto:
+			expect(shared.TokGoto)
+			Name := expect(shared.TokIdent)
+			expect(shared.TokSemi)
+
+			ChildAppend(Slice, GotoStatement {
+				Name: Name,
+			})
+		case shared.TokBreak:
+			expect(shared.TokBreak)
+			expect(shared.TokSemi)
+
+			ChildAppend(Slice, BreakStatement {})
+		case shared.TokContinue:
+			expect(shared.TokContinue)
+			expect(shared.TokSemi)
+
+			ChildAppend(Slice, ContinueStatement {})
 		default:
 			if peek(0).Type == shared.TokIdent {
 				for _, Type := range TypeMap {

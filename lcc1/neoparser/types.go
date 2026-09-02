@@ -90,6 +90,7 @@ type Variable struct {
 	Parameters []Variable // hold that thought
 	Children []Statement
 	Kind VariableKind
+	Register bool
 }
 
 type Assembly struct {
@@ -155,6 +156,7 @@ type StructAccess struct {
 	Token shared.Token
 	TokenSet *[]shared.Token
 	IsRead bool
+	Offset int
 }
 
 type EmptyExpression struct {}
@@ -187,6 +189,7 @@ type FunctionCall struct {
 	Token shared.Token
 	TokenSet *[]shared.Token
 	Pushed int
+	IsRead bool
 }
 
 type Return struct {
@@ -214,6 +217,14 @@ type ForStatement struct {
 type StatementExpression struct {
 	Expression Expression
 }
+
+type GotoStatement struct {
+	Name string
+}
+
+type BreakStatement struct {}
+
+type ContinueStatement struct {}
 
 // Membership decls
 func (_ Variable) _Declaration() {}
@@ -259,6 +270,12 @@ func (_ StructAccess) _Expression() {}
 func (_ IncrementDecrement) _Expression() {}
 
 func (_ StatementExpression) _Statement() {}
+
+func (_ GotoStatement) _Statement() {}
+
+func (_ BreakStatement) _Statement() {}
+
+func (_ ContinueStatement) _Statement() {}
 
 // Other
 var TypeMap []CompositeType

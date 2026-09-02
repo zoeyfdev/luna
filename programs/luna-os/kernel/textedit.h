@@ -1,1 +1,1 @@
-extern void textedit_init(short short int* buffer);
+extern void textedit_init(char* buffer);

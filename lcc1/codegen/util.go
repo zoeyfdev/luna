@@ -8,6 +8,8 @@ import (
 )
 
 var VarTicker int
+var CurrentEndLabel string
+var CurrentContinueLabel string
 
 func SearchVariable(name string, ScopeID int, TU *neoparser.AST) neoparser.Variable {
 	sid := ScopeID

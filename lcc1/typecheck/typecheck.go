@@ -4,6 +4,7 @@ import (
 	"lcc1/neoparser"
 	"lcc1/shared"
 	"lcc1/error"
+	"reflect"
 )
 
 func ReturnUintPtrType() neoparser.NewType {
@@ -79,14 +80,13 @@ func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token,
 			if T1.Type.PointerLength > 0 && T2.Type.PointerLength > 0 {
 				error.Error(37, "('" + ReturnTypeName(T1.Type) + "' and '" + ReturnTypeName(T2.Type) + "')", OpToken, T1.TokenSet)
 			}
+			TCR.Type.PointerLength = max(T1.Type.PointerLength, T2.Type.PointerLength)
 		}
 	} else if Strictness == 1 {
 		if T1.Type.PointerLength != T2.Type.PointerLength {
 			error.Error(37, "('" + ReturnTypeName(T1.Type) + "' and '" + ReturnTypeName(T2.Type) + "')", OpToken, T1.TokenSet)
 		}
 	}
-
-	TCR.Type.PointerLength = T1.Type.PointerLength
 	
 	if Type1 != Type2 {
 		if Hierarchy[Type1] > Hierarchy[Type2] {
@@ -124,9 +124,19 @@ func TypeSweep(Expression neoparser.Expression, Type neoparser.CompositeType) ne
 		BinaryOp.Left = TypeSweep(BinaryOp.Left, Type)
 		BinaryOp.Right = TypeSweep(BinaryOp.Right, Type)
 		return BinaryOp
+	case neoparser.FunctionCall:
+		FunctionCall := Expression.(neoparser.FunctionCall)
+		FunctionCall.AttachedVariable.TypeInfo = Type
+		return FunctionCall
+	/*
+	case neoparser.StructAccess:
+		StructAccess := Expression.(neoparser.StructAccess)
+		StructAccess.Type = Type
+		return StructAccess
+	*/
 	}
 	
-	error.InternalCompilerError("no return value!")
+	error.InternalCompilerError("no return value for " + reflect.TypeOf(Expression).String())
 	return neoparser.IntLit{}
 }
 
@@ -181,6 +191,7 @@ func TypeCheckUnaryOp(UnaryOp neoparser.UnaryOperation, Strictness int) TypeChec
 		if Left.AddrCount > Left.Type.PointerLength + 1 {
 			error.Error(27, "'" + ReturnTypeName(Left.Type) + "'", Left.Token, Left.TokenSet)
 		}
+		Left.Type.PointerLength++
 		Left.RValue = true
 	}
 
@@ -220,7 +231,7 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 		if Target.Expression != nil { Assignment.Target = Target.Expression }
 		if Value.Expression != nil { Assignment.Value = Value.Expression }
 
-		ReturnStmt := TypeMediation(Target, Value, Assignment.Token, Strictness)
+		ReturnStmt := TypeMediation(Target, Value, Assignment.Token, 1)
 		ReturnStmt.Expression = Assignment
 		return ReturnStmt
 	case neoparser.FunctionCall:
@@ -275,13 +286,14 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 	return TypeCheckReturn {}
 }
 
-func TypeCheckStatement(Statement neoparser.Statement) neoparser.Statement {
+func TypeCheckStatement(Statement neoparser.Statement) {
 	switch Statement.(type) {
 	case neoparser.Assignment, neoparser.FunctionCall:
-		return TypeCheckExpression(Statement.(neoparser.Expression), 1).Expression.(neoparser.Statement)
-	}
-	
-	return neoparser.Assignment {}
+		TypeCheckExpression(Statement.(neoparser.Expression), 0)
+	case neoparser.StatementExpression:
+		StatementExpression := Statement.(neoparser.StatementExpression)
+		TypeCheckExpression(StatementExpression.Expression, 0)
+	}	
 }
 
 func TypeCheck(TranslationUnit *neoparser.AST) {

@@ -21,6 +21,13 @@ func Const_CodegenLeaf(Leaf neoparser.Leaf, AllowIdent bool) string {
 	case neoparser.IntLit:
 		IntLit := Leaf.(neoparser.IntLit)
 		return IntLit.Value
+	case neoparser.StringLit:
+		StringLit := Leaf.(neoparser.StringLit)
+		VT := VarTicker
+		VarTicker++
+		WritePre(fmt.Sprintf("const_str_%d:", VT), false)
+		WritePre(".asciz \"" + StringLit.Value + "\"\n", true)
+		return fmt.Sprintf("const_str_%d", VT)
 	case neoparser.Identifier:
 		Identifier := Leaf.(neoparser.Identifier)
 
@@ -74,7 +81,7 @@ func Const_CodegenExpression(Expression neoparser.Expression, AllowIdent bool) s
 		return Const_CodegenBinaryOp(Expression.(neoparser.BinaryOperation), AllowIdent)
 	case neoparser.UnaryOperation:
 		return Const_CodegenUnaryOp(Expression.(neoparser.UnaryOperation), AllowIdent)
-	case neoparser.IntLit, neoparser.Identifier:
+	case neoparser.IntLit, neoparser.Identifier, neoparser.StringLit:
 		return Const_CodegenLeaf(Expression.(neoparser.Leaf), AllowIdent)
 	}
 	return ""
