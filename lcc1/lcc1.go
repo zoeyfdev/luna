@@ -5,7 +5,6 @@ import (
 	"lcc1/error"
 	"lcc1/lexer"
 	"lcc1/shared"
-	"lcc1/parser"
 	"lcc1/neoparser"
 	"lcc1/codegen"
 	"lcc1/typecheck"
@@ -58,7 +57,6 @@ func main() {
 	var nolink bool = false
 	var stats bool = false
 	var predefs []lexer.DefineEntry
-	var OLD bool
 	
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -76,7 +74,7 @@ func main() {
 		case "-Werror":
 			error.Upgrade = true
 		case "-fpie":
-			parser.PIE = true
+			// parser.PIE = true
 		case "-scs":
 			stats = true
 		case "-sast":
@@ -115,9 +113,6 @@ func main() {
 			i += 2
 		case "-help", "--help":
 			lcc_info.PrintUnifiedHelpMessage()
-		case "-old":
-			OLD = true
-			shared.OLD = true
 		default:
 			if arg[0] == '-' {
 				error.ErrorNoGaze(53, "'" + arg + "'", shared.Token{Line: 0}) 
@@ -138,6 +133,8 @@ func main() {
 	assembly_files := []string {}
 	for _, file := range input_files {
 		data, err := os.ReadFile(file)
+		Code := ""
+
 		if err != nil {
 			error.ErrorNoGaze(16, "'" + file + "'", shared.Token{Line: 0})
 			os.Exit(1)
@@ -162,50 +159,28 @@ func main() {
 		}
 
 		parse_time := time.Now()
-		Code := ""
-
-
-		if OLD == false {
-			AST := neoparser.Parse(tokens)
-			typecheck.TypeCheck(AST)
-
-			if error.Errors <= 0 {
-				Code = codegen.Codegen(AST)
-			}
-		} else {
-			parser.Parse(tokens, 1)
-		}
-
+		AST := neoparser.Parse(tokens)
 		if stats == true {
-			fmt.Println("\033[1;39mlcc: parser:", time.Since(parse_time), "\033[0m")
+			fmt.Println("\033[1;39mlcc: parse:", time.Since(parse_time), "\033[0m")
 		}
 
-		if error.Errors < 1 && error.FailCompilation == false {
+		typecheck_time := time.Now()
+		typecheck.TypeCheck(AST)
+		if stats == true {
+			fmt.Println("\033[1;39mlcc: typecheck:", time.Since(typecheck_time), "\033[0m")
+		}
+
+		if error.Errors <= 0 {
+			codegen_time := time.Now()
+			Code = codegen.Codegen(AST)
+			if stats == true {
+				fmt.Println("\033[1;39mlcc: codegen:", time.Since(codegen_time), "\033[0m")
+			}
+
 			name := strings.TrimSuffix(file, filepath.Ext(file))
 			assembly_files = append(assembly_files, name + ".s")
 
-			if OLD == false {
-				os.WriteFile(name + ".s", []byte(Code), 0644)
-			} else {
-				dir := ""
-
-				switch shared.Bits {
-				case 16:
-					dir = ".bits 16"
-				case 32:
-					dir = ".bits 32"
-				default:
-					dir = ".bits 16"
-				}
-
-				for _, variable := range parser.Variables {
-					if variable.HasBasin == true {
-						parser.Code1 = "#define _builtin_lcc_basin_" + variable.Name + " " + fmt.Sprintf("%d", variable.BasinSize) + "\n" + parser.Code1
-					}
-				}
-
-				os.WriteFile(name + ".s", []byte(dir + "\n" + parser.Code1 + "\n" + parser.Code2), 0644)
-			}
+			os.WriteFile(name + ".s", []byte(Code), 0644)
 		}	
 	}
 

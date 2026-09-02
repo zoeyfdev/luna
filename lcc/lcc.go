@@ -154,8 +154,6 @@ func main() {
 			i += 2
 		case "-help", "--help":
 			lcc_info.PrintUnifiedHelpMessage()
-		case "-old":
-			cc1args = append(cc1args, "-old")
 		case "-sra":
 			cc1args = append(cc1args, "-sra")
 		case "-sast":
