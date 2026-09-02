@@ -10,7 +10,7 @@
 [Jump to frontend](#frontend)<br><br>
 
 # Preamble
-The Luna L2 is a simple, lightweight, RISC CPU that aims to be clean while also leveraging some luxuries from CISC, with the ultimate end goal of being easy to teach and learn.<br><br>
+The Luna L2 is a simple, lightweight, RISC CPU that aims to be clean while also leveraging some luxuries from CISC, with the ultimate end goal being ease of use and ease of learning.<br><br>
 
 # Registers
 L2 has 34 total registers for the storage and manipulation of data and information:<br><br>
@@ -136,7 +136,7 @@ Byte 0: current battery level; 100% if no battery<br><br>
 The Luna toolchain has a custom assembler (`las`) to convert programs from assembly language to object format that can then be linked and then run on L2. (Flags can be found in the [frontend](#frontend) section.)<br>
 ## Syntax specifications
 The syntax of L2 assembly is similar to that of Intel assembly syntax. An instruction consists of a mnemonic, then the operands. Above, there were no specifications on which instructions use which registers, since every instruction that uses registers can use any register.<br>
-Except for LOD/LODE, STR/STRE, LODF/LODFE, and STRF/STRFE, the destination register is always the first register in the instruction.<br>
+Except for STR/STR16/STR32 (and their effective equivalents by appending `e`), the destination register is always the first register in the instruction. In the above, the destination register comes after the address.<br>
 You can use a label name followed by a colon to make a label, which gets turned into a numerical offset at assembly time. Therefore you can treat them as numbers as well. These can also be used as functions with `call` and `ret`.<br>
 ## Custom directives
 There are some directives in LAS that do not correspond to any instruction on L2. They are as follows:<br>
@@ -174,43 +174,36 @@ For assembly examples, I recommend you see the many assembly files in `programs/
 # Linking
 The Luna toolchain has a custom linker (`l2ld`) that will convert files from object format to executable format. Flags for L2LD can be found below<br><br>
 
-# C compilation
+# C Compilation
 The Luna toolchain has a custom C compiler (`lcc1`) that will compile from C (C99) to assembly. Flags for LCC1 can be found below.<br>
 Please note that LCC1 is incomplete in terms of C features supported but an effort is being made to add new features, however most features used in C99 are supported at least to some degree.<br>
 ## Variable Attributes
-In LCC1, you can use `__attribute__((<attribute(s)>))` to specify attributes for variables in the manner below:<br>
-`int foo __attribute__((require_const)) = 5;`<br>
+In LCC1, you can use `__attribute__((<attribute(s)>))` to specify attributes for functions in the manner below:<br>
 `int foo() __attribute__((noreturn)) { ... }`<br>
 All valid attributes are listed below:<br>
-`noreturn`: tells compiler to not pop a return address from the stack at the beginning of a function or adding a `ret` at the end of a function. (valid for functions)<br>
-`require_const`: tells compiler to require that the non-global variable in question have a constant compile time initializer. (valid for variables)<br><br>
+`noreturn`: tells compiler to not pop a return address from the stack at the beginning of a function or adding a `ret` at the end of a function.<br>
 ## Extensions
 In LCC1, there are a few extensions to make programming L2 applications easier. They are as follows:<br>
-`short short <int>`: Specifies an 8-bit integer without a custom type like `uint8_t`.<br>
-`__embed__`: Embeds a file into the resulting assembly file; equivalent to `.embed` but from C. Syntax: `__embed__ <pre (puts at top of file instead at canonical location)/static (no auto .global)> <label name> (("<file path>"))`<br>
-`void*` dereferences: equivalent to `char`/`short short int` dereferences; grabs 8 bits.<br>
-Pointer increments: **ALL** pointer types when incremented will be incremented by 1, not by the size of the element. To increment by the size of the element, add by `sizeof(ptr)` instead.<br>
+`void*` dereferences: equivalent to `char` dereferences; grabs 1 byte.<br>
+Pointer increments: **ALL** pointer types when incremented will be incremented by 1, not by the size of the element. To increment by the size of the element, add by `sizeof(ptr)` instead, or subscript via array.<br>
 ## Integer Chart
-`short short`: 8 bits (1 byte)<br>
-`short/<none>`: 16 bits (2 bytes)<br>
+`char`: 8 bits (1 byte) (note that `char` on LCC is unsigned by default)<br>
+`short`: 16 bits (2 bytes)<br>
 `long`: 32 bits (4 bytes)<br>
-`long long`: unsupported<br><br>
+`long long`: unsupported<br>
+`<no qualifier>`: equivalent to the current mode (16 bits in 16 bit mode; 32 bits in 32 bit mode)<br>
+## Notes
+`short short int` has been deprecated in LCC v9.0+, use `char` for all 8-bit types instead.<br>
+`__embed__` has been deprecated and removed in LCC v9.0+, you should embed files via assembly instead.<br>
+`signed` is not supported in LCC, as the Luna L2 architecture does not support signed integers. All integers are unsigned by default.<br>
+In LCC1, you may specify the bit mode the compiler should use for the current translation unit by typing `#pragma bits <16/32>`.<br><br>
 
 # Frontend
 The Luna toolchain has a simple compiler frontend (`lcc`) which is similar to that of GCC or Clang. LCC will also automatically detect each file's type and use the relevant subtool for it.<br>
 ## Compiling a program
 To compile a program, use the following: `lcc <flags> <input file(s)> -o <output file>`<br>
 ## Flags
-`-o`: specifies output file (L2LD)<br>
-`-Werror`: upgrades all warnings to errors (LAS/LCC1)<br>
-`-fpie`: Specifies to compile in position independent executable mode (LCC1/LAS/L2LD)<br>
-`-fpie-16`: Specifies to L2LD to link your PIE in 16 bit mode (L2LD)<br>
-`-fpie-32`: Specifies to L2LD to link your PIE in 32 bit mode (L2LD)<br>
-`-c`: do not invoke linker (`l2ld`) after assembly is complete (LAS)<br>
-`-v`: shows version of LCC and exits<br>
-`-si`: shows command invocations LCC makes<br>
-`-S`: do not invoke assembler (`las`) after compilation is complete (LCC1)<br>
-`-fno-autolink`: disallows L2LD pulling from standard libraries if a symbol is undefined after initial linking (L2LD)<br>
+Use `lcc/lcc1/las --help` to find relevant flags for the LCC frontend.<br> 
 ## Supported file types
 `.s/.S/.asm`: assembly<br>
 `.o/.obj`: object file<br>
