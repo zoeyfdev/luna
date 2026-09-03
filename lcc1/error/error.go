@@ -138,8 +138,8 @@ func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	if errno == 18 {
 		var ansiRe = regexp.MustCompile(`\033\[[0-9;]*m`)
 		visibleLen := len(ansiRe.ReplaceAllString(text, ""))
-		fmt.Printf("     " + strings.Repeat(" ", len(string(line))) + "| " + strings.Repeat(" ", visibleLen) + "\033[1;32m^\033[0m\n")
-		fmt.Printf("      | " + strings.Repeat(" ", visibleLen) + "\033[1;32m;\033[0m\n")
+		fmt.Printf("     " + strings.Repeat(" ", len(string(line)) + 1) + "| " + strings.Repeat(" ", visibleLen) + "\033[1;32m^\033[0m\n")
+		fmt.Printf("     " + strings.Repeat(" ", len(string(line)) + 1) + "| " + strings.Repeat(" ", visibleLen) + "\033[1;32m;\033[0m\n")
 	} 
 
 	if kind != 3 {

@@ -385,51 +385,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		}
 
 		ParseTop(slice, DefinedScope, TU, CurrentFunction, _Slice)
-	}
-
-	var SetRead func(Expression Expression, Value bool) Expression
-	SetRead = func(Expression Expression, Value bool) Expression {
-		switch Expression.(type) {
-		case IntLit:
-			IntLit := Expression.(IntLit)
-			IntLit.IsRead = Value
-			return IntLit
-		case StringLit:
-			StringLit := Expression.(StringLit)
-			StringLit.IsRead = Value
-			return StringLit
-		case Identifier:
-			Identifier := Expression.(Identifier)
-			Identifier.IsRead = Value
-			return Identifier
-		case UnaryOperation:
-			UnaryOp := Expression.(UnaryOperation)
-			UnaryOp.Left = SetRead(UnaryOp.Left, Value)
-			return UnaryOp
-		case BinaryOperation:
-			BinaryOp := Expression.(BinaryOperation)
-			BinaryOp.Left = SetRead(BinaryOp.Left, Value)
-			BinaryOp.Right = SetRead(BinaryOp.Right, Value)
-			return BinaryOp
-		case EmptyExpression:
-		case StructAccess:
-			StructAccess := Expression.(StructAccess)
-			StructAccess.IsRead = Value
-			return StructAccess
-		case Cast:
-			Cast := Expression.(Cast)
-			Cast.Value = SetRead(Cast.Value, Value)
-			return Cast
-		case FunctionCall:
-			FunctionCall := Expression.(FunctionCall)
-			FunctionCall.IsRead = Value
-			return FunctionCall
-		default:
-			error.InternalCompilerError("Unsupported op to SetReadTrue, got '" + reflect.TypeOf(Expression).String() + "'")
-		}
-
-		return IntLit {}
-	}
+	}	
 
 	CheckStructMemberAccess := func(Struct string, Member string) CompositeType {
 		for _, Type := range TypeMap {
@@ -840,6 +796,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			
 			expect(shared.TokLParen)
 			
+			ScopeCurrent = _Scope
 			Condition := ParseExpression(true)
 			WhileObj.Condition = Condition
 
@@ -856,6 +813,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			default:
 				ParseStatement(&WhileObj.Children, _Scope)
 			}
+			ScopeCurrent = ScopeID
 
 			ChildAppend(Slice, WhileObj)
 		case shared.TokFor:
@@ -871,7 +829,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			ForObj.Condition = ParseExpression(true) // Parse condition
 			expect(shared.TokSemi)
 			ForObj.Iterator = ParseExpression(true) // Parse iterator
-			ScopeCurrent = ScopeID
+			
 
 			expect(shared.TokRParen)
 
@@ -885,7 +843,8 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				ParseLocal(0, len(Slice) - 1, _Scope, Slice, &ForObj.Children, TU, false, false)
 			default:
 				ParseStatement(&ForObj.Children, _Scope)
-			}	
+			}
+			ScopeCurrent = ScopeID
 
 			ChildAppend(Children, ForObj)
 		case shared.TokGoto:

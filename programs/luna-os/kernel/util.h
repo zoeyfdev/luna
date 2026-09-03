@@ -10,4 +10,3 @@ extern char* atoi(long int n);
 extern void toint(long int n);
 extern void video_save_cursor();
 extern void video_load_cursor();
-extern void printf(char* str);

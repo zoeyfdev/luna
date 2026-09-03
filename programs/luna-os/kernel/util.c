@@ -141,42 +141,36 @@ char* get_word(char* string, int pos) {
 }
 
 char* atoi(long int n) {
-    char* buf = (char*) malloc(32);
+    char* buf1 = (char*) malloc(32);
     char* buf2 = (char*) malloc(32);
-    char* ogbufptr = buf2;
-    
-    long int i = 0;
-    
+
+    int i = 0;
+
     if (n == 0) {
-        *buf2 = 0x30;
-        return ogbufptr;
+        *buf1 = '0';
+        return buf1;
     }
 
     while (n > 0) {
-        long int res = n % 10;
-        *buf = 0x30 + res;
-        n = n / 10;
+        *(buf2 + i) = '0' + (n % 10);
         i++;
-        buf++;
+        n = n / 10;
     }
 
-    while (i > 0) { 
+    int j = 0;
+
+    while (i > 0) {
         i--;
-        buf--;
-        *buf2 = *buf;
-        buf2++; 
+        *(buf1 + j) = *(buf2 + i);
+        j++;
     }
 
-    *buf2 = 0;
-    free(64);
-    return ogbufptr;
+    *(buf1 + j) = 0x00;
+    
+    return buf1;
 }
 
 void toint(long int n) {
     puts32((char*) atoi(n), COLOR_WHITE, COLOR_BLACK);
     puts32("\n", COLOR_WHITE, COLOR_BLACK);
-}
-
-void printf(char* str) {
-    puts32(str, COLOR_WHITE, COLOR_BLACK);
 }

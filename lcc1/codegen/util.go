@@ -59,3 +59,27 @@ func ReturnUintPtrType() neoparser.NewType {
 
 	return neoparser.I16
 }
+
+func TypeMediation(T1 CodegenResult, T2 CodegenResult) CodegenResult {
+	RT := CodegenResult {}	
+
+	if T1.OriginalPointerLength == T2.OriginalPointerLength{
+		RT.TypeInfo.PointerLength = T1.TypeInfo.PointerLength
+		RT.TypeInfo.Type = max(T1.TypeInfo.Type, T2.TypeInfo.Type)
+	} else {
+		if (T1.OriginalPointerLength > 0 && T2.OriginalPointerLength <= 0) || (T2.OriginalPointerLength > 0 && T1.OriginalPointerLength <= 0) {
+			RT.TypeInfo.PointerLength = max(T1.TypeInfo.PointerLength, T2.TypeInfo.PointerLength)
+
+			Write(fmt.Sprintf("// T1 ptrlen %d\n// T2 ptrlen %d\n", T1.OriginalPointerLength, T2.OriginalPointerLength), true)
+			if T1.OriginalPointerLength > T2.OriginalPointerLength {
+				RT.TypeInfo.Type = T1.TypeInfo.Type
+			} else {
+				RT.TypeInfo.Type = T2.TypeInfo.Type
+			}
+		} else {
+			error.InternalCompilerError("illegal type mixing!")
+		}
+	}	
+
+	return RT
+}

@@ -11,4 +11,5 @@ type CodegenResult struct {
 	Read bool
 	IsRvalue bool
 	RValueDerefs int
+	OriginalPointerLength int
 }

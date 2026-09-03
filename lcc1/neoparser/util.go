@@ -4,6 +4,7 @@ import (
 	"lcc1/shared"
 	"lcc1/error"
 	"fmt"
+	"reflect"
 )
 
 var ScopeTicker int = 1
@@ -60,14 +61,22 @@ func SetRead(Expression Expression, Value bool) Expression {
 		StructAccess := Expression.(StructAccess)
 		StructAccess.IsRead = Value
 		return StructAccess
+	case Cast:
+		Cast := Expression.(Cast)
+		Cast.Value = SetRead(Cast.Value, Value)
+		return Cast
+	case FunctionCall:
+		FunctionCall := Expression.(FunctionCall)
+		FunctionCall.IsRead = Value
+		return FunctionCall
 	case IncrementDecrement:
 		IncrementDecrement := Expression.(IncrementDecrement)
+		IncrementDecrement.Target = SetRead(IncrementDecrement.Target, Value)
 		return IncrementDecrement
 	default:
-		error.InternalCompilerError("Unsupported op to SetRead")
+		error.InternalCompilerError("Unsupported op to SetReadTrue, got '" + reflect.TypeOf(Expression).String() + "'")
 	}
 
-	error.InternalCompilerError("No return value for SetRead")
 	return IntLit {}
 }
 

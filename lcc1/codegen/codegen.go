@@ -62,6 +62,7 @@ func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
 		Result := CodegenResult {
 			Register: r,
 			TypeInfo: StringLit.Type,
+			OriginalPointerLength: StringLit.Type.PointerLength,
 		} 
 
 		StringName := fmt.Sprintf("var_str_%d", VarTicker)
@@ -88,6 +89,7 @@ func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
 		Result := CodegenResult {
 			Register: r,
 			TypeInfo: Identifier.Type,
+			OriginalPointerLength: Identifier.Type.PointerLength,
 		}
 
 		Write("mov " + r + ", " + Identifier.AttachedVariable.Internal, true)
@@ -117,15 +119,19 @@ func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
 }
 
 func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation, IsWrite bool) CodegenResult {
+	// TODO: set read true for this
 	switch UnaryOp.Op {
 	case shared.TokStar:
 		// Dereference	
 		Result := CodegenExpression(UnaryOp.Left, IsWrite)
 
 		if IsWrite == true && Result.IsRvalue == true && Result.RValueDerefs <= 0 {
+			Write("// No load for you", true)
 			Result.RValueDerefs++
 			return Result
 		}
+
+		Write("// Star!", true)
 
 		if Result.TypeInfo.PointerLength > 0 {
 			Write("lod_ptr " + Result.Register + ", " + Result.Register, true)
@@ -138,6 +144,8 @@ func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation, IsWrite bool) CodegenResul
 				Write("lod16 " + Result.Register + ", " + Result.Register, true)
 			case neoparser.I32:
 				Write("lod32 " + Result.Register + ", " + Result.Register, true)
+			default:
+				error.InternalCompilerError("couldn't dereference type " + fmt.Sprintf("%d", Result.TypeInfo.Type))
 			}
 		}
 
@@ -155,6 +163,9 @@ func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation, IsWrite bool) CodegenResul
 }
 
 func CodegenBinaryOp(BinaryOp neoparser.BinaryOperation, IsWrite bool) CodegenResult {
+	BinaryOp.Left = neoparser.SetRead(BinaryOp.Left, true)
+	BinaryOp.Right = neoparser.SetRead(BinaryOp.Right, true)
+
 	Left := CodegenExpression(BinaryOp.Left, IsWrite)
 	Right := CodegenExpression(BinaryOp.Right, IsWrite)
 
@@ -188,10 +199,12 @@ func CodegenBinaryOp(BinaryOp neoparser.BinaryOperation, IsWrite bool) CodegenRe
 	}
 
 	FreeRegister(Right.Register)
-	return CodegenResult {
-		Register: Left.Register,
-		IsRvalue: true,
-	}
+		
+	Result := TypeMediation(Left, Right)	
+
+	Result.Register = Left.Register
+	Result.IsRvalue = true
+	return Result
 }
 
 func CodegenCast(Cast neoparser.Cast, IsWrite bool) CodegenResult {
@@ -221,7 +234,7 @@ func CodegenExpression(Expression neoparser.Expression, IsWrite bool) CodegenRes
 		// TODO: pre-increment/post-increment
 
 		_Value := IncrementDecrement.Target
-		IncrementDecrement.Target =neoparser.SetRead(IncrementDecrement.Target, false)
+		IncrementDecrement.Target = neoparser.SetRead(IncrementDecrement.Target, false)
 		_Value = neoparser.SetRead(_Value, true)
 
 		r := TakeRegister()

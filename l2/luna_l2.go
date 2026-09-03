@@ -575,7 +575,8 @@ func execute() {
 			addr := getRegister(uint32(shared.Mapper(ProgramCounter + 1)))
 			value := uint32(shared.Mapper(ProgramCounter + 2))
 			shared.MapperWrite(addr, byte(getRegister(value)))
-			setRegister(0x001d, ProgramCounter + 3)
+			Log("str " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(value))
+			setRegister(0x001d, ProgramCounter + 3)	
 			stall(100)
 		case 0x1c:
 			// SHL
