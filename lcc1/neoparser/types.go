@@ -141,6 +141,8 @@ type UnaryOperation struct {
 	Op shared.TokenType
 	Left Expression
 	Type CompositeType
+	Token shared.Token
+	TokenSet *[]shared.Token
 }
 
 type Cast struct {

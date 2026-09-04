@@ -70,7 +70,6 @@ func TypeMediation(T1 CodegenResult, T2 CodegenResult) CodegenResult {
 		if (T1.OriginalPointerLength > 0 && T2.OriginalPointerLength <= 0) || (T2.OriginalPointerLength > 0 && T1.OriginalPointerLength <= 0) {
 			RT.TypeInfo.PointerLength = max(T1.TypeInfo.PointerLength, T2.TypeInfo.PointerLength)
 
-			Write(fmt.Sprintf("// T1 ptrlen %d\n// T2 ptrlen %d\n", T1.OriginalPointerLength, T2.OriginalPointerLength), true)
 			if T1.OriginalPointerLength > T2.OriginalPointerLength {
 				RT.TypeInfo.Type = T1.TypeInfo.Type
 			} else {

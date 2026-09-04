@@ -179,9 +179,9 @@ func TypeCheckUnaryOp(UnaryOp neoparser.UnaryOperation, Strictness int) TypeChec
 
 	switch UnaryOp.Op {
 	case shared.TokStar:
-		// Dereference	
+		// Dereference
 		if Left.Type.PointerLength <= 0 {
-			error.Error(26, "('" + ReturnTypeName(Left.Type) + "' invalid)", Left.Token, Left.TokenSet)
+			error.Error(26, "('" + ReturnTypeName(Left.Type) + "' invalid)", UnaryOp.Token, UnaryOp.TokenSet)
 		}
 		Left.Type.PointerLength--
 		Left.RValue = false
@@ -189,7 +189,7 @@ func TypeCheckUnaryOp(UnaryOp neoparser.UnaryOperation, Strictness int) TypeChec
 		Left.AddrCount++
 
 		if Left.AddrCount > Left.Type.PointerLength + 1 {
-			error.Error(27, "'" + ReturnTypeName(Left.Type) + "'", Left.Token, Left.TokenSet)
+			error.Error(27, "'" + ReturnTypeName(Left.Type) + "'", UnaryOp.Token, UnaryOp.TokenSet)
 		}
 		Left.Type.PointerLength++
 		Left.RValue = true
@@ -293,6 +293,31 @@ func TypeCheckStatement(Statement neoparser.Statement) {
 	case neoparser.StatementExpression:
 		StatementExpression := Statement.(neoparser.StatementExpression)
 		TypeCheckExpression(StatementExpression.Expression, 0)
+	case neoparser.ForStatement:
+		ForStatement := Statement.(neoparser.ForStatement)
+		for _, Statement := range ForStatement.Initializer {
+			TypeCheckStatement(Statement)
+		}
+		TypeCheckExpression(ForStatement.Condition, 0)
+		TypeCheckExpression(ForStatement.Iterator, 0)
+		for _, Statement := range ForStatement.Children {
+			TypeCheckStatement(Statement)
+		}
+	case neoparser.WhileStatement:
+		WhileStatement := Statement.(neoparser.WhileStatement)
+		TypeCheckExpression(WhileStatement.Condition, 0)
+		for _, Statement := range WhileStatement.Children {
+			TypeCheckStatement(Statement)
+		}
+	case neoparser.IfStatement:
+		IfStatement := Statement.(neoparser.IfStatement)
+		TypeCheckExpression(IfStatement.Condition, 0)
+		for _, Statement := range IfStatement.SuccessChildren {
+			TypeCheckStatement(Statement)
+		}
+		for _, Statement := range IfStatement.ElseChildren {
+			TypeCheckStatement(Statement)
+		}
 	}	
 }
 

@@ -89,7 +89,7 @@ func getRegisterName[T uint32 | byte](address T) string {
 	return ""
 }
 
-var ClockSpeed int64 = 33000000
+var ClockSpeed int64 = 50000000
 var BIOS_REBOOT bool = false
 var BIOS_SHUTDOWN bool = false
 
@@ -126,6 +126,17 @@ func execute() {
 		}
 		return false
 	}
+
+	IPS := 0
+
+	go func() {
+		for {
+			time.Sleep(1 * time.Second)
+			fmt.Printf("Instructions per second: %d\n", IPS)
+			IPS = 0
+		}
+	}()
+
 	for {
 		ProgramCounter := getRegister(0x001d)
 		op := shared.Mapper(ProgramCounter)	
@@ -652,7 +663,8 @@ func execute() {
 				fmt.Println(Register.Name + ": " + fmt.Sprintf("0x%8x", Register.Value))
 			}
 			bufio.NewReader(os.Stdin).ReadBytes('\n')	
-		}	
+		}
+		IPS++
 	}
 }
 

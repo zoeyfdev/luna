@@ -131,6 +131,10 @@ func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation, IsWrite bool) CodegenResul
 			return Result
 		}
 
+		if IsWrite == true {
+			Write("// Write mode", true)
+		}
+
 		Write("// Star!", true)
 
 		if Result.TypeInfo.PointerLength > 0 {
@@ -153,6 +157,7 @@ func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation, IsWrite bool) CodegenResul
 	case shared.TokAmpersand:
 		UnaryOp.Left = neoparser.SetRead(UnaryOp.Left, false)
 		Result := CodegenExpression(UnaryOp.Left, IsWrite)
+		Result.TypeInfo.PointerLength++
 
 		return Result
 	default:
@@ -267,6 +272,8 @@ func CodegenExpression(Expression neoparser.Expression, IsWrite bool) CodegenRes
 
 		FreeRegister(Target.Register)
 		FreeRegister(r)
+
+		Value.IsRvalue = true
 
 		return Value
 	case neoparser.Assignment:
@@ -563,7 +570,9 @@ func CodegenDecl(Decl neoparser.Declaration) {
 				
 				if noreturn == false {
 					Write("ret", true)
-				}	
+				} else {
+					Write("// Function annotated as 'noreturn'", true)
+				}
 
 				Write("", false)
 			}	

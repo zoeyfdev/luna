@@ -260,6 +260,7 @@ PREPROCESSOR_TOP:
 				FakeStream = append(FakeStream, shared.Token{
 					Type: shared.TokIdent,
 					Value: t.Value,
+					FakeValue: t.Value,
 					Line: t.Line,
 					File: t.Filename,
 				})
@@ -348,6 +349,7 @@ PREPROCESSOR_TOP:
 				FakeStream = append(FakeStream, shared.Token{
 					Type: shared.TokIdent,
 					Value: t.Value,
+					FakeValue: t.Value,
 					Line: t.Line,
 					File: t.Filename,
 				})
@@ -365,6 +367,7 @@ PREPROCESSOR_TOP:
 				FakeStream = append(FakeStream, shared.Token{
 					Type: shared.TokIdent,
 					Value: t.Value,
+					FakeValue: t.Value,
 					Line: t.Line,
 					File: t.Filename,
 				})
@@ -423,6 +426,7 @@ PREPROCESSOR_TOP:
 						FakeStream = append(FakeStream, shared.Token{
 							Type: shared.TokIdent,
 							Value: t.Value,
+							FakeValue: t.Value,
 							Line: t.Line,
 							File: t.Filename,
 						})
@@ -467,6 +471,7 @@ PREPROCESSOR_TOP:
 						FakeStream = append(FakeStream, shared.Token{
 							Type: shared.TokIdent,
 							Value: t.Value,
+							FakeValue: t.Value,
 							Line: t.Line,
 							File: t.Filename,
 						})
@@ -485,6 +490,8 @@ PREPROCESSOR_TOP:
 				}
 				i++
 			}
+		case "#testcrash":
+			error.InternalCompilerError(tokens[i + 1].Value)
 		default:
 			token := tokens[i]
 			if tokens[i].Value[0] == '#' {
@@ -497,6 +504,7 @@ PREPROCESSOR_TOP:
 					FakeStream = append(FakeStream, shared.Token{
 						Type: shared.TokIdent,
 						Value: t.Value,
+						FakeValue: t.Value,
 						Line: t.Line,
 						File: t.Filename,
 					})

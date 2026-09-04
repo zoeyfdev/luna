@@ -102,7 +102,7 @@ void shell() {
 
         if (strcmp("battery", (char*) buf) == 1) {
             puts32("Battery level: ", COLOR_WHITE, COLOR_BLACK);
-            char* bat_ptr = 0x80000026;
+            char* bat_ptr = (char*) 0x80000026;
             puts32((char*) atoi((long int) *bat_ptr), COLOR_WHITE, COLOR_BLACK);
             puts32("%\n", COLOR_WHITE, COLOR_BLACK);
             continue;

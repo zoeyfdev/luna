@@ -161,8 +161,7 @@ char* atoi(long int n) {
 
     while (i > 0) {
         i--;
-        *(buf1 + j) = *(buf2 + i);
-        j++;
+        *(buf1 + j++) = *(buf2 + i);
     }
 
     *(buf1 + j) = 0x00;

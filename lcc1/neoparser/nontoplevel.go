@@ -588,15 +588,21 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		case shared.TokStar:
 			// Dereference
 			expect(shared.TokStar)
+			Token := peek(-1)
 			Expy = UnaryOperation {
 				Op: shared.TokStar,
 				Left: ParseUnary(IsRead),
+				Token: Token,
+				TokenSet: &Tokens,
 			}	
 		case shared.TokAmpersand:
 			expect(shared.TokAmpersand)
+			Token := peek(-1)
 			Expy = UnaryOperation {
 				Op: shared.TokAmpersand,
 				Left: ParseUnary(IsRead),
+				Token: Token,
+				TokenSet: &Tokens,
 			}
 		// TODO: add bang, negative (though L2 at the moment doesn't support negatives)
 		}
