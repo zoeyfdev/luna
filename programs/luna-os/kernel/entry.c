@@ -16,6 +16,8 @@ void _cstart() __attribute__((noreturn)) {
         fcreate((char*) fntf("NOTEPAD.SYS"), 256);
     }
 
+    toint(query_drive_inserted(2));
+
     puts32("Welcome to ", COLOR_WHITE, COLOR_BLACK);
     puts32("Luna", COLOR_LCYAN, COLOR_BLACK);
     puts32("OS!\n", COLOR_WHITE, COLOR_BLACK);
