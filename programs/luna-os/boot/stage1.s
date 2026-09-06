@@ -1,5 +1,7 @@
 .bits 16
-.fill 492
+.fill 512
+
+#define PARTITION_TABLE 492
 
 jmp _start
 
@@ -69,12 +71,12 @@ write:
 check_vol:
     pop e11
 
-    mov r1, 492 // addr of partition table
+    mov r1, PARTITION_TABLE
     mov r3, 512
 
     mov e10, pc
 
-    lod r1, r2
+    lod16 r1, r2
     jnz r2, check_vol_ret
 
     inc r1

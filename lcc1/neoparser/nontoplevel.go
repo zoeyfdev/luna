@@ -736,6 +736,9 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			expect(shared.TokReturn)
 			switch peek(0).Type {
 			case shared.TokSemi:
+				ChildAppend(Slice, Return {
+					Value: nil,
+				})
 			default:
 				ChildAppend(Slice, Return {
 					Value: ParseExpression(true),

@@ -120,22 +120,10 @@ func execute() {
 		} else {
 			if getRegister(0x001d) == now {
 				return true
-			} else {
-				fmt.Println(now, getRegister(0x001d))
 			}
 		}
 		return false
 	}
-
-	IPS := 0
-
-	go func() {
-		for {
-			time.Sleep(1 * time.Second)
-			fmt.Printf("Instructions per second: %d\n", IPS)
-			IPS = 0
-		}
-	}()
 
 	for {
 		ProgramCounter := getRegister(0x001d)
@@ -664,7 +652,6 @@ func execute() {
 			}
 			bufio.NewReader(os.Stdin).ReadBytes('\n')	
 		}
-		IPS++
 	}
 }
 

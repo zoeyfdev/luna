@@ -125,6 +125,10 @@ func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation, IsWrite bool) CodegenResul
 		// Dereference	
 		Result := CodegenExpression(UnaryOp.Left, IsWrite)
 
+		/* Reason we shouldn't load is because of the whole IsWrite thing
+		See, the whole issue stems from how things are loaded. Because rvalues
+		cannot be loaded since they are already the absolute value, we need to retroactively
+		subtract one more from their deref than usual, which means we have to do it here. */
 		if IsWrite == true && Result.IsRvalue == true && Result.RValueDerefs <= 0 {
 			Write("// No load for you", true)
 			Result.RValueDerefs++
@@ -379,12 +383,14 @@ func CodegenStatement(Statement neoparser.Statement) {
 		FreeRegister(CodegenExpression(StatementExpression.Expression, false).Register)
 	case neoparser.Return:
 		Return := Statement.(neoparser.Return)
-		Value := CodegenExpression(Return.Value, false)
 
-		Write("mov e6, " + Value.Register, true)
-		Write("jmp " + ReturnLabel, true)
+		if Return.Value != nil {
+			Value := CodegenExpression(Return.Value, false)
+			Write("mov e6, " + Value.Register, true)
+			FreeRegister(Value.Register)
+		}
 
-		FreeRegister(Value.Register)
+		Write("jmp " + ReturnLabel, true)	
 	case neoparser.IfStatement:
 		IfStatement := Statement.(neoparser.IfStatement)
 		VT := VarTicker
@@ -580,7 +586,9 @@ func CodegenDecl(Decl neoparser.Declaration) {
 			if (Var.Scope == 0 || Var.TypeInfo.Static == true) && Var.Register == false {
 				Value := ""
 				if Var.TypeInfo.Extern == false {
-					Value = Const_CodegenExpression(Var.Children[0].(neoparser.ConstAssignStatement).Value, false)
+					if len(Var.Children) > 0 {	
+						Value = Const_CodegenExpression(Var.Children[0].(neoparser.ConstAssignStatement).Value, false)
+					}
 				} else {
 					Value = Var.Name
 				}
@@ -595,6 +603,8 @@ func CodegenDecl(Decl neoparser.Declaration) {
 						WritePre(".word " + Value, true)
 					case neoparser.I32:
 						WritePre(".dword " + Value, true)
+					case neoparser.STRUCT:
+						WritePre(".pad " + fmt.Sprintf("%d", Var.TypeInfo.Size), true)
 					}
 				}
 

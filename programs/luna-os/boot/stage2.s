@@ -1,9 +1,8 @@
 .bits 16
-.fill 1044
-.org 492
+.fill 1024
+.org 512
 
-PARTITION_TABLE:
-    .pad 20
+#define PARTITION_TABLE 492
 
 jmp _stage2
 
