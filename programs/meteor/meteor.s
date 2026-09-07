@@ -317,9 +317,6 @@ key_click_ret:
     popa
     jmp irv
 
-halt:
-    jmp halt
-
 game_over_txt:
     .asciz "Game over"
 

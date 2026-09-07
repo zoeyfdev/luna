@@ -75,7 +75,7 @@ windows-installer:
 	cd l2ld && GOOS=windows GOARCH=amd64 go build -o ../Windows/l2ld.exe l2ld.go
 	cd Windows && wixl -v msi.xml -o "../build/Luna L2.msi"
 
-install:
+install: lcc1-libs
 	mkdir -p /usr/local/lib/l2/
 	sudo cp -r components/* /usr/local/lib/l2
 	sudo cp bin/* /usr/local/bin/

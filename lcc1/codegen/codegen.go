@@ -285,21 +285,34 @@ func CodegenExpression(Expression neoparser.Expression, IsWrite bool) CodegenRes
 		Target := CodegenExpression(Assignment.Target, true)
 		Value := CodegenExpression(Assignment.Value, false)
 
-		op := "str"
-		if Target.TypeInfo.PointerLength > 0 {
-			op = "str_ptr"
-		} else {
-			switch Target.TypeInfo.Type {
-			case neoparser.I8:
-				op = "str"
-			case neoparser.I16:
-				op = "str16"
-			case neoparser.I32:
-				op = "str32"
-			}
-		}
+		if Target.TypeInfo.Type == neoparser.STRUCT && Target.TypeInfo.PointerLength <= 0 {
+			Write("push " + Target.Register, true)
+			Write("push " + Value.Register, true)
+			Write("push " + fmt.Sprintf("%d", Target.TypeInfo.Size), true)
 
-		Write(op + " " + Target.Register + ", " + Value.Register, true)
+			switch shared.Bits {
+			case 32:
+				Write("call _builtin_lcc_memcpy32", true)
+			case 16:
+				Write("call _builtin_lcc_memcpy16", true)
+			}
+		} else {
+			op := "str"
+			if Target.TypeInfo.PointerLength > 0 {
+				op = "str_ptr"
+			} else {
+				switch Target.TypeInfo.Type {
+				case neoparser.I8:
+					op = "str"
+				case neoparser.I16:
+					op = "str16"
+				case neoparser.I32:
+					op = "str32"
+				}
+			}
+
+			Write(op + " " + Target.Register + ", " + Value.Register, true)
+		}
 
 		FreeRegister(Target.Register)
 
