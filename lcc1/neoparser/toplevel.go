@@ -263,6 +263,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 
 			switch peek(0).Type {
 			case shared.TokLParen:
+				TypeInformation.PointerLength++ // decay to regular type on call
 				FObj := Variable {}
 				FObj.Name = Name
 				FObj.Internal = Name

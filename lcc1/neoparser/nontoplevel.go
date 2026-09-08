@@ -471,6 +471,8 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 
 				CallObj.AttachedVariable = Variable
 
+				CallObj.AttachedVariable.TypeInfo.PointerLength-- // Decay back to original type
+
 				expect(shared.TokRParen)
 
 				return CallObj
