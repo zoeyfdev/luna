@@ -1,5 +1,5 @@
 .bits 16
-.fill 512
+.fill 492
 
 #define PARTITION_TABLE 492
 

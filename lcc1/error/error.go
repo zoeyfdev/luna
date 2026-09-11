@@ -132,6 +132,7 @@ func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	text = strings.ReplaceAll(text, " & ", "&")
 	text = strings.ReplaceAll(text, "& ", "&")
 	text = strings.ReplaceAll(text, " . ", ".")
+	text = strings.ReplaceAll(text, "%", "%%")
 
 
 	fmt.Printf("    %d | %s\n", line, text)

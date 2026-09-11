@@ -128,18 +128,13 @@ func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation, IsWrite bool) CodegenResul
 		/* Reason we shouldn't load is because of the whole IsWrite thing
 		See, the whole issue stems from how things are loaded. Because rvalues
 		cannot be loaded since they are already the absolute value, we need to retroactively
-		subtract one more from their deref than usual, which means we have to do it here. */
+		subtract one more from their deref than usual when doing write, which means we have 
+		to do it here. */
 		if IsWrite == true && Result.IsRvalue == true && Result.RValueDerefs <= 0 {
-			Write("// No load for you", true)
+			Write("// Load ignored", true)
 			Result.RValueDerefs++
 			return Result
 		}
-
-		if IsWrite == true {
-			Write("// Write mode", true)
-		}
-
-		Write("// Star!", true)
 
 		if Result.TypeInfo.PointerLength > 0 {
 			Write("lod_ptr " + Result.Register + ", " + Result.Register, true)

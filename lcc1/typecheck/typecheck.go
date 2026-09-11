@@ -51,6 +51,7 @@ func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token,
 	// Types:
 	// 0: permissive (allows mixing of integers and non-integers)
 	// 1: strict (does not allow mixing of integers and non-integers)
+	// TODO: different error messages for different scenarios
 	TCR := TypeCheckReturn {
 		Token: OpToken,
 	}
@@ -62,6 +63,12 @@ func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token,
 	Hierarchy[neoparser.I8] = 1
 	Hierarchy[neoparser.I16] = 2
 	Hierarchy[neoparser.I32] = 3
+
+	if T1.Type.PointerLength > 0 && T2.Type.PointerLength > 0 {
+		if T1.Type.Type != T2.Type.Type && !(T1.Type.Type == neoparser.VOID || T2.Type.Type == neoparser.VOID) {
+			error.Error(37, "('" + ReturnTypeName(T1.Type) + "' and '" + ReturnTypeName(T2.Type) + "')", OpToken, T1.TokenSet)
+		} 
+	}
 
 	if T1.Type.PointerLength > 0 {
 		Type1 = ReturnUintPtrType()

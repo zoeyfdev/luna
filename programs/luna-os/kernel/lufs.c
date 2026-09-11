@@ -120,10 +120,10 @@ File* fopen(char* filename, bool complain_on_not_found) {
             puts32("File '", COLOR_LRED, COLOR_BLACK);
             puts32((char*) ffnt(filename), COLOR_LRED, COLOR_BLACK);
             puts32("' not found!\n", COLOR_LRED, COLOR_BLACK);
-            f.Address = (char*) NULLPTR;
+            f.Address = (long int*) NULLPTR;
             return &f;
         } else {
-            f.Address = (char*) NULLPTR;
+            f.Address = (long int*) NULLPTR;
             return &f;
         }
     }
@@ -189,7 +189,7 @@ void fstrap() {
         fstart_addr = fstart_addr + 20; // skip over header and name
 
         long int size = *fstart_addr;
-        long int sectors = size / 512;
+        long int sectors = (size / 512) + 1;
 
         offset_sec_load(sectors, osector);
 

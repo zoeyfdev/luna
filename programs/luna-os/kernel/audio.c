@@ -11,7 +11,7 @@ void play_sound(void* buffer, long int size, bool block) {
     *done_flag = 0;
 
     // TODO: fix typechecker to allow this
-    *(long int*) 0x80000001 = (long int) buffer;
+    *(long int**) 0x80000001 = buffer;
     *(long int*) 0x80000005 = size;
     *(char*) 0x80000000 = 1;
 
