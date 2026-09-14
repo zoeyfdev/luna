@@ -5,6 +5,7 @@ import (
 	"lcc1/shared"
 	"lcc1/error"
 	"reflect"
+	"fmt"
 )
 
 func ReturnUintPtrType() neoparser.NewType {
@@ -20,7 +21,7 @@ func ReturnUintPtrType() neoparser.NewType {
 
 func ReturnTypeName(Type neoparser.CompositeType) string {
 	str := ""
-	switch Type.Type {
+	switch Type.Type {	
 	case neoparser.I8:
 		str += "char"
 	case neoparser.I16:
@@ -135,12 +136,11 @@ func TypeSweep(Expression neoparser.Expression, Type neoparser.CompositeType) ne
 		FunctionCall := Expression.(neoparser.FunctionCall)
 		FunctionCall.AttachedVariable.TypeInfo = Type
 		return FunctionCall
-	/*
 	case neoparser.StructAccess:
 		StructAccess := Expression.(neoparser.StructAccess)
 		StructAccess.Type = Type
 		return StructAccess
-	*/
+	// ^ added this back
 	}
 	
 	error.InternalCompilerError("no return value for " + reflect.TypeOf(Expression).String())
@@ -243,7 +243,21 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 		return ReturnStmt
 	case neoparser.FunctionCall:
 		FunctionCall := Expression.(neoparser.FunctionCall)
- 
+
+		Expected := len(FunctionCall.AttachedVariable.Parameters)
+		if FunctionCall.Pushed < Expected {
+			error.Error(20, fmt.Sprintf("expected %d, have %d", Expected, FunctionCall.Pushed), FunctionCall.Token, FunctionCall.TokenSet)
+		} else if FunctionCall.Pushed > Expected {
+			error.Error(21, fmt.Sprintf("expected %d, have %d", Expected, FunctionCall.Pushed), FunctionCall.Token, FunctionCall.TokenSet)
+		}
+
+		for i, Expy := range FunctionCall.Children {
+			Token, _ := neoparser.ReturnTokenPair(Expy)
+			TypeMediation(TypeCheckExpression(Expy, 1), TypeCheckReturn {
+				Type: FunctionCall.AttachedVariable.Parameters[i].TypeInfo,
+			}, Token, 1)
+		}
+		
 		return TypeCheckReturn {
 			Expression: FunctionCall,
 			Type: FunctionCall.AttachedVariable.TypeInfo,
@@ -263,6 +277,8 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 		return TypeCheckReturn {
 			Expression: Expression,
 			Type: Cast.Type,
+			Token: Cast.Token,
+			TokenSet: Cast.TokenSet,
 		}
 	case neoparser.StructAccess:
 		StructAccess := Expression.(neoparser.StructAccess)
@@ -329,15 +345,15 @@ func TypeCheckStatement(Statement neoparser.Statement) {
 }
 
 func TypeCheck(TranslationUnit *neoparser.AST) {
-	for i := 0; i < len((*TranslationUnit).Declarations); i++ {
-		switch (*TranslationUnit).Declarations[i].(type) {
+	for _, Declaration := range (*TranslationUnit).Declarations {
+		switch Declaration.(type) {
 		case neoparser.Variable:
-			Var := (*TranslationUnit).Declarations[i].(neoparser.Variable)
+			Var := Declaration.(neoparser.Variable)
 			switch Var.Kind {
 			case neoparser.FUNCTION:
-				for j := 0; j < len(Var.Children); j++ {
-					TypeCheckStatement(Var.Children[j])	
-				}	
+				for _, Child := range Var.Children {
+					TypeCheckStatement(Child)
+				}
 			}
 		}
 	} 

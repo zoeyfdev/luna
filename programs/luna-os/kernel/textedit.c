@@ -12,6 +12,6 @@ void textedit_init(char* buffer) {
     puts32("TextEdit v0.1 - LunaOS\n\n", COLOR_WHITE, COLOR_BLACK);
     readin((char*) buffer, 0, 0);
 
-    render_buf(0x30303030);
+    render_buf((void*) 0x30303030);
     video_load_cursor();
 }

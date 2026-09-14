@@ -209,19 +209,17 @@ strcmp_false:
 strlen:
     pop e11
     pop r1
-    mov r2, 0
+
     mov e6, 0
 
     mov e10, pc
-    nop
 
     lod r1, r3
     inc r1
     inc e6
 
-    cmp r5, r3, r2
-    jz r5, e10
-
+    jnz r3, e10
+    dec e6 // remove null char
     ret
 
 save_sector:
@@ -639,6 +637,7 @@ malloc:
     lod32 r2, r3
     mov e6, r3
     sub r3, r3, r1
+    dec r3
     str32 r2, r3
 
     ret
@@ -650,14 +649,15 @@ free:
     mov r2, MEM_PTR
     lod32 r2, r3
     add r3, r3, r1
+    inc r3
     str32 r2, r3
 
     ret
 
 ITOA_LETTERS_U:
-    .asciz "0123456789ABCDEF"
+    .ascii "0123456789ABCDEF"
 ITOA_LETTERS_L:
-    .asciz "0123456789abcdef"
+    .ascii "0123456789abcdef"
 PROMPTBUF:
     .asciz "> "
     .pad 5

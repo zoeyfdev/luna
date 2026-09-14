@@ -11,15 +11,9 @@
     #error "LunaOS must be compiled with LCC (other compilers are not supported.)"
 #endif
 
-void myFunc() { return; }
-
 void _cstart() __attribute__((noreturn)) {
-    if (fopen((char*) fntf("NOTEPAD.SYS"), false)->Address == NULLPTR) {
+    if (fopen((char*) fntf("NOTEPAD.SYS"), false)->Address == NULL)
         fcreate((char*) fntf("NOTEPAD.SYS"), 256);
-    }
-
-    int a = (int) myFunc();
-    tohex(a, 1);
 
     puts32("Welcome to ", COLOR_WHITE, COLOR_BLACK);
     puts32("Luna", COLOR_LCYAN, COLOR_BLACK);

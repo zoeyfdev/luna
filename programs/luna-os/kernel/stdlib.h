@@ -45,5 +45,4 @@ extern void* puts32_loc;
 #define TRANSPARENT   0xE3
 
 // Pointer descriptions
-#define NULL *(void*) 0xDEADBEEF;
-#define NULLPTR 0x00000000
+#define NULL 0x00000000

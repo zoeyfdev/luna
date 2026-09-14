@@ -47,12 +47,6 @@ func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
 			IsRvalue: true,
 		}
 
-		/*
-		if IsRead == true {
-			Result.Read = true
-		}
-		*/
-
 		Result.Read = true	
 		Write("mov " + r + ", " + IntLit.Value, true)
 		return Result

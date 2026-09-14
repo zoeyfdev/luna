@@ -18,7 +18,7 @@ import (
 // Also it is a bucket of bad so be warned LOL
 
 // this code was aids to refactor AGAIN
-// ^ zoey aug 20 2025 日本語授業で
+// ^ zoey aug 20 2026 日本語授業で
 
 var section string = "text"
 var input_files []string

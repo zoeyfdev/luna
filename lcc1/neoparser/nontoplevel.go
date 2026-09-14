@@ -288,6 +288,10 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		MostWideType := func(T1 NewType, T2 NewType) NewType {
 			Hierarchy := make(map[NewType]int)
 
+			if T1 == NONE || T2 == NONE {
+				error.InternalCompilerError("whoops")
+			}
+
 			Hierarchy[I8] = 1
 			Hierarchy[I16] = 2
 			Hierarchy[I32] = 3
@@ -319,6 +323,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			if IsInt(LHS.Type) && IsInt(RHS.Type) {
 				RT.Type = MostWideType(LHS.Type, RHS.Type)
 			} else {
+				println("Illegal")
 				// Illegal, will be caught
 			}
 		} else {
@@ -482,7 +487,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		case shared.TokNumber:
 			Type := CompositeType {
 				Type: ReturnUintPtrType(),
-			}	
+			}
 
 			Number := expect(shared.TokNumber)
 	
@@ -582,9 +587,14 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				expect(shared.TokLParen)
 				Type, _ := ParseType()
 				expect(shared.TokRParen)
+
+				Expr := ParseUnary(IsRead)
+				Token, _ := ReturnTokenPair(Expr)
 				return Cast {
-					Value: ParseUnary(IsRead),
+					Value: Expr,
 					Type: Type,
+					Token: Token,
+					TokenSet: &Tokens,
 				}
 			}
 		case shared.TokStar:

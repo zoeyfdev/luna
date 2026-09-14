@@ -57,6 +57,7 @@ long int* fntf(char* name) {
         }
     }
 
+    free(16);
     return (long int*) ogbufptr;
 }
 
@@ -91,9 +92,9 @@ long int* find_file(char* name) {
     long int* fp = *fsp;
 
     while (1) {
-        if (*fp != 'LFSF') {
+        if (*fp != 'LFSF')
             break;
-        }
+
         // skip over header
         fp = fp + 4;
 
@@ -115,15 +116,15 @@ File* fopen(char* filename, bool complain_on_not_found) {
     long int* faddr = find_file(filename);
     File f;
 
-    if (faddr == NULLPTR) {
+    if (faddr == NULL) {
         if (complain_on_not_found == true) {
             puts32("File '", COLOR_LRED, COLOR_BLACK);
             puts32((char*) ffnt(filename), COLOR_LRED, COLOR_BLACK);
             puts32("' not found!\n", COLOR_LRED, COLOR_BLACK);
-            f.Address = (long int*) NULLPTR;
+            f.Address = (long int*) NULL;
             return &f;
         } else {
-            f.Address = (long int*) NULLPTR;
+            f.Address = (long int*) NULL;
             return &f;
         }
     }
@@ -146,9 +147,9 @@ void flist() {
     long int* fp = *fsp;
 
     while (1) {
-        if (*fp != 'LFSF') {
+        if (*fp != 'LFSF')
             break;
-        }
+
         // skip over header
         fp = fp + 4;
         puts32((char*) ffnt((char*) fp), COLOR_GRAY, COLOR_BLACK);
@@ -165,9 +166,8 @@ void flist() {
 void fwrite(char* name, char* content) {
     File* f = fopen(name, 1);
     long int* cptr = f->Address;
-    if (cptr == 0) { 
+    if (cptr == 0)
         return;
-    }
 
     strcpy(content, (char*) cptr);
     long int sec = (long int) cptr / 512;
@@ -181,9 +181,8 @@ void fstrap() {
     long int* fstart_addr = *fptr;
 
     while (1) {
-        if (*fstart_addr != 'LFSF') {
+        if (*fstart_addr != 'LFSF')
             break;
-        }
 
         long int osector = (long int) fstart_addr / 512;
         fstart_addr = fstart_addr + 20; // skip over header and name

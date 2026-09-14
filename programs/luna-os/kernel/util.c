@@ -5,6 +5,10 @@
 #include "stdbool.h"
 #include "fzip.h"
 
+void printf(char* str) {
+    puts32(str, COLOR_WHITE, COLOR_BLACK);
+}
+
 void tohex(long int number, char capitalized) {
     puts32("0x", 255, 0);
     puts32((char*) itoa(number, capitalized, (char*) malloc(11)), 255, 0);
@@ -70,8 +74,7 @@ void video_load_cursor() {
 int query_drive_inserted(char drive) {
     asm ("mov r1, e0"); // Move drive number to r1
     asm ("int 0x3"); // Query drive inserted, return in r1
-    asm ("mov e12, r1");
-    asm ("mov e6, e12");
+    asm ("mov e6, r1");
 }
 
 void reboot() {
@@ -95,17 +98,17 @@ void load_executable() {
 
     long int* address = (long int*) ASLR_generate_address();
     address++;
-   
-    load_sector(2, address / 512, 0);
-    load_sector(2, address / 512 + 1, 1);
-    load_sector(2, address / 512 + 2, 2);
+  
+    load_sector(2, (long int*) (address / 512), 0);
+    load_sector(2, (long int*) (address / 512 + 1), 1);
+    load_sector(2, (long int*) (address / 512 + 2), 2);
 
     if (*address != 0x4C325049) {   
         puts32("Error! ", COLOR_RED, COLOR_BLACK);
         puts32("Invalid executable file format.\n", COLOR_WHITE, COLOR_BLACK);
         return;
     }
-    lexec_core(address);
+    lexec_core((long int) address);
 }
 
 void app_error() __attribute__((noreturn)) {
@@ -119,11 +122,17 @@ char* get_word(char* string, int pos) {
     char* ogbuf = buffer;
     int cpos = 1;
 
+    if (strlen(string) == 0) {
+        free(1024);
+        *buffer = 0;
+        return ogbuf;
+    } 
+
     while (*string != 0x00) {
         if (*string == 0x20) {
-            if (cpos == pos) {
+            if (cpos == pos)
                 break;
-            } else {
+            else {
                 cpos++;
                 string++;
             }
@@ -136,6 +145,8 @@ char* get_word(char* string, int pos) {
 
         string++;
     }
+
+    *buffer = 0;
     free(1024);
     return ogbuf;
 }

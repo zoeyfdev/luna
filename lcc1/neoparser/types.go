@@ -148,6 +148,8 @@ type UnaryOperation struct {
 type Cast struct {
 	Value Expression
 	Type CompositeType
+	Token shared.Token
+	TokenSet *[]shared.Token
 }
 
 type StructAccess struct {

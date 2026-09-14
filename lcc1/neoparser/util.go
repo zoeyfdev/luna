@@ -172,3 +172,73 @@ func BootstrapRegisters(TU *AST) {
 		},
 	})
 }
+
+func ReturnTypeOfExpression(Expression Expression) CompositeType {
+	switch Expression.(type) {
+	case IntLit:
+		IntLit := Expression.(IntLit)
+		return IntLit.Annotated
+	case StringLit:
+		StringLit := Expression.(StringLit)
+		return StringLit.Type
+	case Identifier:
+		Identifier := Expression.(Identifier)
+		return Identifier.Type
+	case UnaryOperation:
+		UnaryOp := Expression.(UnaryOperation)
+		return UnaryOp.Type
+	case BinaryOperation:
+		BinaryOp := Expression.(BinaryOperation)
+		return BinaryOp.Type
+	case IncrementDecrement:
+		IncrementDecrement := Expression.(IncrementDecrement)
+		return IncrementDecrement.Type
+	case FunctionCall:
+		FunctionCall := Expression.(FunctionCall)
+		return FunctionCall.AttachedVariable.TypeInfo
+	case StructAccess:
+		StructAccess := Expression.(StructAccess)
+		return StructAccess.Type
+	case Cast:
+		Cast := Expression.(Cast)
+		return Cast.Type
+	}
+
+	error.InternalCompilerError("Invalid expression to ReturnTypeOfExpression, got '" + reflect.TypeOf(Expression).String() + "'")
+	return IntLit {}.Type
+}
+
+func ReturnTokenPair(Expression Expression) (shared.Token, *[]shared.Token) {
+	switch Expression.(type) {
+	case IntLit:
+		IntLit := Expression.(IntLit)
+		return IntLit.Token, IntLit.TokenSet 
+	case StringLit:
+		StringLit := Expression.(StringLit)
+		return StringLit.Token, StringLit.TokenSet
+	case Identifier:
+		Identifier := Expression.(Identifier)
+		return Identifier.Token, Identifier.TokenSet
+	case UnaryOperation:
+		UnaryOp := Expression.(UnaryOperation)
+		return UnaryOp.Token, UnaryOp.TokenSet
+	case BinaryOperation:
+		BinaryOp := Expression.(BinaryOperation)
+		return BinaryOp.Token, BinaryOp.TokenSet
+	case IncrementDecrement:
+		IncrementDecrement := Expression.(IncrementDecrement)
+		return IncrementDecrement.Token, IncrementDecrement.TokenSet
+	case FunctionCall:
+		FunctionCall := Expression.(FunctionCall)
+		return FunctionCall.Token, FunctionCall.TokenSet
+	case StructAccess:
+		StructAccess := Expression.(StructAccess)
+		return StructAccess.Token, StructAccess.TokenSet
+	case Cast:
+		Cast := Expression.(Cast)
+		return Cast.Token, Cast.TokenSet
+	}
+
+	error.InternalCompilerError("Invalid expression to ReturnTokenPair, got '" + reflect.TypeOf(Expression).String() + "'")
+	return IntLit {}.Token, IntLit{}.TokenSet
+}
