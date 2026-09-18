@@ -111,7 +111,7 @@ func main() {
 			predefs = append(predefs, de)
 
 			i += 2
-		case "-help", "--help":
+		case "--help":
 			lcc_info.PrintUnifiedHelpMessage()
 		default:
 			if arg[0] == '-' {

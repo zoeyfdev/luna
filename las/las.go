@@ -89,7 +89,7 @@ func main() {
 			error.Upgrade = true
 		case "-fpie":
 			assembler.PIE = true
-		case "-help", "--help":
+		case "--help":
 			lcc_info.PrintUnifiedHelpMessage()
 		case "-define":
 			if i + 2 > len(os.Args) - 1 {

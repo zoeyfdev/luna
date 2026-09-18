@@ -28,7 +28,7 @@ func PrintUnifiedHelpMessage() {
 USAGE: lcc [options] <file(s)>
 
 OPTIONS:
--help, --help - prints this message
+--help - prints this message
 -v - prints the version of LCC currently installed
 -o <file> - specifies the output file
 -S - specifies to only compile high-level languages to assembly

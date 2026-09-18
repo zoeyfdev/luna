@@ -152,7 +152,7 @@ func main() {
 			lasargs = append(lasargs, value)
 
 			i += 2
-		case "-help", "--help":
+		case "--help":
 			lcc_info.PrintUnifiedHelpMessage()
 		case "-sra":
 			cc1args = append(cc1args, "-sra")
