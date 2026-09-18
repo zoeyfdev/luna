@@ -7,10 +7,6 @@
 #include "images.h"
 #include "stdbool.h"
 
-#ifndef __LCC__
-    #error "LunaOS must be compiled with LCC (other compilers are not supported.)"
-#endif
-
 void _cstart() __attribute__((noreturn)) {
     if (fopen((char*) fntf("NOTEPAD.SYS"), false)->Address == NULL)
         fcreate((char*) fntf("NOTEPAD.SYS"), 256);

@@ -109,7 +109,7 @@ long int* find_file(char* name) {
         }
     }
 
-    return 0;
+    return (long int*) 0;
 }
 
 File* fopen(char* filename, bool complain_on_not_found) {

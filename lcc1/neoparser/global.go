@@ -8,3 +8,4 @@ var Scopes = []Scope {
 }
 
 var CurrentFunction *Variable
+var TypeMap []CompositeType

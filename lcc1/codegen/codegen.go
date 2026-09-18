@@ -63,18 +63,34 @@ func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
 		WritePre(StringName + ":", false)
 		WritePre(".asciz \"" + StringLit.Value + "\"\n", true)
 		VarTicker++
-		
-		LabelName := fmt.Sprintf("var_ptr_%d", VarTicker)
-		WritePre(LabelName + ":", false)
-		WritePre(".ptr " + StringName + "\n", true)
-		VarTicker++
-	
-		Write("mov " + r + ", " + LabelName, true)
 
-		if StringLit.IsRead == true {
-			Result.Read = true
-			Write("lod_ptr " + r + ", " + r, true)	
-		}
+		if StringLit.Scope != 0 {
+			PushAllocated()
+			Write(fmt.Sprintf("mov %s, %s", r, StringLit.Internal), true)
+			Write(fmt.Sprintf("push %s", r), true)
+			Write(fmt.Sprintf("push %s", StringName), true)
+			Write("call " + FormatLibraryName("_builtin_lcc_strcpy"), true)
+			PopAllocated()
+
+			Result.IsRvalue = true
+
+			// Just in case
+			Write(fmt.Sprintf("mov %s, %s", r, StringLit.Internal), true)
+			// TODO: reformat this for arrays
+			// TODO: make it so bare strings do not get allocated
+		} else {
+			LabelName := fmt.Sprintf("var_ptr_%d", VarTicker)
+			WritePre(LabelName + ":", false)
+			WritePre(".ptr " + StringName + "\n", true)
+			VarTicker++
+		
+			Write("mov " + r + ", " + LabelName, true)
+
+			if StringLit.IsRead == true {
+				Result.Read = true
+				Write("lod_ptr " + r + ", " + r, true)	
+			}
+		}	
 
 		return Result
 	case neoparser.Identifier:
@@ -130,6 +146,7 @@ func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation, IsWrite bool) CodegenResul
 			return Result
 		}
 
+		Result.IsRvalue = false
 		if Result.TypeInfo.PointerLength > 0 {
 			Write("lod_ptr " + Result.Register + ", " + Result.Register, true)
 			Result.TypeInfo.PointerLength--
@@ -151,6 +168,7 @@ func CodegenUnaryOp(UnaryOp neoparser.UnaryOperation, IsWrite bool) CodegenResul
 		UnaryOp.Left = neoparser.SetRead(UnaryOp.Left, false)
 		Result := CodegenExpression(UnaryOp.Left, IsWrite)
 		Result.TypeInfo.PointerLength++
+		Result.IsRvalue = true
 
 		return Result
 	default:
@@ -309,9 +327,7 @@ func CodegenExpression(Expression neoparser.Expression, IsWrite bool) CodegenRes
 	case neoparser.FunctionCall:
 		FunctionCall := Expression.(neoparser.FunctionCall)
 
-		Write("// Push allocated registers", true)
 		PushAllocated()
-
 		for _, Child := range FunctionCall.Children {
 			Value := CodegenExpression(Child, false)
 			Write("push " + Value.Register, true)
@@ -319,7 +335,6 @@ func CodegenExpression(Expression neoparser.Expression, IsWrite bool) CodegenRes
 		}
 	
 		Write("call " + FunctionCall.AttachedVariable.Internal, true)
-		Write("// Pop saved registers", true)
 		PopAllocated()
 
 		r := TakeRegister()
@@ -355,7 +370,6 @@ func CodegenExpression(Expression neoparser.Expression, IsWrite bool) CodegenRes
 				Result.TypeInfo.PointerLength--
 			} else {
 				switch StructAccess.Type.Type {
-				// TODO: add pointers
 				case neoparser.I8:
 					Write("lod " + Target.Register + ", " + Target.Register, true)
 				case neoparser.I16:
@@ -368,7 +382,68 @@ func CodegenExpression(Expression neoparser.Expression, IsWrite bool) CodegenRes
 		
 		FreeRegister(r)
 		
-		return Result 
+		return Result
+	case neoparser.Subscript:
+		// TODO:  unify IsRead
+		Subscript := Expression.(neoparser.Subscript)
+		Target := CodegenExpression(Subscript.Target, IsWrite)
+		Write("// Above should not be loaded", true)
+
+		Displacement := CodegenExpression(Subscript.Displacement, false)
+
+		r := TakeRegister()
+
+		Scale := 1
+		
+		if Subscript.Type.PointerLength > 0 {
+			switch shared.Bits {
+			case 32:
+				Scale = 4
+			}
+			Scale = 2
+		} else {
+			switch Subscript.Type.Type {
+			case neoparser.I8:
+				Scale = 1
+			case neoparser.I16:
+				Scale = 2
+			case neoparser.I32:
+				Scale = 4
+			case neoparser.STRUCT:
+				Scale = Subscript.Type.Size
+			}
+		}
+
+		Write(fmt.Sprintf("mov %s, %d", r, Scale), true)
+		Write(fmt.Sprintf("mul %s, %s, %s", Displacement.Register, Displacement.Register, r), true)
+		FreeRegister(r)
+		Write(fmt.Sprintf("add %s, %s, %s", Target.Register, Target.Register, Displacement.Register), true)
+		FreeRegister(Displacement.Register)
+
+		Result := CodegenResult {
+			TypeInfo: Subscript.Type,
+			Register: Target.Register,
+		}
+
+		if Subscript.IsRead == true {
+			Result.Read = true
+			if Subscript.Type.PointerLength > 0 {
+				Write("lod_ptr " + Target.Register + ", " + Target.Register, true)
+				Result.TypeInfo.PointerLength--
+			} else {
+				switch Subscript.Type.Type {
+				case neoparser.I8:
+					Write("lod " + Target.Register + ", " + Target.Register, true)
+				case neoparser.I16:
+					Write("lod16 " + Target.Register + ", " + Target.Register, true)
+				case neoparser.I32:
+					Write("lod32 " + Target.Register + ", " + Target.Register, true)
+				}
+			}
+		}
+
+
+		return Result
 	}
 
 	return CodegenResult {}
@@ -559,6 +634,7 @@ func CodegenDecl(Decl neoparser.Declaration) {
 							Write("str16 r0, " + register, true)
 						case neoparser.I32:
 							Write("str32 r0, " + register, true)
+						case neoparser.STRUCT:
 						}	
 					}
 
@@ -611,8 +687,6 @@ func CodegenDecl(Decl neoparser.Declaration) {
 				}
 
 				WritePre("", false)
-			} else {
-				// Local variable decls...
 			}
 		}
 	case neoparser.Assembly:

@@ -82,3 +82,11 @@ func TypeMediation(T1 CodegenResult, T2 CodegenResult) CodegenResult {
 
 	return RT
 }
+
+func FormatLibraryName(Name string) string {
+	switch shared.Bits {
+	case 32:
+		return Name + "32"
+	}
+	return Name + "16"
+} 

@@ -514,6 +514,11 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				IsRead: IsRead,
 				Token: peek(-1),
 				TokenSet: &Tokens,
+				Scope: ScopeCurrent,
+				Internal: GenerateLocalIVN(CurrentFunction, CompositeType {
+					Type: STRUCT,
+					Size: len(String) + 1,
+				}),	
 			}
 			return StringObj
 		case shared.TokSemi:
@@ -544,6 +549,27 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			}
 
 			return IDObj
+		case shared.TokLBracket:
+			expect(peek(0).Type)
+			Token := peek(-1)
+			
+			Type := ReturnTypeOfExpression(Expression)
+			Type.PointerLength-- // decay back to orig type
+
+			Expression = SetRead(Expression, true) // will be up to typechecker to determine whether or not to emit load
+
+			DisplacementObj := Subscript {
+				Target: Expression,
+				Displacement: ParseExpression(true),
+				Type: Type,
+				Token: Token,
+				TokenSet: &Tokens,
+				IsRead: IsRead,
+			}
+
+			expect(shared.TokRBracket)
+
+			return DisplacementObj
 		case shared.TokPeriod, shared.TokArrow:
 			expect(peek(0).Type)
 			Name := expect(shared.TokIdent)
@@ -690,6 +716,7 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 		switch peek(0).Type {
 		case shared.TokEquality, shared.TokInequality, shared.TokLAngle, shared.TokRAngle, shared.TokGEqual, shared.TokLEqual:
 			expect(peek(0).Type)
+			Token := peek(-1)
 			Op := peek(-1).Type
 			RHS := ParseAddSub(IsRead)
 			return BinaryOperation {
@@ -697,6 +724,8 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 				Right: RHS,
 				Op: Op,
 				Type: BinaryTypeResolution(ReturnTypeOfExpression(LHS), ReturnTypeOfExpression(RHS)),
+				Token: Token,
+				TokenSet: &Tokens,
 			}
 		}
 	
@@ -717,8 +746,49 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			expect(shared.TokEqual)
 
 			RHS := ParseComparator(true)
+
 			AssignmentObj.Target = LHS
-			AssignmentObj.Value = RHS
+
+			var Tree []Expression
+
+
+			EQU_CASE_TOP:
+			switch peek(0).Type {
+			case shared.TokEqual:
+				Token := peek(0)
+				expect(shared.TokEqual)
+
+				RHS = SetRead(RHS, false)
+				RRHS := ParseComparator(true)
+
+				Tree = append(Tree, Assignment {
+					Target: RHS,
+					Token: Token,
+					TokenSet: &Tokens,
+				})	
+
+				RHS = RRHS
+				goto EQU_CASE_TOP
+			default:
+				Tree = append(Tree, RHS)
+			}
+
+
+			for i := len(Tree) - 1; i >= 0; i-- {
+				if i == 0 {
+					AssignmentObj.Value = Tree[i]
+				} else {
+					switch Tree[i - 1].(type) {
+					case Assignment:
+						Temp := Tree[i - 1].(Assignment)
+						Temp.Value = Tree[i]
+						Tree[i - 1] = Temp
+					default:
+						error.InternalCompilerError("Unexpected tree type, got " + reflect.TypeOf(Tree[i - 1]).String())
+					}
+				}
+			}
+
 			return AssignmentObj
 		}
 
@@ -746,14 +816,19 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			ChildAppend(Slice, AsmObj)
 		case shared.TokReturn:
 			expect(shared.TokReturn)
+			Token := peek(-1)
 			switch peek(0).Type {
 			case shared.TokSemi:
 				ChildAppend(Slice, Return {
 					Value: nil,
+					Token: Token,
+					TokenSet: &Tokens,
 				})
 			default:
 				ChildAppend(Slice, Return {
 					Value: ParseExpression(true),
+					Token: Token,
+					TokenSet: &Tokens,
 				})
 			}
 			expect(shared.TokSemi)

@@ -223,32 +223,7 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 		Type.Size = Size
 
 		return Type, peek(-1)
-	}
-
-	GenerateLocalIVN := func(EnclosingFunction *Variable, TypeInfo CompositeType) string {
-		CurrentOffset := (*EnclosingFunction).BasinSize
-		if TypeInfo.PointerLength > 0 || TypeInfo.Type == VOID {
-			switch shared.Bits {
-			case 16:
-				(*EnclosingFunction).BasinSize += 2	
-			case 32:
-				(*EnclosingFunction).BasinSize += 4
-			}
-		} else {
-			switch TypeInfo.Type {
-			case I8:
-				(*EnclosingFunction).BasinSize += 1
-			case I16:
-				(*EnclosingFunction).BasinSize += 2
-			case I32:
-				(*EnclosingFunction).BasinSize += 4
-			case STRUCT:
-				(*EnclosingFunction).BasinSize += TypeInfo.Size
-			}
-		}
-
-		return fmt.Sprintf("fp + %d", CurrentOffset)
-	}
+	}	
 
 	DeclAppend := func(Decl Declaration) {
 		(*TU).Declarations = append((*TU).Declarations, Decl)

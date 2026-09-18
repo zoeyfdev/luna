@@ -1,6 +1,16 @@
 .bits 16
 .global _builtin_lcc_memcpy16
 
+/* 
+Luna C Compiler
+File: memcpy16.s
+Description: 16-bit version of builtin memcpy, used for copying structs.
+Notes: none.
+
+Declaration:
+void _builtin_lcc_memcpy16(void* dst, void* src, int n);
+*/
+
 _builtin_lcc_memcpy16:
     pop e11
     pop r5 // Number of bytes to copy

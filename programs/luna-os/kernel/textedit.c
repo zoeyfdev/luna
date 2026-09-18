@@ -14,4 +14,6 @@ void textedit_init(char* buffer) {
 
     render_buf((void*) 0x30303030);
     video_load_cursor();
+
+    return;
 }

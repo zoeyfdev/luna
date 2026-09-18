@@ -1,6 +1,16 @@
 .bits 32
 .global _builtin_lcc_memcpy32
 
+/* 
+Luna C Compiler
+File: memcpy32.s
+Description: 32-bit version of builtin memcpy, used for copying structs.
+Notes: none.
+
+Declaration:
+void _builtin_lcc_memcpy32(void* dst, void* src, int n);
+*/
+
 _builtin_lcc_memcpy32:
     pop e11
     pop r5 // Number of bytes to copy

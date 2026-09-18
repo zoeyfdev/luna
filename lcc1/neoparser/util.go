@@ -73,8 +73,12 @@ func SetRead(Expression Expression, Value bool) Expression {
 		IncrementDecrement := Expression.(IncrementDecrement)
 		IncrementDecrement.Target = SetRead(IncrementDecrement.Target, Value)
 		return IncrementDecrement
+	case Subscript:
+		Subscript := Expression.(Subscript)
+		Subscript.IsRead = Value
+		return Subscript
 	default:
-		error.InternalCompilerError("Unsupported op to SetReadTrue, got '" + reflect.TypeOf(Expression).String() + "'")
+		error.InternalCompilerError("Unsupported op to SetRead, got '" + reflect.TypeOf(Expression).String() + "'")
 	}
 
 	return IntLit {}
@@ -202,6 +206,9 @@ func ReturnTypeOfExpression(Expression Expression) CompositeType {
 	case Cast:
 		Cast := Expression.(Cast)
 		return Cast.Type
+	case Subscript:
+		Subscript := Expression.(Subscript)
+		return Subscript.Type
 	}
 
 	error.InternalCompilerError("Invalid expression to ReturnTypeOfExpression, got '" + reflect.TypeOf(Expression).String() + "'")
@@ -237,8 +244,36 @@ func ReturnTokenPair(Expression Expression) (shared.Token, *[]shared.Token) {
 	case Cast:
 		Cast := Expression.(Cast)
 		return Cast.Token, Cast.TokenSet
+	case Subscript:
+		Subscript := Expression.(Subscript)
+		return Subscript.Token, Subscript.TokenSet
 	}
 
 	error.InternalCompilerError("Invalid expression to ReturnTokenPair, got '" + reflect.TypeOf(Expression).String() + "'")
 	return IntLit {}.Token, IntLit{}.TokenSet
+}
+
+func GenerateLocalIVN(EnclosingFunction *Variable, TypeInfo CompositeType) string {
+	CurrentOffset := (*EnclosingFunction).BasinSize
+	if TypeInfo.PointerLength > 0 || TypeInfo.Type == VOID {
+		switch shared.Bits {
+		case 16:
+			(*EnclosingFunction).BasinSize += 2	
+		case 32:
+			(*EnclosingFunction).BasinSize += 4
+		}
+	} else {
+		switch TypeInfo.Type {
+		case I8:
+			(*EnclosingFunction).BasinSize += 1
+		case I16:
+			(*EnclosingFunction).BasinSize += 2
+		case I32:
+			(*EnclosingFunction).BasinSize += 4
+		case STRUCT:
+			(*EnclosingFunction).BasinSize += TypeInfo.Size
+		}
+	}
+
+	return fmt.Sprintf("fp + %d", CurrentOffset)
 }

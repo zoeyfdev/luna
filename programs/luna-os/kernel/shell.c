@@ -8,8 +8,6 @@
 #include "stdbool.h"
 #include "textedit.h"
 
-char* notepad_file = "NOTEPAD.SYS";
-
 bool tried = false;
 void teststack() {
     long int* rand = (long int*) 0x90909090;
@@ -68,6 +66,7 @@ void shell() {
             
             if (strlen(file_name) == 0) {
                 puts32("Usage: open <filename>\n", COLOR_WHITE, COLOR_BLACK);
+                free(64); // refree memory from get_word
                 continue;
             }
 

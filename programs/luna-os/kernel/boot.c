@@ -9,7 +9,10 @@
 #include "lufs.h"
 #include "util.h"
 
+extern void* _builtin_lcc_strcpy32;
+
 void boot() __attribute__((noreturn)) {
+    targeted_load((long int) _builtin_lcc_strcpy32, 3);
     targeted_load((long int) puts32_loc, 2);
 
     puts32("Loading resources...\n", COLOR_WHITE, COLOR_BLACK);

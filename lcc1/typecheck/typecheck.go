@@ -8,6 +8,8 @@ import (
 	"fmt"
 )
 
+var CurrentFunction neoparser.Variable
+
 func ReturnUintPtrType() neoparser.NewType {
 	switch shared.Bits {
 	case 16:
@@ -57,6 +59,14 @@ func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token,
 		Token: OpToken,
 	}
 
+	IsInt := func(NT neoparser.NewType) bool {
+		switch NT {
+		case neoparser.I8, neoparser.I16, neoparser.I32:
+			return true
+		}
+		return false
+	}
+
 	var Type1 neoparser.NewType
 	var Type2 neoparser.NewType
 
@@ -69,6 +79,12 @@ func TypeMediation(T1 TypeCheckReturn, T2 TypeCheckReturn, OpToken shared.Token,
 		if T1.Type.Type != T2.Type.Type && !(T1.Type.Type == neoparser.VOID || T2.Type.Type == neoparser.VOID) {
 			error.Error(37, "('" + ReturnTypeName(T1.Type) + "' and '" + ReturnTypeName(T2.Type) + "')", OpToken, T1.TokenSet)
 		} 
+	}
+
+	if (!IsInt(T1.Type.Type) || !IsInt(T2.Type.Type)) && (T1.Type.PointerLength <= 0 || T2.Type.PointerLength <= 0) {
+		if (T1.Type.Type != T2.Type.Type) || (T1.Type.HighName != T2.Type.HighName) {
+			error.Error(37, "('" + ReturnTypeName(T1.Type) + "' and '" + ReturnTypeName(T2.Type) + "')", OpToken, T1.TokenSet)	
+		}
 	}
 
 	if T1.Type.PointerLength > 0 {
@@ -141,6 +157,10 @@ func TypeSweep(Expression neoparser.Expression, Type neoparser.CompositeType) ne
 		StructAccess.Type = Type
 		return StructAccess
 	// ^ added this back
+	case neoparser.Subscript:
+		Subscript := Expression.(neoparser.Subscript)
+		Subscript.Type = Type
+		return Subscript
 	}
 	
 	error.InternalCompilerError("no return value for " + reflect.TypeOf(Expression).String())
@@ -252,6 +272,8 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 		}
 
 		for i, Expy := range FunctionCall.Children {
+			if i >= len(FunctionCall.AttachedVariable.Parameters) { break }
+
 			Token, _ := neoparser.ReturnTokenPair(Expy)
 			TypeMediation(TypeCheckExpression(Expy, 1), TypeCheckReturn {
 				Type: FunctionCall.AttachedVariable.Parameters[i].TypeInfo,
@@ -304,6 +326,24 @@ func TypeCheckExpression(Expression neoparser.Expression, Strictness int) TypeCh
 			TokenSet: IncrementDecrement.TokenSet,
 			RValue: true,	
 		}
+	case neoparser.Subscript:
+		Subscript := Expression.(neoparser.Subscript)
+		Target := TypeCheckExpression(Subscript.Target, Strictness)
+
+
+		// TODO: change to allow 0[arr] to work
+		// TODO: add arrays to this
+		if Target.Type.PointerLength <= 0 {
+			error.Error(40, "", Subscript.Token, Subscript.TokenSet)
+		}
+		
+		return TypeCheckReturn {
+			Expression: Subscript,
+			Type: Subscript.Type,
+			Token: Subscript.Token,
+			TokenSet: Subscript.TokenSet,
+			RValue: false,
+		}
 	}
 
 	return TypeCheckReturn {}
@@ -341,6 +381,23 @@ func TypeCheckStatement(Statement neoparser.Statement) {
 		for _, Statement := range IfStatement.ElseChildren {
 			TypeCheckStatement(Statement)
 		}
+	case neoparser.Return:
+		ReturnStatement := Statement.(neoparser.Return)
+	
+		if ReturnStatement.Value != nil && (CurrentFunction.TypeInfo.Type == neoparser.VOID && CurrentFunction.TypeInfo.PointerLength <= 0) {
+			// void func returning a value
+			error.Error(44, "'" + CurrentFunction.Name + "' should not return a value", ReturnStatement.Token, ReturnStatement.TokenSet)
+		} else if ReturnStatement.Value == nil && !(CurrentFunction.TypeInfo.Type == neoparser.VOID && CurrentFunction.TypeInfo.PointerLength <= 0) {
+			// non void func not returning a value
+			// note it doesn't apply if a non-void function doesn't include a return at all
+			error.Error(56, "", ReturnStatement.Token, ReturnStatement.TokenSet)
+		} else {
+			if !(CurrentFunction.TypeInfo.Type == neoparser.VOID && CurrentFunction.TypeInfo.PointerLength <= 0) {
+				TypeMediation(TypeCheckExpression(ReturnStatement.Value, 1), TypeCheckReturn {
+					Type: CurrentFunction.TypeInfo,
+				}, ReturnStatement.Token, 1)
+			}
+		}	
 	}	
 }
 
@@ -351,6 +408,9 @@ func TypeCheck(TranslationUnit *neoparser.AST) {
 			Var := Declaration.(neoparser.Variable)
 			switch Var.Kind {
 			case neoparser.FUNCTION:
+				CurrentFunction = Var
+				// We subtract by one to find the actual value, not the value it decays to when raw.
+				CurrentFunction.TypeInfo.PointerLength-- 
 				for _, Child := range Var.Children {
 					TypeCheckStatement(Child)
 				}

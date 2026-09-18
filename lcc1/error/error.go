@@ -66,6 +66,7 @@ var errors = []string {
 	"unknown argument:",
 	"unmatched '('",
 	"using old parser",
+	"'return' with no value inside of a function returning non-void",
 }
 
 var Warnings int = 0

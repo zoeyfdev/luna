@@ -115,6 +115,9 @@ type StringLit struct {
 	IsRead bool
 	Token shared.Token
 	TokenSet *[]shared.Token
+	Scope int
+	Internal string
+	Internal2 string
 }
 
 type Identifier struct {
@@ -174,6 +177,15 @@ type IncrementDecrement struct {
 	Pre bool
 }
 
+type Subscript struct {
+	Target Expression
+	Displacement Expression
+	Token shared.Token
+	Type CompositeType
+	IsRead bool
+	TokenSet *[]shared.Token
+}
+
 // Statements
 
 type ConstAssignStatement struct {
@@ -198,6 +210,8 @@ type FunctionCall struct {
 
 type Return struct {
 	Value Expression
+	Token shared.Token
+	TokenSet *[]shared.Token
 }
 
 type IfStatement struct {
@@ -281,5 +295,4 @@ func (_ BreakStatement) _Statement() {}
 
 func (_ ContinueStatement) _Statement() {}
 
-// Other
-var TypeMap []CompositeType
+func (_ Subscript) _Expression() {}
