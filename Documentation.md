@@ -172,7 +172,7 @@ For assembly examples, I recommend you see the many assembly files in `programs/
 `.global mysymbol` (exposes 'mysymbol' to other object code)<br>
 
 # Linking
-The Luna toolchain has a custom linker (`l2ld`) that will convert files from object format to executable format. Flags for L2LD can be found below<br><br>
+The Luna toolchain has a custom linker (`l2ld`) that will convert files from object format to executable format. Flags for L2LD can be found below.<br><br>
 
 # C Compilation
 The Luna toolchain has a custom C compiler (`lcc1`) that will compile from Luna C99 (modified version of C99) to assembly. Differings from ISO C99 and flags for LCC1 can be found below.<br>
