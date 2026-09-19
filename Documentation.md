@@ -175,17 +175,17 @@ For assembly examples, I recommend you see the many assembly files in `programs/
 The Luna toolchain has a custom linker (`l2ld`) that will convert files from object format to executable format. Flags for L2LD can be found below<br><br>
 
 # C Compilation
-The Luna toolchain has a custom C compiler (`lcc1`) that will compile from C (C99) to assembly. Flags for LCC1 can be found below.<br>
+The Luna toolchain has a custom C compiler (`lcc1`) that will compile from Luna C99 (modified version of C99) to assembly. Differings from ISO C99 and flags for LCC1 can be found below.<br>
 Please note that LCC1 is incomplete in terms of C features supported but an effort is being made to add new features, however most features used in C99 are supported at least to some degree.<br>
-## Variable Attributes
+## Function Attributes
 In LCC1, you can use `__attribute__((<attribute(s)>))` to specify attributes for functions in the manner below:<br>
 `int foo() __attribute__((noreturn)) { ... }`<br>
 All valid attributes are listed below:<br>
 `noreturn`: tells compiler to not pop a return address from the stack at the beginning of a function or adding a `ret` at the end of a function.<br>
-## Extensions
-In LCC1, there are a few extensions to make programming L2 applications easier. They are as follows:<br>
+## Differings from ISO C99
 `void*` dereferences: equivalent to `char` dereferences; grabs 1 byte.<br>
 Pointer increments: **ALL** pointer types when incremented will be incremented by 1, not by the size of the element. To increment by the size of the element, add by `sizeof(ptr)` instead, or subscript via array.<br>
+Unspecified arguments: A signature like `void foo();` means `foo` takes **no arguments** and will be treated as such by the typechecker, not that `foo` takes an unspecified number of arguments. LCC1 treats unspecified arguments this way to attempt to prevent stack bugs across function calls.<br>
 ## Integer Chart
 `char`: 8 bits (1 byte) (note that `char` on LCC is unsigned by default)<br>
 `short`: 16 bits (2 bytes)<br>
