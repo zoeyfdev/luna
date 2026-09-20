@@ -62,22 +62,46 @@ func FreeRegister(name string) {
 }
 
 func PushAllocated() {
-	Write("// Push allocated registers", true)
+	RegsAllocated := false
 	for _, Register := range Registers {
 		if Register.Taken == true {
-			Write("push " + Register.Name, true)
+			RegsAllocated = true
 		}
 	}
-	Write("// End push", true)
+
+	if RegsAllocated == true {
+		Write("// Push allocated registers", true)
+		for _, Register := range Registers {
+			if Register.Taken == true {
+				Write("push " + Register.Name, true)
+			}
+		}
+		Write("// End push", true)
+	} else {
+		return
+	}
 }
 
-func PopAllocated() {
-	Write("// Pop allocated registers", true)
-	for i := len(Registers) - 1; i >= 0; i-- {
-		Register := Registers[i]
+func PopAllocated() {	
+	RegsAllocated := false
+	for _, Register := range Registers {
 		if Register.Taken == true {
-			Write("pop " + Register.Name, true)
+			RegsAllocated = true
 		}
 	}
-	Write("// End pop", true)
+
+	if RegsAllocated == true {
+		Write("// Pop allocated registers", true)
+
+		for i := len(Registers) - 1; i >= 0; i-- {
+			Register := Registers[i]
+			if Register.Taken == true {
+				Write("pop " + Register.Name, true)
+			}
+		}
+
+		Write("// End pop", true)
+	} else {
+		return
+	}	
 }

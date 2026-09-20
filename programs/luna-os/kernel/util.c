@@ -26,7 +26,7 @@ void kernel_panic() __attribute__((noreturn)) {
     asm ("push r2");
     asm ("push r1");
 
-    play_sound((void*) fzip_decode(CRASH_SOUND), 164352, false);
+    play_sound(fzip_decode(CRASH_SOUND), 164352, false);
     screen_fill(0x80808080);
     puts32("System error\n\nYour PC ran into an error and needs to\nbe restarted.\n\nPress any key to reboot.\n\n\n", COLOR_WHITE, COLOR_RED);
     

@@ -20,6 +20,7 @@ func PrintVersionInfo() {
 	fmt.Println("Luna Compiler Collection version " + VERSION)
 	fmt.Println("Target: luna-l2")
 	fmt.Println("InstalledDir:", path)
+	fmt.Println("Supported languages: C, asm")
 }
 
 func PrintUnifiedHelpMessage() {

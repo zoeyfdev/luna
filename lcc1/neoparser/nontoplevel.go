@@ -962,6 +962,8 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 
 			ChildAppend(Slice, ContinueStatement {})
 		default:
+			var Expression Expression
+
 			if peek(0).Type == shared.TokIdent {
 				for _, Type := range TypeMap {
 					if Type.HighName == peek(0).Value {
@@ -972,9 +974,16 @@ func ParseLocal(start int, last int, ScopeID int, Tokens []shared.Token, Childre
 			}
 			
 			// assume expression
-			ChildAppend(Slice, StatementExpression {
-				Expression: ParseExpression(false),
-			})
+			Expression = ParseExpression(true)
+
+			if _, ok := Expression.(Statement); ok {
+				ChildAppend(Slice, Expression.(Statement))
+			} else {
+				ChildAppend(Slice, StatementExpression {
+					Expression: Expression,
+				})
+			}
+
 			expect(shared.TokSemi)
 			DefaultDone:
 		}

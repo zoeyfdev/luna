@@ -193,8 +193,9 @@ func main() {
 	for _, file := range input_files {
 		ext := filepath.Ext(file)
 		name := strings.TrimSuffix(file, filepath.Ext(file))
+		ext_norm := strings.ToLower(ext)
 
-		switch ext {
+		switch ext_norm {
 		case ".c", ".h", ".cxx", ".hxx", ".cpp", ".hpp", ".cc", ".hh":
 			success := execute("lcc1 -S " + file + " -o " + name + ".s " + strings.Join(cc1args, " "), false)
 			if success != true {
@@ -203,7 +204,7 @@ func main() {
 			}
 			assembly_files = append(assembly_files, name + ".s")
 			cleanup = append(cleanup, name + ".s")
-		case ".asm", ".s", ".S":
+		case ".asm", ".s":
 			assembly_files = append(assembly_files, file)	
 		case ".o", ".obj", ".a":
 			assembly_files = append(assembly_files, file)

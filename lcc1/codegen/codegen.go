@@ -6,7 +6,8 @@ import (
 	"lcc1/error"
 	"strings"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
+	"reflect"
+	"github.com/sanity-io/litter"
 )
 
 var Section1 strings.Builder
@@ -702,7 +703,12 @@ func Codegen(TU *neoparser.AST) string {
 
 	if DumpTU == true {
 		error.NoteCustom("current translation unit:")
-		spew.Dump((*TU))
+		litter.Options {
+			HidePrivateFields: true,
+			FieldFilter: func(f reflect.StructField, v reflect.Value) bool {
+				return (f.Name != "Token" && f.Name != "TokenSet")
+			},
+		}.Dump((*TU))
 	}
 
 	switch shared.Bits {

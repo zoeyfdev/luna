@@ -12,20 +12,20 @@
 extern void* _builtin_lcc_strcpy32;
 
 void boot() __attribute__((noreturn)) {
-    targeted_load((long int) _builtin_lcc_strcpy32, 3);
-    targeted_load((long int) puts32_loc, 2);
+    targeted_load(_builtin_lcc_strcpy32, 3);
+    targeted_load(puts32_loc, 2);
 
     puts32("Loading resources...\n", COLOR_WHITE, COLOR_BLACK);
-    targeted_load((long int) BOOT_SOUND, 43);
-    targeted_load((long int) BOOT_IMG, 4);
-    targeted_load((long int) play_sound_loc, 3);
-    targeted_load((long int) renderbuf_loc, 2);
-    targeted_load((long int) sleep_loc, 2);
-    targeted_load((long int) fzipdecode_loc, 3);
-    targeted_load((long int) malloc_loc, 2);
+    targeted_load(BOOT_SOUND, 43);
+    targeted_load(BOOT_IMG, 4);
+    targeted_load(play_sound_loc, 3);
+    targeted_load(renderbuf_loc, 2);
+    targeted_load(sleep_loc, 2);
+    targeted_load(fzipdecode_loc, 3);
+    targeted_load(malloc_loc, 2);
 
-    play_sound((void*) fzip_decode(BOOT_SOUND), 41984, false);
-    render_buf((void*) fzip_decode(BOOT_IMG));
+    play_sound(fzip_decode(BOOT_SOUND), 41984, false);
+    render_buf(fzip_decode(BOOT_IMG));
 
     puts32("Loading LunaOS...\n", COLOR_WHITE, COLOR_BLACK);
 

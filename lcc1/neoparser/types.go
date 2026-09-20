@@ -117,7 +117,6 @@ type StringLit struct {
 	TokenSet *[]shared.Token
 	Scope int
 	Internal string
-	Internal2 string
 }
 
 type Identifier struct {

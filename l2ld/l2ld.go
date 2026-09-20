@@ -388,7 +388,7 @@ func main() {
 	if len(UnsolvedUnresolvedBindings) > 0 {
 		error(3, "")
 		for _, ub := range UnsolvedUnresolvedBindings {
-			fmt.Println("  \"" + ub.Name + "\", referenced from:\n    " + ub.File) 
+			fmt.Fprintln(os.Stderr, "  \"" + ub.Name + "\", referenced from:\n    " + ub.File) 
 		}
 		os.Exit(1)
 	}

@@ -256,19 +256,24 @@ func ParseTop(Tokens []shared.Token, Scope int, TU *AST, EnclosingFunction *Vari
 							error.UnimplementedMessage("ellipsis operators are currently not supported.")
 						}
 						Type, _ := ParseType() // TODO: integrated checking for void type
-						Name := expect(shared.TokIdent)
-						if peek(0).Type != shared.TokRParen {
-							expect(shared.TokComma)
-						}
-						ArgObj := Variable {}
-						ArgObj.TypeInfo = Type
-						ArgObj.Name = Name
-						ArgObj.Scope = Scope
-						ArgObj.Internal = GenerateLocalIVN(&FObj, Type)
-						ArgObj.Kind = VARIABLE
 
-						FObj.Parameters = append(FObj.Parameters, ArgObj)
-						DeclAppend(ArgObj)
+						if Type.Type == VOID && Type.PointerLength <= 0 { // void foo(void)
+							exit = true
+						} else {
+							Name := expect(shared.TokIdent)
+							if peek(0).Type != shared.TokRParen {
+								expect(shared.TokComma)
+							}
+							ArgObj := Variable {}
+							ArgObj.TypeInfo = Type
+							ArgObj.Name = Name
+							ArgObj.Scope = Scope
+							ArgObj.Internal = GenerateLocalIVN(&FObj, Type)
+							ArgObj.Kind = VARIABLE
+
+							FObj.Parameters = append(FObj.Parameters, ArgObj)
+							DeclAppend(ArgObj)
+						}	
 					case shared.TokRParen:
 						exit = true
 					}
