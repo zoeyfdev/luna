@@ -28,7 +28,7 @@ var MemoryPower *[1]byte
 func Mapper(address uint32) byte {
 	if Bits32 == true {
 		switch {
-		case address >= 0x00000000 && address <= MEMCAP:
+		case address >= 0x00000000 && address <= uint32(len((*Memory)) - 1):
 			return (*Memory)[address]
 		case address >= 0x70000000 && address <= 0x7FFFFFFF:
 			return proxy.VideoReadVideoMemory(address - 0x70000000)
@@ -76,7 +76,7 @@ func Mapper(address uint32) byte {
 func MapperWrite(address uint32, content byte) {
 	if Bits32 == true {
 		switch {
-		case address >= 0x00000000 && address <= MEMCAP:
+		case address >= 0x00000000 && address <= uint32(len((*Memory)) - 1):
 			(*Memory)[address] = content
 		case address >= 0x70000000 && address <= 0x7FFFFFFF:
 			proxy.VideoWriteVideoMemory(address - 0x70000000, content)

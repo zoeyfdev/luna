@@ -56,27 +56,22 @@ var Registers = []shared.Register {
 		
 }
 
-var Memory []byte 
-const (
-	MEMSIZE uint32 = 0x70000000
-	MEMCAP uint32 = 0x6FFFFFFF
-)
+var Memory []byte
 
 func setRegister(address uint32, value uint32) {
 	if address < uint32(len(Registers)) {
-		if shared.Bits32 == false && address != 0x001f {
-			Registers[address].Value = uint32(uint16(value))
-		} else {
-			Registers[address].Value = value
-		}
+		Registers[address].Value = value	
 	}	
 }
 
 func getRegister(address uint32) uint32 {
 	if address < uint32(len(Registers)) {
+		if shared.Bits32 == false {
+			return Registers[address].Value & 0x0000FFFF
+		}
 		return Registers[address].Value
 	}	
-	return 0x0000
+	return 0x00000000
 }
 
 func getRegisterName[T uint32 | byte](address T) string {
@@ -376,17 +371,18 @@ func execute() {
 			}	
 			sp := getRegister(0x001c)
 			if shared.Bits32 == false {
-				sp = shared.Clamp(sp - 2, 0, MEMCAP)
+				sp -= 2
 				shared.MapperWrite(sp, byte(value & 0xFF))
 				shared.MapperWrite(sp + 1, byte(value >> 8))
+				setRegister(0x001c, sp)
 			} else {
-				sp = shared.Clamp(sp - 4, 0, MEMCAP)
+				sp -= 4
 				shared.MapperWrite(sp, byte(value & 0xFF))
 				shared.MapperWrite(sp + 1, byte(value >> 8))
 				shared.MapperWrite(sp + 2, byte(value >> 16))
-				shared.MapperWrite(sp + 3, byte(value >> 24))
-			}	
-			setRegister(0x001c, uint32(sp))	
+				shared.MapperWrite(sp + 3, byte(value >> 24))	
+			}
+			setRegister(0x001c, sp)
 			stall(2)
 		case 0x0c:
 			// POP
@@ -396,17 +392,18 @@ func execute() {
 			var value uint32
 			if shared.Bits32 == false {
 				value = uint32(uint16(shared.Mapper(sp)) | uint16(shared.Mapper(sp + 1)) << 8) 
-			} else {	
+			} else {
 				value = uint32(shared.Mapper(sp)) | uint32(shared.Mapper(sp + 1)) << 8 | uint32(shared.Mapper(sp + 2)) << 16 | uint32(shared.Mapper(sp + 3)) << 24
 			}
 			Log("value: " + fmt.Sprintf("0x%08x", value))
 			setRegister(uint32(register), uint32(value))
+
 			if shared.Bits32 == false {
-				sp = shared.Clamp(sp + 2, 0, MEMCAP)
+				setRegister(0x001c, uint32(sp + 2))
 			} else {
-				sp = shared.Clamp(sp + 4, 0, MEMCAP)
+				setRegister(0x001c, uint32(sp + 4))
 			}
-			setRegister(0x001c, uint32(sp))
+
 			setRegister(0x001d, ProgramCounter + 2)
 			Log("pop " + getRegisterName(register))
 			stall(2)
@@ -530,7 +527,7 @@ func execute() {
 			// LOD
 			// lod <addr (register)> <destination register>	
 			addr := getRegister(uint32(shared.Mapper(ProgramCounter + 1)))
-			toregister := uint32(shared.Mapper(ProgramCounter+2))
+			toregister := uint32(shared.Mapper(ProgramCounter + 2))
 			setRegister(toregister, uint32(shared.Mapper(addr)))
 			setRegister(0x001d, ProgramCounter + 3)
 			Log("lod " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(toregister) + " (" + fmt.Sprintf("0x%02x", shared.Mapper(addr)) + ")")
@@ -573,7 +570,7 @@ func execute() {
 			// str <addr> <register>
 			addr := getRegister(uint32(shared.Mapper(ProgramCounter + 1)))
 			value := uint32(shared.Mapper(ProgramCounter + 2))
-			shared.MapperWrite(addr, byte(getRegister(value)))
+			shared.MapperWrite(addr, byte(getRegister(value) & 0xFF))
 			Log("str " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(value))
 			setRegister(0x001d, ProgramCounter + 3)	
 			stall(100)
@@ -630,7 +627,7 @@ func execute() {
 		case 0x21:
 			shared.LogOn = true
 			shared.Debug = true
-			Log("\033[31m----- BREAKPOINT -----\033[33m")
+			Log("\033[31m----- BREAKPOINT -----\033[0m")
 			setRegister(0x001d, ProgramCounter + 1)
 		case 0x22:
 			Log("BREAKPOINT")

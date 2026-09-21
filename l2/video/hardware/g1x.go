@@ -13,7 +13,7 @@ package main
 import (
 	"image"
 	"image/color"
-	"luna_l2/font"
+	font "luna_l2/video/hardware/font8x8"
 	"luna_l2/shared"
 	"math/rand"
 )

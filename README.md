@@ -3,15 +3,10 @@ A simple, lightweight RISC CPU architecture.<br><br>
 
 # Requirements<br>
 - MacOS, Linux, or FreeBSD<br>
-- Go (if you are compiling manually)<br>
-- GCC (if you are compiling manually)
+- Go<br>
+- GCC
 
-# Automatic Installation (MacOS (amd64/arm64))<br>
-- Download the relevant installer from the latest release.<br>
-- Run the installer and go through installation steps.<br>
-- Note: All toolchain applications will automatically be added to your system's PATH variable.<br><br>
-
-# Manual Installation (MacOS, Linux, FreeBSD)<br>
+# Installation (MacOS, Linux, FreeBSD)<br>
 - Clone the repository using `git clone`<br>
 - Navigate into the directory<br>
 - Run `make; make install` to install the Luna L2 emulator and toolchain<br>
@@ -26,7 +21,7 @@ A simple, lightweight RISC CPU architecture.<br><br>
 HDD: Hard disk drive; use `-hdd <file>` or just `<file>` to insert a file into the slot.<br>
 SD: Secure Digital card/USB; use `-sd <file>` to insert a file into the slot.<br>
 DVD: Optical disc slot; use `-dvd <file>` to insert a file into the slot.<br>
-- To customize which one you want to boot from, you can use `-boot <hdd/sd/dvd>`<br>
+Note: You can use F1/F2/F3 to eject/insert media into these slots.<br><br>
 
 # Emulator parameters<br>
 - `-ram <RAM amount in bytes>` - adjust the amount of RAM available to the emulator<br>
@@ -43,7 +38,7 @@ DVD: Optical disc slot; use `-dvd <file>` to insert a file into the slot.<br>
 ### Luna G1X<br>
 - Emulator equipment ID: `g1x`<br>
 - Valid resolutions: 320x200@8bpp<br>
-- Video memory: 64 KiB (65,535 bytes)<br>
+- Video memory: 64 KiB (65,536 bytes)<br>
 - Extra features: Simple transparency via color code 0xE3<br><br>
 ## Audio<br>
 ### Luna S1<br>

@@ -1,5 +1,4 @@
 //go:build linux || darwin
-
 package component
 
 import (

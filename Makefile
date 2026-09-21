@@ -2,14 +2,21 @@ SRC=./
 
 # No windows support (for now until I figure out how to get DLLs to work)
 
-all: luna-l2 las lcc lcc1 l2ld 
-.PHONY: clean install l2ld lcc lcc1 las
+all: luna-l2 las lcc lcc1 l2ld luna-l2-c
+.PHONY: clean install l2ld lcc lcc1 las luna-l2-c
 
 luna-l2: $(SRC)/l2/*
 	cd l2 && go build -buildmode=plugin -o ../components/audio/s1.so ./audio/hardware/s1.go
 	cd l2 && go build -buildmode=plugin -o ../components/video/g1.so ./video/hardware/g1.go
 	cd l2 && go build -buildmode=plugin -o ../components/video/g1x.so ./video/hardware/g1x.go
-	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go	
+	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go
+
+luna-l2-c: $(SRC)/l2_c/*
+	cd l2_c && gcc luna_l2.c \
+		cpu/*.c \
+		video/*.c \
+		-o ../bin/luna-l2-c \
+		-I/usr/include/SDL2 -D_GNU_SOURCE=1 -D_REENTRANT -L/usr/lib -lSDL2 -Wall -Wextra -Wimplicit-fallthrough=5
 
 las: $(SRC)/las/* $(SRC)/lcc_info/*
 	cd las && go build -o ../bin/las ./las.go
