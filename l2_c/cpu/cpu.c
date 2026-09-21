@@ -91,10 +91,10 @@ void cpu_execute() {
                 // INT
                 // int <value>
                 if (!IS_XEN) {
-                    set_register(IR, get_register(IR) | get_word(pc + 1));
+                    set_register(IR, get_register(IR) | (1 << get_word(pc + 1)));
                     set_register(PC, pc + 3);
                 } else {
-                    set_register(IR, get_register(IR) | get_dword(pc + 1));
+                    set_register(IR, get_register(IR) | (1 << get_dword(pc + 1)));
                     set_register(PC, pc + 5);
                 }
 
@@ -221,8 +221,8 @@ void cpu_execute() {
                 } else {
                     set_register(SP, get_register(SP) + 4);
                     set_register(reg, get_memory(get_register(SP)) << 24 
-                            | get_memory(get_register(SP) + 1) << 16)
-                            | get_memory(get_register(SP) + 2) << 8)
+                            | get_memory(get_register(SP) + 1) << 16
+                            | get_memory(get_register(SP) + 2) << 8
                             | get_memory(get_register(SP) + 3) & 0xFF);
                 }
                 
@@ -265,7 +265,9 @@ void cpu_execute() {
                 unsigned char dest = get_memory(pc + 1);
                 uint32_t reg1 = get_register(get_memory(pc + 2));
                 uint32_t reg2 = get_register(get_memory(pc + 3));
-                set_register(dest, reg1 / reg2);
+
+                if (reg2 != 0)
+                    set_register(dest, reg1 / reg2);
                 set_register(PC, pc + 4);
                 break;
             }
@@ -314,7 +316,7 @@ void cpu_execute() {
                 // not <dest> <reg1>
                 unsigned char dest = get_memory(pc + 1);
                 uint32_t reg1 = get_register(get_memory(pc + 2));
-                set_register(dest, ^reg1);
+                set_register(dest, reg1 ^ reg1);
                 set_register(PC, pc + 3);
                 break;
             }
@@ -328,6 +330,114 @@ void cpu_execute() {
                 set_register(PC, pc + 4);
                 break;
             }
+        case 0x20: {
+                // MOD
+                // MOD <dest> <reg1> <reg2>
+                unsigned char dest = get_memory(pc + 1);
+                uint32_t reg1 = get_register(get_memory(pc + 2));
+                uint32_t reg2 = get_register(get_memory(pc + 3));
+
+                if (reg2 != 0)
+                    set_register(dest, reg1 % reg2);
+                set_register(PC, pc + 4);
+                break;
+            }
+        case 0x1c: {
+                // SHL
+                // shl <dest> <reg1> <reg2>
+                unsigned char dest = get_memory(pc + 1);
+                uint32_t reg1 = get_register(get_memory(pc + 2));
+                uint32_t reg2 = get_register(get_memory(pc + 3));
+                set_register(dest, reg1 << reg2);
+                set_register(PC, pc + 4);
+                break;
+            }
+        case 0x1d: {
+                // SHR
+                // shr <dest> <reg1> <reg2>
+                unsigned char dest = get_memory(pc + 1);
+                uint32_t reg1 = get_register(get_memory(pc + 2));
+                uint32_t reg2 = get_register(get_memory(pc + 3));
+                set_register(dest, reg1 >> reg2);
+                set_register(PC, pc + 4);
+                break;
+            }
+        case 0x17: {
+                // LOD
+                // lod <addr register> <register>
+                unsigned char reg = get_memory(pc + 1);
+                unsigned char val = get_memory(get_register(get_memory(pc + 2)));
+                set_register(reg, val);
+                set_register(PC, pc + 3);
+                break;
+            }
+        case 0x19: {
+                // LOD16
+                // lod16 <addr register> <register>
+                unsigned char reg = get_memory(pc + 1);
+                unsigned char val = get_word(get_register(get_memory(pc + 2)));
+                set_register(reg, val);
+                set_register(PC, pc + 3);
+                break;
+            }
+        case 0x1e: {
+                // LOD32
+                // lod32 <addr register> <register>
+                unsigned char reg = get_memory(pc + 1);
+                unsigned char val = get_dword(get_register(get_memory(pc + 2)));
+                set_register(reg, val);
+                set_register(PC, pc + 3);
+                break;
+            }
+        case 0x1b: {
+                // STR
+                // str <addr register> <register>
+                uint32_t addr = get_register(get_memory(pc + 1));
+                uint32_t val = get_register(get_memory(pc + 2));
+                set_memory(addr, val & 0xFF);
+                set_register(PC, pc + 3);
+                break;
+            }
+        case 0x18: {
+                // STR16
+                // str16 <addr register> <register>
+                uint32_t addr = get_register(get_memory(pc + 1));
+                uint32_t val = get_register(get_memory(pc + 2));
+                set_memory(addr, val << 8);
+                set_memory(addr + 1, val & 0xFF);
+                set_register(PC, pc + 3);
+                break;
+            }
+        case 0x1f: {
+                // STR32
+                // str32 <addr register> <register>
+                uint32_t addr = get_register(get_memory(pc + 1));
+                uint32_t val = get_register(get_memory(pc + 2));
+                set_memory(addr, val << 24);
+                set_memory(addr + 1, val << 16);
+                set_memory(addr + 2, val << 8);
+                set_memory(addr + 3, val & 0xFF);
+                set_register(PC, pc + 3);
+                break;
+            }
+        case 0x1a: {
+                unsigned char mode = get_memory(pc + 1);
+                switch (mode) {
+                case 0x00:
+                    // 16-bit mode
+                    set_register(S, get_register(S) << 31 | CPU_FLAG_XEN & 0);
+                    break;
+                case 0x01:
+                    // 32-bit mode
+                    set_register(S, get_register(S) << 31 | CPU_FLAG_XEN & 1);
+                    break;
+                }
+                set_register(PC, pc + 1);
+                break;
+            }
+        default:
+            // Illegal
+            break;
         }
     }
 }
@@ -335,6 +445,7 @@ void cpu_execute() {
 void* cpu_init() {
     initialize_registers();
     initialize_memory();
+    cpu_execute();
     
     return NULL;
 }

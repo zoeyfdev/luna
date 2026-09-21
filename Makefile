@@ -12,11 +12,15 @@ luna-l2: $(SRC)/l2/*
 	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go
 
 luna-l2-c: $(SRC)/l2_c/*
-	cd l2_c && gcc luna_l2.c \
+	cd l2_c && gcc-16 ./video/hardware/g1x.c \
+		-shared -fPIC \
+		-o ../components/video/g1x.so -g
+	cd l2_c && gcc-16 luna_l2.c \
 		cpu/*.c \
 		video/*.c \
+		component/*.c \
 		-o ../bin/luna-l2-c \
-		-I/usr/include/SDL2 -D_GNU_SOURCE=1 -D_REENTRANT -L/usr/lib -lSDL2 -Wall -Wextra -Wimplicit-fallthrough=5
+		$(sdl2-config --cflags --libs) -I/usr/local/opt/sdl2/include -L/usr/local/opt/sdl2/lib -lSDL2 -Wall -Wextra -Wimplicit-fallthrough=5 -g
 
 las: $(SRC)/las/* $(SRC)/lcc_info/*
 	cd las && go build -o ../bin/las ./las.go

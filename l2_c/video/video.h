@@ -1,3 +1,3 @@
 #pragma once
 
-int InitializeWindow();
+int initialize_window();
