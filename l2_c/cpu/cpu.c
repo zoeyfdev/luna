@@ -1,8 +1,13 @@
 #include <stdint.h>
 #include <time.h>
+#include <stdio.h>
 
 #include "registers.h"
 #include "memory.h"
+#include "../util/psleep.h"
+#include "../bios/bios.h"
+
+char* instructions[];
 
 uint32_t get_word(uint32_t address) {
     return (uint32_t) ((uint16_t) get_memory(address) << 8 
@@ -16,18 +21,22 @@ uint32_t get_dword(uint32_t address) {
         | (uint32_t) (get_memory(address + 3) & 0xFF);
 }
 
-void _sleep(int ms) {
-    struct timespec ts = {
-        .tv_sec = ms / 1000,
-        .tv_nsec = (ms % 1000) * 1000000L
-    };
-    nanosleep(&ts, NULL);
+void cpu_halt_state() {
+    uint32_t pc = get_register(PC);
+    while (get_register(PC) == pc && get_register(IR) == 0) 
+        psleep(15);
 }
 
 void cpu_execute() {
+    bool EXIT = false;
     for (;;) {
         uint32_t pc = get_register(PC);
         unsigned char op = get_memory(pc);
+
+        if (op <= 32) {
+            printf(instructions[op - 1]);
+            printf("\n");
+        }
 
         switch (op) {
         case 0x01: {
@@ -57,14 +66,12 @@ void cpu_execute() {
                     break;
                 }
 
-                set_register(PC, pc + 1);
                 break;
             }
         case 0x02: {
                 // HLT
                 // hlt
-                while (get_register(PC) == pc && get_register(IR) == 0) 
-                    _sleep(15);
+                cpu_halt_state();
                 set_register(PC, pc + 1);
                 break;
             }
@@ -82,7 +89,7 @@ void cpu_execute() {
                         set_register(PC, get_dword(pc + 2));
                     break;
                 case 0x02:
-                    set_register(PC, get_register(pc + 2));
+                    set_register(PC, get_register(get_memory(pc + 2)));
                     break;
                 }
                 break;
@@ -190,23 +197,24 @@ void cpu_execute() {
                     }
                     break;
                 case 0x02:
-                    val = get_register(get_memory(pc + 3));
-                    set_register(PC, pc + 4);
+                    val = get_register(get_memory(pc + 2));
+                    set_register(PC, pc + 3);
                     break;
                 }
                 if (!IS_XEN) { 
-                    set_memory(get_register(SP), (unsigned char) val >> 8);
+                    set_memory(get_register(SP), (unsigned char) (val >> 8) & 0xFF);
                     set_memory(get_register(SP) + 1, (unsigned char) val & 0xFF);
 
                     set_register(SP, get_register(SP) - 2);
                 } else {
-                    set_memory(get_register(SP), (unsigned char) val >> 24);
-                    set_memory(get_register(SP) + 1, (unsigned char) val >> 16);
-                    set_memory(get_register(SP) + 2, (unsigned char) val >> 8);
+                    set_memory(get_register(SP), (unsigned char) (val >> 24) & 0xFF);
+                    set_memory(get_register(SP) + 1, (unsigned char) (val >> 16) & 0xFF);
+                    set_memory(get_register(SP) + 2, (unsigned char) (val >> 8) & 0xFF);
                     set_memory(get_register(SP) + 3, (unsigned char) val & 0xFF);
 
                     set_register(SP, get_register(SP) - 4); 
                 }
+                printf("PC: 0x%08x\n", get_register(PC));
                 break;
             }
         case 0x0c: {
@@ -425,27 +433,61 @@ void cpu_execute() {
                 switch (mode) {
                 case 0x00:
                     // 16-bit mode
-                    set_register(S, get_register(S) << 31 | CPU_FLAG_XEN & 0);
+                    set_register(S, get_register(S) << 31 | (CPU_FLAG_XEN & 0));
                     break;
                 case 0x01:
                     // 32-bit mode
-                    set_register(S, get_register(S) << 31 | CPU_FLAG_XEN & 1);
+                    set_register(S, get_register(S) << 31 | (CPU_FLAG_XEN & 1));
                     break;
                 }
                 set_register(PC, pc + 1);
                 break;
             }
-        default:
-            // Illegal
-            break;
+        default: {
+                // Illegal
+                char buf[512];
+                sprintf(buf, "Illegal instruction 0x%02x at location 0x%08x", op, pc);
+                bios_write_line(buf);
+
+                cpu_halt_state();
+                break;
+            }
         }
+        reg_dump();
     }
 }
 
-void* cpu_init() {
-    initialize_registers();
-    initialize_memory();
-    cpu_execute();
-    
-    return NULL;
-}
+char* instructions[] = {
+    "MOV",
+    "HLT",
+    "JMP",
+    "INT",
+    "JNZ",
+    "NOP",
+    "CMP",
+    "JZ",
+    "INC",
+    "DEC",
+    "PUSH",
+    "POP",
+    "ADD",
+    "SUB",
+    "MUL",
+    "DIV",
+    "IGT",
+    "ILT",
+    "AND",
+    "OR",
+    "NOT",
+    "XOR",
+    "LOD",
+    "STR",
+    "STR16",
+    "LOD16",
+    "SET",
+    "SHL",
+    "SHR",
+    "STR32",
+    "LOD32",
+    "MOD"
+};

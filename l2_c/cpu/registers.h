@@ -1,13 +1,16 @@
 #pragma once
 
+#include <stdint.h>
+
 void initialize_registers();
 uint32_t get_register(unsigned char address);
 void set_register(unsigned char address, uint32_t value);
+void reg_dump(); 
 
 #define CPU_FLAG_XEN 0b00000000000000000000000000000001
 #define CPU_FLAG_NONE 0b00000000000000000000000000000000
 
-#define IS_XEN (!!(get_register(0x22) & CPU_FLAG_XEN))
+#define IS_XEN ((get_register(0x22) & CPU_FLAG_XEN))
 
 #define R0 0x00
 #define R1 0x01

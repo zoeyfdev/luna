@@ -1,1 +1,1 @@
-void* cpu_init(void* VOID);
+void cpu_execute();

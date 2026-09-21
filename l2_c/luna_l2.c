@@ -1,15 +1,20 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "video/video.h"
-#include "cpu/cpu.h"
+#include "cpu/init.h"
+#include "bios/bios.h"
 
-int main() {
+int main(int argc, char* argv[]) {
+    for (int i = 0; i < argc; i++) {
+        HDD_FILE = argv[i];
+    }
     // Execute CPU
-    initialize_window();
     pthread_t cpu_thread;
-    pthread_create(&cpu_thread, NULL, cpu_init, NULL);
-    pthread_join(cpu_thread, NULL); 
+    pthread_create(&cpu_thread, NULL, cpu_poweron, NULL);
+
+    initialize_window(); 
     return 0;
 }

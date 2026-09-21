@@ -1,5 +1,5 @@
-#include "stdint.h"
-#include "stdio.h"
+#include <stdint.h>
+#include <stdio.h>
 
 typedef struct {
     uint32_t value;
@@ -33,12 +33,18 @@ void initialize_registers() {
 }
 
 uint32_t get_register(unsigned char address) {
-    if (address > (unsigned char) sizeof(registers))
+    if (address < 35)
         return registers[address].value;
     return 0x00000000;
 }
 
 void set_register(unsigned char address, uint32_t value) {
-    if (address > (unsigned char) sizeof(registers))
+    if (address < 35)
         registers[address].value = value;
+}
+
+void reg_dump() {
+    for (int i = 0; i < 35; i++)
+        printf("%s: 0x%08x\n", registers[i].name, registers[i].value);
+    getchar();
 }

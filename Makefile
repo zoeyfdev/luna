@@ -1,9 +1,11 @@
 SRC=./
+CC=gcc
+CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23
 
 # No windows support (for now until I figure out how to get DLLs to work)
 
-all: luna-l2 las lcc lcc1 l2ld luna-l2-c
-.PHONY: clean install l2ld lcc lcc1 las luna-l2-c
+all: luna-l2 las lcc lcc1 l2ld
+.PHONY: clean install l2ld lcc lcc1 las
 
 luna-l2: $(SRC)/l2/*
 	cd l2 && go build -buildmode=plugin -o ../components/audio/s1.so ./audio/hardware/s1.go
@@ -12,15 +14,20 @@ luna-l2: $(SRC)/l2/*
 	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go
 
 luna-l2-c: $(SRC)/l2_c/*
-	cd l2_c && gcc-16 ./video/hardware/g1x.c \
+	cd l2_c && $(CC) ./video/hardware/g1x.c \
 		-shared -fPIC \
+		$(CCFLAGS) \
 		-o ../components/video/g1x.so -g
-	cd l2_c && gcc-16 luna_l2.c \
+	cd l2_c && $(CC) luna_l2.c \
+		util/*.c \
 		cpu/*.c \
+		bios/*.c \
 		video/*.c \
 		component/*.c \
 		-o ../bin/luna-l2-c \
-		$(sdl2-config --cflags --libs) -I/usr/local/opt/sdl2/include -L/usr/local/opt/sdl2/lib -lSDL2 -Wall -Wextra -Wimplicit-fallthrough=5 -g
+		$(shell sdl2-config --cflags --libs) \
+		$(CCFLAGS) \
+		-g
 
 las: $(SRC)/las/* $(SRC)/lcc_info/*
 	cd las && go build -o ../bin/las ./las.go

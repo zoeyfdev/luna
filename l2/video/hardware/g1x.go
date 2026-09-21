@@ -14,8 +14,8 @@ import (
 	"image"
 	"image/color"
 	font "luna_l2/video/hardware/font8x8"
-	"luna_l2/shared"
 	"math/rand"
+	"fmt"
 )
 
 var CursorX int = 0
@@ -48,7 +48,8 @@ func PushChar(x, y int, ch rune, fg byte, bg byte) {
     idx := int(ch)
     glyph := font.Font[0x00]
 
-    if idx >= 0 && idx < len(font.Font) {
+	fmt.Println("SIZE:", len(font.Font))
+    if idx >= 0 && idx < len(font.Font) {	
         glyph = font.Font[idx]
     }
 
@@ -57,14 +58,21 @@ func PushChar(x, y int, ch rune, fg byte, bg byte) {
         
 		for col := 0; col < 8; col++ {
 			mask := byte(1 << col)
+			fmt.Printf("Mask: %d\n", mask)
 			var color byte
+			fmt.Printf("Both: %d\n", line & mask)
 			if line & mask != 0 {
 				color = fg
 			} else {
 				color = bg
 			}
-			px := (y + row) * 320 + (x + col)
-			MemoryVideo[shared.Clamp(int(px), 0, 63999)] = color
+
+			y_row := (y + row) * 320
+			x_col := x + col
+			px := y_row + x_col
+
+			fmt.Printf("0x%x = 0x%x (%d, %d)\n", px, color, y_row, x_col);
+			MemoryVideo[px] = color
 		}
 
     }
