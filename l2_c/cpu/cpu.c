@@ -9,6 +9,21 @@
 
 char* instructions[];
 
+#define SECOND 1000000000
+#define CLOCK_SPEED 50000000 // hz
+uint64_t accumulated;
+void stall(uint64_t cycles) {
+    uint64_t cycle_time = SECOND / CLOCK_SPEED;
+    accumulated += cycles;
+    if (accumulated >= 66000) {
+        struct timespec ts = {
+            .tv_nsec = cycle_time * accumulated
+        };
+        nanosleep(&ts, NULL);
+        accumulated = 0;
+    }
+}
+
 uint32_t get_word(uint32_t address) {
     return (uint32_t) ((uint16_t) get_memory(address) << 8 
             | (uint16_t) (get_memory(address + 1) & 0xFF));
@@ -33,9 +48,23 @@ void cpu_execute() {
         uint32_t pc = get_register(PC);
         unsigned char op = get_memory(pc);
 
+        /*
         if (op <= 32) {
             printf(instructions[op - 1]);
             printf("\n");
+        }
+        */
+
+        // check for interrupts
+        if (!IS_IIF) {
+            for (int i = 0; i < 32; i++) {
+                if ((get_register(IR) & (1 << i)) != 0) {  
+                    bios_handle_interrupt(i + 1);
+                    if (get_register(PC) != pc)
+                        set_register(S, get_register(S) | (1 << 1));
+                    set_register(IR, (get_register(IR) & (0 << i)));                   
+                }
+            }
         }
 
         switch (op) {
@@ -66,6 +95,7 @@ void cpu_execute() {
                     break;
                 }
 
+                stall(4);
                 break;
             }
         case 0x02: {
@@ -89,22 +119,26 @@ void cpu_execute() {
                         set_register(PC, get_dword(pc + 2));
                     break;
                 case 0x02:
+                    if (get_memory(pc + 2) == IRV)
+                        set_register(S, get_register(S) | (0 << 1)); // disable IIF flag if jumping to IRV
                     set_register(PC, get_register(get_memory(pc + 2)));
                     break;
                 }
+                stall(8);
                 break;
             }
         case 0x04: {
                 // INT
                 // int <value>
                 if (!IS_XEN) {
-                    set_register(IR, get_register(IR) | (1 << get_word(pc + 1)));
+                    set_register(IR, get_register(IR) | (1 << (get_word(pc + 1) - 1)));
                     set_register(PC, pc + 3);
                 } else {
-                    set_register(IR, get_register(IR) | (1 << get_dword(pc + 1)));
+                    set_register(IR, get_register(IR) | (1 << (get_dword(pc + 1) - 1)));
                     set_register(PC, pc + 5);
                 }
 
+                stall(34);
                 break;
             }
         case 0x05: {
@@ -113,27 +147,28 @@ void cpu_execute() {
                 unsigned char mode = get_memory(pc + 1);
                 unsigned char reg = get_memory(pc + 2);
 
-                if (get_register(reg) != 0) {
-                    switch (mode) {
-                    case 0x01:
-                        // Imm
-                        if (!IS_XEN)
-                            set_register(PC, get_register(reg) != 0 ? get_word(pc + 3) : pc + 5);
-                        else
-                            set_register(PC, get_register(reg) != 0 ? get_word(pc + 3) : pc + 7);
-                        break;
-                    case 0x02:
-                        // Reg
-                        set_register(PC, get_register(reg) != 0 ? get_register(get_memory(pc + 3)) : pc + 4);
-                        break;
-                    }
+                switch (mode) {
+                case 0x01:
+                    // Imm
+                    if (!IS_XEN)
+                        set_register(PC, get_register(reg) != 0 ? get_word(pc + 3) : pc + 5);
+                    else
+                        set_register(PC, get_register(reg) != 0 ? get_word(pc + 3) : pc + 7);
+                    break;
+                case 0x02:
+                    // Reg
+                    set_register(PC, get_register(reg) != 0 ? get_register(get_memory(pc + 3)) : pc + 4);
+                    break;
                 }
+
+                stall(8);
                 break;
             }
         case 0x06: {
                 // NOP
                 // nop
                 set_register(PC, pc + 1);
+                stall(1);
                 break;
             }
         case 0x07: {
@@ -141,6 +176,8 @@ void cpu_execute() {
                 // cmp <to> <r1> <r1>
                 set_register(get_memory(pc + 1), get_register(get_memory(pc + 2)) == get_register(get_memory(pc + 3)) ? 1 : 0);
                 set_register(PC, pc + 4);
+
+                stall(4);
                 break;
             }
         case 0x08: {
@@ -149,35 +186,39 @@ void cpu_execute() {
                 unsigned char mode = get_memory(pc + 1);
                 unsigned char reg = get_memory(pc + 2);
 
-                if (get_register(reg) != 0) {
-                    switch (mode) {
-                    case 0x01:
-                        // Imm
-                        if (!IS_XEN)
-                            set_register(PC, get_register(reg) == 0 ? get_word(pc + 3) : pc + 5);
-                        else
-                            set_register(PC, get_register(reg) == 0 ? get_word(pc + 3) : pc + 7);
-                        break;
-                    case 0x02:
-                        // Reg
-                        set_register(PC, get_register(reg) == 0 ? get_register(get_memory(pc + 3)) : pc + 4);
-                        break;
-                    }
+                switch (mode) {
+                case 0x01:
+                    // Imm
+                    if (!IS_XEN)
+                        set_register(PC, get_register(reg) == 0 ? get_word(pc + 3) : pc + 5);
+                    else
+                        set_register(PC, get_register(reg) == 0 ? get_word(pc + 3) : pc + 7);
+                    break;
+                case 0x02:
+                    // Reg
+                    set_register(PC, get_register(reg) == 0 ? get_register(get_memory(pc + 3)) : pc + 4);
+                    break;
                 }
+
+                stall(8);
                 break;
             }
         case 0x09: {
                 // INC
                 // inc <register>
-                set_register(get_register(get_memory(pc + 1)), get_register(get_memory(pc + 1)) + 1);
+                set_register(get_memory(pc + 1), get_register(get_memory(pc + 1)) + 1);
                 set_register(PC, pc + 2);
+
+                stall(11);
                 break;
             }
         case 0x0a: {
                 // DEC
                 // dec <register>
-                set_register(get_register(get_memory(pc + 1)), get_register(get_memory(pc + 1)) - 1);
+                set_register(get_memory(pc + 1), get_register(get_memory(pc + 1)) - 1);
                 set_register(PC, pc + 2);
+
+                stall(11);
                 break;
             }
         case 0x0b: {
@@ -214,7 +255,8 @@ void cpu_execute() {
 
                     set_register(SP, get_register(SP) - 4); 
                 }
-                printf("PC: 0x%08x\n", get_register(PC));
+
+                stall(400);
                 break;
             }
         case 0x0c: {
@@ -235,6 +277,8 @@ void cpu_execute() {
                 }
                 
                 set_register(PC, pc + 2);
+
+                stall(400);
                 break;
             }
         case 0x0d: {
@@ -245,6 +289,8 @@ void cpu_execute() {
                 uint32_t reg2 = get_register(get_memory(pc + 3));
                 set_register(dest, reg1 + reg2);
                 set_register(PC, pc + 4);
+
+                stall(7);
                 break;
             }
         case 0x0e: {
@@ -255,6 +301,8 @@ void cpu_execute() {
                 uint32_t reg2 = get_register(get_memory(pc + 3));
                 set_register(dest, reg1 - reg2);
                 set_register(PC, pc + 4);
+
+                stall(7);
                 break;
             }
         case 0x0f: {
@@ -265,6 +313,8 @@ void cpu_execute() {
                 uint32_t reg2 = get_register(get_memory(pc + 3));
                 set_register(dest, reg1 * reg2);
                 set_register(PC, pc + 4);
+
+                stall(70);
                 break;
             }
         case 0x10: {
@@ -277,6 +327,8 @@ void cpu_execute() {
                 if (reg2 != 0)
                     set_register(dest, reg1 / reg2);
                 set_register(PC, pc + 4);
+
+                stall(140);
                 break;
             }
         case 0x11: {
@@ -287,6 +339,8 @@ void cpu_execute() {
                 uint32_t reg2 = get_register(get_memory(pc + 3));
                 set_register(dest, reg1 > reg2 ? 1 : 0);
                 set_register(PC, pc + 4);
+
+                stall(8);
                 break;
             }
         case 0x12: {
@@ -297,6 +351,8 @@ void cpu_execute() {
                 uint32_t reg2 = get_register(get_memory(pc + 3));
                 set_register(dest, reg1 < reg2 ? 1 : 0);
                 set_register(PC, pc + 4);
+
+                stall(8);
                 break;
             }
         case 0x13: {
@@ -307,6 +363,8 @@ void cpu_execute() {
                 uint32_t reg2 = get_register(get_memory(pc + 3));
                 set_register(dest, reg1 & reg2);
                 set_register(PC, pc + 4);
+
+                stall(15);
                 break;
             }
         case 0x14: {
@@ -317,6 +375,8 @@ void cpu_execute() {
                 uint32_t reg2 = get_register(get_memory(pc + 3));
                 set_register(dest, reg1 | reg2);
                 set_register(PC, pc + 4);
+
+                stall(15);
                 break;
             }
         case 0x15: {
@@ -326,6 +386,8 @@ void cpu_execute() {
                 uint32_t reg1 = get_register(get_memory(pc + 2));
                 set_register(dest, reg1 ^ reg1);
                 set_register(PC, pc + 3);
+
+                stall(15);
                 break;
             }
         case 0x16: {
@@ -336,6 +398,8 @@ void cpu_execute() {
                 uint32_t reg2 = get_register(get_memory(pc + 3));
                 set_register(dest, reg1 ^ reg2);
                 set_register(PC, pc + 4);
+
+                stall(220);
                 break;
             }
         case 0x20: {
@@ -348,6 +412,8 @@ void cpu_execute() {
                 if (reg2 != 0)
                     set_register(dest, reg1 % reg2);
                 set_register(PC, pc + 4);
+
+                stall(140);
                 break;
             }
         case 0x1c: {
@@ -358,6 +424,8 @@ void cpu_execute() {
                 uint32_t reg2 = get_register(get_memory(pc + 3));
                 set_register(dest, reg1 << reg2);
                 set_register(PC, pc + 4);
+
+                stall(8);
                 break;
             }
         case 0x1d: {
@@ -368,33 +436,44 @@ void cpu_execute() {
                 uint32_t reg2 = get_register(get_memory(pc + 3));
                 set_register(dest, reg1 >> reg2);
                 set_register(PC, pc + 4);
+
+                stall(8);
                 break;
             }
         case 0x17: {
                 // LOD
                 // lod <addr register> <register>
-                unsigned char reg = get_memory(pc + 1);
-                unsigned char val = get_memory(get_register(get_memory(pc + 2)));
+                unsigned char reg = get_memory(pc + 2);
+                unsigned char val = get_memory(get_register(get_memory(pc + 1)));
+
+                printf("val: 0x%x, addr: 0x%x\n", val, get_register(get_memory(pc + 2)));
+
                 set_register(reg, val);
                 set_register(PC, pc + 3);
+
+                stall(100);
                 break;
             }
         case 0x19: {
                 // LOD16
                 // lod16 <addr register> <register>
-                unsigned char reg = get_memory(pc + 1);
-                unsigned char val = get_word(get_register(get_memory(pc + 2)));
+                unsigned char reg = get_memory(pc + 2);
+                unsigned char val = get_word(get_register(get_memory(pc + 1)));
                 set_register(reg, val);
                 set_register(PC, pc + 3);
+
+                stall(200);
                 break;
             }
         case 0x1e: {
                 // LOD32
                 // lod32 <addr register> <register>
-                unsigned char reg = get_memory(pc + 1);
-                unsigned char val = get_dword(get_register(get_memory(pc + 2)));
+                unsigned char reg = get_memory(pc + 2);
+                unsigned char val = get_dword(get_register(get_memory(pc + 1)));
                 set_register(reg, val);
                 set_register(PC, pc + 3);
+
+                stall(400);
                 break;
             }
         case 0x1b: {
@@ -404,6 +483,8 @@ void cpu_execute() {
                 uint32_t val = get_register(get_memory(pc + 2));
                 set_memory(addr, val & 0xFF);
                 set_register(PC, pc + 3);
+
+                stall(90);
                 break;
             }
         case 0x18: {
@@ -411,9 +492,14 @@ void cpu_execute() {
                 // str16 <addr register> <register>
                 uint32_t addr = get_register(get_memory(pc + 1));
                 uint32_t val = get_register(get_memory(pc + 2));
-                set_memory(addr, val << 8);
+
+                printf("0x%x = 0x%x\n", addr, val);
+
+                set_memory(addr, (val >> 8) & 0xFF);
                 set_memory(addr + 1, val & 0xFF);
                 set_register(PC, pc + 3);
+
+                stall(180);
                 break;
             }
         case 0x1f: {
@@ -421,11 +507,13 @@ void cpu_execute() {
                 // str32 <addr register> <register>
                 uint32_t addr = get_register(get_memory(pc + 1));
                 uint32_t val = get_register(get_memory(pc + 2));
-                set_memory(addr, val << 24);
-                set_memory(addr + 1, val << 16);
-                set_memory(addr + 2, val << 8);
+                set_memory(addr, (val >> 24) & 0xFF);
+                set_memory(addr + 1, (val >> 16) & 0xFF);
+                set_memory(addr + 2, (val >> 8) & 0xFF);
                 set_memory(addr + 3, val & 0xFF);
                 set_register(PC, pc + 3);
+
+                stall(360);
                 break;
             }
         case 0x1a: {
@@ -433,14 +521,16 @@ void cpu_execute() {
                 switch (mode) {
                 case 0x00:
                     // 16-bit mode
-                    set_register(S, get_register(S) << 31 | (CPU_FLAG_XEN & 0));
+                    set_register(S, get_register(S) | (0 << 0));
                     break;
                 case 0x01:
                     // 32-bit mode
-                    set_register(S, get_register(S) << 31 | (CPU_FLAG_XEN & 1));
+                    set_register(S, get_register(S) | (1 << 0));
                     break;
                 }
                 set_register(PC, pc + 1);
+
+                stall(9);
                 break;
             }
         default: {
@@ -453,7 +543,8 @@ void cpu_execute() {
                 break;
             }
         }
-        reg_dump();
+
+        // reg_dump();
     }
 }
 

@@ -51,6 +51,7 @@ boot_try:
         }
     } else {
         boot_ok = true;
+        bios_boot_drive = drive;
     }
 
     if (boot_ok == true)

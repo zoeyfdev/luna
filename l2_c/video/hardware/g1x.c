@@ -154,7 +154,3 @@ void print_char(unsigned char c, unsigned char fg, unsigned char bg) {
         cursor_x = 0;
     }
 }
-
-void testfunc() {
-    print_char(0x41, 255, 0);
-}

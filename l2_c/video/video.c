@@ -5,6 +5,8 @@
 
 #include "../component/component.h"
 #include "nrgba/nrgba.h"
+#include "../io/keyboard.h"
+#include "../cpu/registers.h"
 
 #define SCREEN_WIDTH    960
 #define SCREEN_HEIGHT   600
@@ -18,6 +20,9 @@
 unsigned char (*v_read_video_memory)(uint32_t);
 void (*v_write_video_memory)(uint32_t, unsigned char);
 void (*v_print_char)(unsigned char, unsigned char, unsigned char);
+void (*v_set_cursor)(int, int);
+void (*v_get_cursor)(int*, int*);
+
 bool VIDEO_READY = false;
 
 void reset_aspect_ratio(SDL_Renderer* renderer) {
@@ -95,6 +100,8 @@ int initialize_window() {
     v_read_video_memory = return_component_function(video_component, "read_video_memory");
     v_write_video_memory = return_component_function(video_component, "write_video_memory");
     v_print_char = return_component_function(video_component, "print_char");
+    v_set_cursor = return_component_function(video_component, "set_cursor");
+    v_get_cursor = return_component_function(video_component, "get_cursor");
 
     (*initialize_component)();
 
@@ -104,6 +111,7 @@ int initialize_window() {
     SDL_UpdateTexture(texture, NULL, img->img, img->stride);
 
     bool quit = false;
+    bool grab = false;
 
     // Event loop
     while(!quit)
@@ -114,6 +122,39 @@ int initialize_window() {
             case SDL_QUIT:
                 quit = true;
                 exit(0);
+                break;
+            case SDL_MOUSEBUTTONDOWN:
+                if (grab == false) {
+                    SDL_SetRelativeMouseMode(true);
+                    SDL_SetWindowTitle(window, "Luna L2 - Press Ctrl+Alt+G to release grab");
+                    grab = true;
+                }
+                break;
+            case SDL_KEYDOWN:
+                printf("KEY DOWN\n");
+                bool shift = (e.key.keysym.mod & KMOD_SHIFT) != 0;
+                bool alt = (e.key.keysym.mod & KMOD_ALT) != 0;
+                bool ctrl = (e.key.keysym.mod & KMOD_CTRL) != 0;
+
+                int key = (int) e.key.keysym.sym;
+                switch (key) {
+                
+                default:
+                    if (ctrl && alt && key == 'g') {
+                        SDL_SetRelativeMouseMode(false);
+                        SDL_SetWindowTitle(window, "Luna L2");
+                        grab = false;
+                        break;
+                    }
+
+                    int actual = key;
+                    if (shift == true)
+                        actual = keyboard_upper(key);
+
+                    KEYBOARD_MEMORY[0] = (unsigned char) (actual & 0xFF);
+                    set_register(IR, get_register(IR) | (1 << (5 - 1))); 
+                    break;
+                }
             }
         }
  

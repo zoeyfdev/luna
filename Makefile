@@ -23,6 +23,7 @@ luna-l2-c: $(SRC)/l2_c/*
 		cpu/*.c \
 		bios/*.c \
 		video/*.c \
+		io/*.c \
 		component/*.c \
 		-o ../bin/luna-l2-c \
 		$(shell sdl2-config --cflags --libs) \

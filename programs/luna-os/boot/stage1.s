@@ -7,7 +7,7 @@ jmp _start
 
 _start:
     // Setup stack
-    mov sp, 0xEFFF
+    mov sp, 0xE000
 
     // Check partition table
     call check_vol
