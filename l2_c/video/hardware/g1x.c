@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "../nrgba/nrgba.h"
 #include "font8x8/font.h"
@@ -23,6 +24,7 @@ int cursor_y = 0;
 
 void initialize_component() {
     VIDEO_MEMORY = malloc(VRAM);
+    memset(VIDEO_MEMORY, 0x00, VRAM);
 
     img = malloc(sizeof(nrgba_image));
     pixels = malloc(sizeof(nrgba_pixel) * REAL_VRAM);
@@ -41,14 +43,14 @@ void initialize_component() {
 }
 
 void write_video_memory(uint32_t addr, unsigned char content) {
-    if (addr >= VRAM)
+    if (addr < VRAM)
         VIDEO_MEMORY[addr] = content;
 }
 
 unsigned char read_video_memory(uint32_t addr) {
-    if (addr > VRAM)
+    if (addr < VRAM)
         return VIDEO_MEMORY[addr];
-    return 0x00000000;
+    return (unsigned char) rand() & 0xFF;
 }
 
 void set_cursor(int x, int y) {
@@ -153,4 +155,10 @@ void print_char(unsigned char c, unsigned char fg, unsigned char bg) {
         cursor_y++;
         cursor_x = 0;
     }
+}
+
+void gpu_reset() {
+    memset(VIDEO_MEMORY, 0x00, VRAM);
+    cursor_x = 0;
+    cursor_y = 0;
 }

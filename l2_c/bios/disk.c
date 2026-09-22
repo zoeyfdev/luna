@@ -40,6 +40,7 @@ bool load_sector(int drive, int sector, int dest_sector) {
 
     close(fd);
 
+    set_register(R0, 0);
     return true;
 }
 
@@ -76,5 +77,6 @@ bool write_sector(int drive, int sector, int dest_sector) {
 
     close(fd);
 
+    set_register(R0, 0);
     return true;
 }

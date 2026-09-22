@@ -1,14 +1,21 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "../video/videocard.h"
 #include "../cpu/registers.h"
+#include "../cpu/memory.h"
+#include "../cpu/memdefs.h"
 #include "disk.h"
 
 char* HDD_FILE;
 char* SD_FILE;
 char* DVD_FILE;
 int bios_boot_drive;
+unsigned char* BIOS_RAM = NULL;
+
+#define BIOS_RAM_SIZE 192
 
 void bios_write_string(char* s) {
     while (*s) {
@@ -28,7 +35,36 @@ void bios_splash() {
     bios_write_line("Copyright (c) 2026 zoeyfdev\n");
 }
 
+void bios_init() {
+    BIOS_RAM = malloc(BIOS_RAM_SIZE); // 6 bytes per interrupt * 32 interrupts
+}
+
+unsigned char bios_read_memory(uint32_t address) {
+    if (address < BIOS_RAM_SIZE)
+        return BIOS_RAM[address];
+    return (unsigned char) rand() & 0xFF;
+}
+
+void bios_write_memory(uint32_t address, unsigned char value) {
+    if (address < BIOS_RAM_SIZE)
+        BIOS_RAM[address] = value;
+}
+
 void bios_handle_interrupt(uint32_t code) {
+    uint32_t handler_addr = (code - 1) * 6;
+
+    // 0: BIOS
+    // 1: software
+    // else: disabled
+    if (BIOS_RAM[handler_addr] == 1) {
+        uint32_t pc_addr = (BIOS_RAM[handler_addr + 1] << 24)
+            | (BIOS_RAM[handler_addr + 2] << 16)
+            | (BIOS_RAM[handler_addr + 3] << 8)
+            | (BIOS_RAM[handler_addr + 4]);
+        set_register(PC, pc_addr);
+        return;
+    }
+
     switch (code) {
     case 0x01:
         v_print_char((unsigned int) get_register(R1) & 0xFF, (unsigned int) get_register(R2) & 0xFF, (unsigned int) get_register(R3) & 0xFF);
@@ -60,10 +96,10 @@ void bios_handle_interrupt(uint32_t code) {
         // Syscall reserved
         break;
     case 0x05:
-        // Keyboard reserved
+        // Power reserved
         break;
     case 0x06:
-        // Power interrupt
+        // Keyboard interrupt
         break;
     case 0x07:
         // Illegal instruction trap
@@ -79,13 +115,13 @@ void bios_handle_interrupt(uint32_t code) {
         break;
     case 0x0B:
         // Load sector from disk
-        load_sector(get_register(R1), get_register(R2), get_register(R3));
+        load_sector(get_register(R2), get_register(R1), get_register(R3));
         break;
     case 0x0C:
         v_set_cursor(get_register(R1), get_register(R2));
         break;
     case 0x0D:
-        write_sector(get_register(R1), get_register(R2), get_register(R3));
+        write_sector(get_register(R2), get_register(R1), get_register(R3));
         break;
     case 0x0E: {
             int x;
@@ -96,13 +132,21 @@ void bios_handle_interrupt(uint32_t code) {
             set_register(R2, y);
             break;
         }
-    case 0x0F:
-        // Reboot
-        break;
+    case 0x0F: {
+            // Reboot
+            memset(MEMORY, 0x00, MEMSIZE);
+            memset(BIOS_RAM, 0x00, BIOS_RAM_SIZE);
+            for (int i = 0; i < 35; i++)
+                set_register(i, 0);
+            v_gpu_reset();
+            break;
+        }
     case 0x10:
+        printf("%d\n", bios_boot_drive);
         set_register(R1, bios_boot_drive);
         break;
     case 0x11:
+        exit(0);
         // Shut down machine
         break;
     }

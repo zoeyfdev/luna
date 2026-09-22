@@ -1,5 +1,7 @@
 #pragma once
 
+#define MEMSIZE 0x70000000
+
 // 16-bit RAM defs
 // IBAR in use
 
@@ -20,6 +22,9 @@
 
 #define S_VIDEO_RAM_16 0xF400
 #define E_VIDEO_RAM_16 0xF4FF
+
+#define S_BIOS_RAM_16 0xF500
+#define E_BIOS_RAM_16 0xF5FF
 
 // ^ VRAM banked
 
@@ -42,3 +47,6 @@
 
 #define S_PIT_RAM_32 0x80030000
 #define E_PIT_RAM_32 0x8003FFFF
+
+#define S_BIOS_RAM_32 0x80040000
+#define E_BIOS_RAM_32 0x8004FFFF

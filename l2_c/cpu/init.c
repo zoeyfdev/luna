@@ -10,13 +10,15 @@
 #include "memory.h"
 #include "cpu.h"
 
-void* cpu_poweron(void* VOID) {
+void* cpu_power_on(void* VOID) {
     initialize_registers();
     initialize_memory();
+    bios_init();
 
     while (!VIDEO_READY)
         psleep(15);
 
+reboot:
     bios_splash();
     
     int drive = 0;
@@ -54,9 +56,13 @@ boot_try:
         bios_boot_drive = drive;
     }
 
-    if (boot_ok == true)
+    if (boot_ok == true) {
         cpu_execute();
-    else
+        if (CPU_RESET == true) {
+            CPU_RESET = false;
+            goto reboot;
+        }
+    } else
         for (;;) psleep(15);
     return NULL;
 }

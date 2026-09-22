@@ -7,7 +7,7 @@ jmp _start
 
 _start:
     // Setup stack
-    mov sp, 0xE000
+    mov sp, 0xEF00
 
     // Check partition table
     call check_vol
@@ -22,7 +22,7 @@ _start:
     mov r1, 1
     mov r3, r1
     int 11
-    jnz r0, read_error
+    jnz r0, read_error 
 
     int 0x10
     mov r2, r1
@@ -93,24 +93,24 @@ wait_key:
 
     mov e7, wk_after
 
-    mov r1, 0xFA53
+    mov r1, 0xF521
     mov r2, key_inp
     str16 r1, r2  // SET KEY CLICK ADDR
 
-    mov r1, 0xFA50
+    mov r1, 0xF51E
     mov r2, 1
     str r1, r2 // ENABLE KEY INP
 wk_wait:
     hlt
     jmp wk_wait
 wk_after:
-    mov r1, 0xFA50
+    mov r1, 0xF51E
     mov r2, 0
     str r1, r2 // DISABLE KEY INP
     ret
 
 key_inp:
-    mov r1, 0xFA12
+    mov r1, 0xF200
     lod r1, e12
     jmp e7
 

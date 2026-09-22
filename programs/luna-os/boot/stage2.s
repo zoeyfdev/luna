@@ -13,16 +13,16 @@ _BS_FIELDS_:
 
 _stage2:
     // 0xFA -> 4f  50  51 52 53 54
-    hlt
-    hlt // Make sure battery controller is initialized
 
-    call bat_check
+    // hlt
+    // hlt
+    // call bat_check
 
-    mov r1, 0xFA53
+    mov r1, 0xF521
     mov r2, key_inp
     str16 r1, r2  // SET KEY CLICK ADDR
     
-    push 0x0F0F
+    push 0x0F
     call screen_draw
 
     push msg_header
@@ -61,14 +61,14 @@ VOL_INP:
     // Tell user to select prompt
     mov e7, vinp_ai
 
-    mov r1, 0xFA50
+    mov r1, 0xF51E
     mov r2, 1
     str r1, r2 // ENABLE KEY INP
 
     hlt
     jmp VOL_INP
 vinp_ai:
-    mov r1, 0xFA50
+    mov r1, 0xF51E
     mov r2, 0
     str r1, r2 // DISABLE KEY INP
 
@@ -216,9 +216,9 @@ screen_draw:
     pop r2 // Color
 
     mov b, 0 // current VRAM bank
-    mov r1, 0xFE00 // Pointer
+    mov r1, 0xF400 // Pointer
     mov r3, 0 // Total
-    mov r4, 0xFFFF
+    mov r4, 0xF4FF
     mov r6, 64000
 
     mov e10, pc
@@ -228,23 +228,19 @@ screen_draw:
     inc r1
     inc r3
 
-    cmp r5, r1, r4
+    igt r5, r1, r4
     jz r5, e10
 
-    str r1, r2
-    inc r3
-
-    cmp r7, r3, r6
-    jnz r7, sd_ret
+    ilt r7, r3, r6
+    jz r7, sd_ret
     
     inc b
-    mov r1, 0xFE00
+    mov r1, 0xF400
     jmp e10
 sd_ret:
     mov r1, 0
     mov r2, 0
     int 0xc
-
     ret
 
 bat_check:
@@ -266,7 +262,7 @@ bc_ret:
     ret
 
 key_inp:
-    mov r1, 0xFA12
+    mov r1, 0xF200
     lod r1, e12
     jmp e7
 

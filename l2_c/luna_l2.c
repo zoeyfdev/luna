@@ -18,8 +18,8 @@ int main(int argc, char* argv[]) {
 
     // Execute CPU
     pthread_t cpu_thread;
-    pthread_create(&cpu_thread, NULL, cpu_poweron, NULL);
+    pthread_create(&cpu_thread, NULL, cpu_power_on, NULL);
 
-    initialize_window(); 
+    initialize_window();
     return 0;
 }

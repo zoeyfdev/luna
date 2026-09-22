@@ -8,6 +8,7 @@
 #include "../bios/bios.h"
 
 char* instructions[];
+bool CPU_RESET = false;
 
 #define SECOND 1000000000
 #define CLOCK_SPEED 50000000 // hz
@@ -25,15 +26,15 @@ void stall(uint64_t cycles) {
 }
 
 uint32_t get_word(uint32_t address) {
-    return (uint32_t) ((uint16_t) get_memory(address) << 8 
-            | (uint16_t) (get_memory(address + 1) & 0xFF));
+    return (uint32_t) ((uint32_t) get_memory(address)) << 8
+        |  ((uint32_t) get_memory(address + 1));
 }
 
 uint32_t get_dword(uint32_t address) {
-    return (uint32_t) get_memory(address) << 24 
-        | (uint32_t) get_memory(address + 1) << 16 
-        | (uint32_t) get_memory(address + 2) << 8 
-        | (uint32_t) (get_memory(address + 3) & 0xFF);
+    return ((uint32_t) get_memory(address)) << 24 
+        | ((uint32_t) get_memory(address + 1)) << 16 
+        | ((uint32_t) get_memory(address + 2)) << 8 
+        | ((uint32_t) get_memory(address + 3));
 }
 
 void cpu_halt_state() {
@@ -45,6 +46,9 @@ void cpu_halt_state() {
 void cpu_execute() {
     bool EXIT = false;
     for (;;) {
+pipeline_top:
+        if (EXIT)
+            break;
         uint32_t pc = get_register(PC);
         unsigned char op = get_memory(pc);
 
@@ -56,12 +60,19 @@ void cpu_execute() {
         */
 
         // check for interrupts
-        if (!IS_IIF) {
+        if (!IS_IIF || 1) {
             for (int i = 0; i < 32; i++) {
-                if ((get_register(IR) & (1 << i)) != 0) {  
+                if ((get_register(IR) & (1 << i)) != 0) {
                     bios_handle_interrupt(i + 1);
-                    if (get_register(PC) != pc)
+                    if (i + 1 == 0x0F) {
+                        CPU_RESET = true;
+                        EXIT = true;
+                        break;
+                    }
+                    if (get_register(PC) != pc) {
                         set_register(S, get_register(S) | (1 << 1));
+                        goto pipeline_top;
+                    }
                     set_register(IR, (get_register(IR) & (0 << i)));                   
                 }
             }
@@ -119,6 +130,8 @@ void cpu_execute() {
                         set_register(PC, get_dword(pc + 2));
                     break;
                 case 0x02:
+                    if (get_memory(pc + 2) == E11)
+                        printf("E11: 0x%08x\n", get_register(E11));
                     if (get_memory(pc + 2) == IRV)
                         set_register(S, get_register(S) | (0 << 1)); // disable IIF flag if jumping to IRV
                     set_register(PC, get_register(get_memory(pc + 2)));
@@ -242,18 +255,19 @@ void cpu_execute() {
                     set_register(PC, pc + 3);
                     break;
                 }
-                if (!IS_XEN) { 
-                    set_memory(get_register(SP), (unsigned char) (val >> 8) & 0xFF);
-                    set_memory(get_register(SP) + 1, (unsigned char) val & 0xFF);
-
+                if (!IS_XEN) {
                     set_register(SP, get_register(SP) - 2);
-                } else {
-                    set_memory(get_register(SP), (unsigned char) (val >> 24) & 0xFF);
-                    set_memory(get_register(SP) + 1, (unsigned char) (val >> 16) & 0xFF);
-                    set_memory(get_register(SP) + 2, (unsigned char) (val >> 8) & 0xFF);
-                    set_memory(get_register(SP) + 3, (unsigned char) val & 0xFF);
 
-                    set_register(SP, get_register(SP) - 4); 
+                    printf("PUSH\nHi: 0x%02x\nLo: 0x%02x\n", ((unsigned char) (val >> 8)), (val & 0xFF));
+                    set_memory(get_register(SP), (unsigned char) ((val >> 8) & 0xFF));
+                    set_memory(get_register(SP) + 1, (unsigned char) (val & 0xFF));
+                } else {
+                    set_register(SP, get_register(SP) - 4);
+
+                    set_memory(get_register(SP), (unsigned char) ((val >> 24) & 0xFF));
+                    set_memory(get_register(SP) + 1, (unsigned char) ((val >> 16) & 0xFF));
+                    set_memory(get_register(SP) + 2, (unsigned char) ((val >> 8) & 0xFF));
+                    set_memory(get_register(SP) + 3, (unsigned char) (val & 0xFF)); 
                 }
 
                 stall(400);
@@ -265,15 +279,20 @@ void cpu_execute() {
                 
                 unsigned char reg = get_memory(pc + 1);
                 if (!IS_XEN) {
+                   
+                    uint32_t val = get_memory(get_register(SP)) << 8 
+                            | (get_memory(get_register(SP) + 1) & 0xFF);
+
+                    printf("Pop value: 0x%08x\n", val);
+
+                    set_register(reg, val);
                     set_register(SP, get_register(SP) + 2);
-                    set_register(reg, get_memory(get_register(SP)) << 8 
-                            | get_memory(get_register(SP) + 1) & 0xFF);
-                } else {
-                    set_register(SP, get_register(SP) + 4);
+                } else { 
                     set_register(reg, get_memory(get_register(SP)) << 24 
                             | get_memory(get_register(SP) + 1) << 16
                             | get_memory(get_register(SP) + 2) << 8
-                            | get_memory(get_register(SP) + 3) & 0xFF);
+                            | (get_memory(get_register(SP) + 3) & 0xFF));
+                    set_register(SP, get_register(SP) + 4);
                 }
                 
                 set_register(PC, pc + 2);
@@ -446,8 +465,6 @@ void cpu_execute() {
                 unsigned char reg = get_memory(pc + 2);
                 unsigned char val = get_memory(get_register(get_memory(pc + 1)));
 
-                printf("val: 0x%x, addr: 0x%x\n", val, get_register(get_memory(pc + 2)));
-
                 set_register(reg, val);
                 set_register(PC, pc + 3);
 
@@ -458,7 +475,8 @@ void cpu_execute() {
                 // LOD16
                 // lod16 <addr register> <register>
                 unsigned char reg = get_memory(pc + 2);
-                unsigned char val = get_word(get_register(get_memory(pc + 1)));
+                uint16_t val = get_word(get_register(get_memory(pc + 1)));
+
                 set_register(reg, val);
                 set_register(PC, pc + 3);
 
@@ -469,7 +487,7 @@ void cpu_execute() {
                 // LOD32
                 // lod32 <addr register> <register>
                 unsigned char reg = get_memory(pc + 2);
-                unsigned char val = get_dword(get_register(get_memory(pc + 1)));
+                uint32_t val = get_dword(get_register(get_memory(pc + 1)));
                 set_register(reg, val);
                 set_register(PC, pc + 3);
 
@@ -481,6 +499,7 @@ void cpu_execute() {
                 // str <addr register> <register>
                 uint32_t addr = get_register(get_memory(pc + 1));
                 uint32_t val = get_register(get_memory(pc + 2));
+
                 set_memory(addr, val & 0xFF);
                 set_register(PC, pc + 3);
 
@@ -492,8 +511,6 @@ void cpu_execute() {
                 // str16 <addr register> <register>
                 uint32_t addr = get_register(get_memory(pc + 1));
                 uint32_t val = get_register(get_memory(pc + 2));
-
-                printf("0x%x = 0x%x\n", addr, val);
 
                 set_memory(addr, (val >> 8) & 0xFF);
                 set_memory(addr + 1, val & 0xFF);

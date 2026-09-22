@@ -1,5 +1,7 @@
 #include <stdlib.h>
+#include <stdint.h>
 
+#define KEYBOARD_RAM_SIZE 1
 unsigned char* KEYBOARD_MEMORY = NULL;
 
 unsigned char char_table[][2] = {
@@ -42,4 +44,15 @@ int keyboard_lower(int code) {
             return pair[0];
     }
     return code;
+}
+
+unsigned char keyboard_read_memory(uint32_t address) {
+    if (address < KEYBOARD_RAM_SIZE)
+        return KEYBOARD_MEMORY[address];
+    return (unsigned char) rand() & 0xFF;
+}
+
+void keyboard_write_memory(uint32_t address, unsigned char value) {
+    if (address < KEYBOARD_RAM_SIZE)
+        KEYBOARD_MEMORY[address] = value;
 }

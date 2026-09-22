@@ -22,6 +22,7 @@ void (*v_write_video_memory)(uint32_t, unsigned char);
 void (*v_print_char)(unsigned char, unsigned char, unsigned char);
 void (*v_set_cursor)(int, int);
 void (*v_get_cursor)(int*, int*);
+void (*v_gpu_reset)();
 
 bool VIDEO_READY = false;
 
@@ -102,6 +103,7 @@ int initialize_window() {
     v_print_char = return_component_function(video_component, "print_char");
     v_set_cursor = return_component_function(video_component, "set_cursor");
     v_get_cursor = return_component_function(video_component, "get_cursor");
+    v_gpu_reset = return_component_function(video_component, "gpu_reset");
 
     (*initialize_component)();
 
@@ -131,7 +133,6 @@ int initialize_window() {
                 }
                 break;
             case SDL_KEYDOWN:
-                printf("KEY DOWN\n");
                 bool shift = (e.key.keysym.mod & KMOD_SHIFT) != 0;
                 bool alt = (e.key.keysym.mod & KMOD_ALT) != 0;
                 bool ctrl = (e.key.keysym.mod & KMOD_CTRL) != 0;
@@ -147,12 +148,14 @@ int initialize_window() {
                         break;
                     }
 
-                    int actual = key;
-                    if (shift == true)
-                        actual = keyboard_upper(key);
+                    if (key < 10000) {
+                        int actual = key;
+                        if (shift == true)
+                            actual = keyboard_upper(key);
 
-                    KEYBOARD_MEMORY[0] = (unsigned char) (actual & 0xFF);
-                    set_register(IR, get_register(IR) | (1 << (5 - 1))); 
+                        KEYBOARD_MEMORY[0] = (unsigned char) (actual & 0xFF);
+                        set_register(IR, get_register(IR) | (1 << (6 - 1))); 
+                    }
                     break;
                 }
             }

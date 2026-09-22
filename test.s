@@ -1,18 +1,9 @@
-mov r4, string
-mov r2, 255
-mov r3, 0
+mov sp, 0x200
 
-mov r5, "xf"
-str16 r4, r5
+push 1000
+pop r1
 
-mov e10, pc
+mov r1, 0
+lod16 r1, r2
 
-lod r4, r1
-int 1
-inc r4
-
-jnz r1, e10
 jmp pc
-
-string:
-    .asciz "Hello world!"

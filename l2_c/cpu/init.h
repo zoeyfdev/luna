@@ -1,1 +1,1 @@
-void* cpu_poweron(void* VOID);
+void* cpu_power_on(void* VOID);
