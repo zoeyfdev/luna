@@ -7,6 +7,7 @@
 #include "cpu/init.h"
 #include "bios/bios.h"
 #include "io/keyboard.h"
+#include "audio/audio.h"
 
 int main(int argc, char* argv[]) {
     for (int i = 0; i < argc; i++) {
@@ -15,6 +16,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Initialize IO devices
+    initialize_audio();
     KEYBOARD_MEMORY = malloc(1);
 
     // Execute CPU

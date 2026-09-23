@@ -173,6 +173,10 @@ readin_done:
     mov r2, 0
     str r1, r2 // DISABLE KEYBOARD INTERRUPT
 
+    int 0x0e
+    mov r1, 0
+    int 0x0c    
+
     mov r3, 0
     str r4, r3
     pop e11

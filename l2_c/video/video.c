@@ -158,7 +158,7 @@ int initialize_window() {
                         break;
                     }
 
-                    if (key < 10000) {
+                    if (key < 10002) {
                         int actual = key;
                         if (shift == true)
                             actual = keyboard_upper(key);

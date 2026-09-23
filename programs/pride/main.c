@@ -20,21 +20,10 @@ void render_flags() {
 }
 
 void _cstart() __attribute__((noreturn)) {
-    #ifndef PORTABLE
-        // Load the next sectors on the disk
-        asm ("int 0x10");
-        asm ("mov r2, r1");
-        asm ("mov r1, 1");
-        asm ("mov r3, r1");
-        asm ("int 11");
-    #endif
-
-    // Set up PIT
-   
     #ifdef PORTABLE
         asm ("mov r1, 0x6FFF0008");
     #else
-        asm ("mov r1, 0xFA41");
+        asm ("mov r1, 0xF509");
     #endif
     
     asm ("mov r2, pit_nxt");

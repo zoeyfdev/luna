@@ -20,11 +20,18 @@ luna-l2-c: $(SRC)/l2_c/*
 		$(CCFLAGS) \
 		-o ../components/video/g1x.so -g
 	cd l2_c && $(CC) \
+		audio/hardware/s1.c \
+		-shared -fPIC \
+		$(shell sdl2-config --cflags --libs) \
+		$(CCFLAGS) \
+		-o ../components/audio/s1.so -g
+	cd l2_c && $(CC) \
 		luna_l2.c \
 		util/*.c \
 		cpu/*.c \
 		bios/*.c \
 		video/*.c \
+		audio/*.c \
 		io/*.c \
 		component/*.c \
 		-o ../bin/luna-l2-c \

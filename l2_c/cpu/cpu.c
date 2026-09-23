@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "registers.h"
 #include "memory.h"
@@ -534,10 +535,12 @@ pipeline_top:
                 // str32 <addr register> <register>
                 uint32_t addr = get_register(get_memory(pc + 1));
                 uint32_t val = get_register(get_memory(pc + 2));
+
                 set_memory(addr, (val >> 24) & 0xFF);
                 set_memory(addr + 1, (val >> 16) & 0xFF);
                 set_memory(addr + 2, (val >> 8) & 0xFF);
                 set_memory(addr + 3, val & 0xFF);
+
                 set_register(PC, pc + 3);
 
                 stall(360);
@@ -564,16 +567,14 @@ pipeline_top:
             }
         default: {
                 // Illegal
-                char buf[512];
-                sprintf(buf, "Illegal instruction 0x%02x at location 0x%08x", op, pc);
+                char buf[128];
+                sprintf(buf, "Illegal instruction 0x%02x at 0x%08x", op, pc);
                 bios_write_line(buf);
 
                 cpu_halt_state();
                 break;
             }
         }
-
-        // reg_dump();
     }
 }
 

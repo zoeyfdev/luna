@@ -5,6 +5,32 @@
 unsigned char* KEYBOARD_MEMORY = NULL;
 
 unsigned char char_table[][2] = {
+    {'a', 'A'},
+    {'b', 'B'},
+    {'c', 'C'},
+    {'d', 'D'},
+    {'e', 'E'},
+    {'f', 'F'},
+    {'g', 'G'},
+    {'h', 'H'},
+    {'i', 'I'},
+    {'j', 'J'},
+    {'k', 'K'},
+    {'l', 'L'},
+    {'m', 'M'},
+    {'n', 'N'},
+    {'o', 'O'},
+    {'p', 'P'},
+    {'q', 'Q'},
+    {'r', 'R'},
+    {'s', 'S'},
+    {'t', 'T'},
+    {'u', 'U'},
+    {'v', 'V'},
+    {'w', 'W'},
+    {'x', 'X'},
+    {'y', 'Y'},
+    {'z', 'Z'},
     {'`', '~'},
     {'1', '!'},
     {'2', '@'},
@@ -29,7 +55,7 @@ unsigned char char_table[][2] = {
 };
 
 int keyboard_upper(int code) {
-    for (int i = 0; i < 21; i++) {
+    for (int i = 0; i < 21 + 26; i++) {
         unsigned char* pair = char_table[i];
         if (pair[0] == code)
             return pair[1];
@@ -38,7 +64,7 @@ int keyboard_upper(int code) {
 }
 
 int keyboard_lower(int code) {
-    for (int i = 0; i < 21; i++) {
+    for (int i = 0; i < 21 + 26; i++) {
         unsigned char* pair = char_table[i];
         if (pair[1] == code)
             return pair[0];

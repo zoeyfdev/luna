@@ -117,7 +117,6 @@ func InitializeWindow(ComponentName string) {
 	Texture, _ := renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, int32(Frame.Bounds().Dx()), int32(Frame.Bounds().Dy()))
 	defer Texture.Destroy()
 
-	proxy.VideoPrintChar(0x41, 255, 0)
 	Texture.Update(nil, unsafe.Pointer(&Frame.Pix[0]), Frame.Stride)
 
 	running := true
@@ -245,6 +244,6 @@ func InitializeWindow(ComponentName string) {
 		ResetAspectRatio(renderer)	
 
 		sdl.Delay(10)
-		// Ready = true
+		Ready = true
 	}	
 }

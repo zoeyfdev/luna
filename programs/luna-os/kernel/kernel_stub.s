@@ -14,7 +14,7 @@ LOS_BASE:
 mov sp, 1500
 mov fp, 0x10000000 // originally 0x40404040
 
-// call IDT_SETUP
+call IDT_SETUP
 jmp boot
 
 IDT_SETUP:
