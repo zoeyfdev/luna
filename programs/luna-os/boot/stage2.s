@@ -87,7 +87,7 @@ vinp_ai:
     mov e2, PARTITION_TABLE
     add e2, e2, e1
 
-    lod16 e2, e3
+    lod16 e2, e3 
 
     jz e3, vol_error
 

@@ -11,6 +11,7 @@ Declaration:
 void _builtin_lcc_strcpy32(char* dst, char* src);
 */
 
+.asciz "HAI YOROKONDE!"
 _builtin_lcc_strcpy32:
     pop e11 // Return address
     pop r2 // Destination

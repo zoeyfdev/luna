@@ -10,7 +10,8 @@
 
 int main(int argc, char* argv[]) {
     for (int i = 0; i < argc; i++) {
-        HDD_FILE = argv[i];
+        char* arg = argv[i];
+        HDD_FILE = arg;
     }
 
     // Initialize IO devices

@@ -1,6 +1,6 @@
 SRC=./
 CC=gcc
-CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23
+CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits
 
 # No windows support (for now until I figure out how to get DLLs to work)
 
@@ -14,11 +14,13 @@ luna-l2: $(SRC)/l2/*
 	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go
 
 luna-l2-c: $(SRC)/l2_c/*
-	cd l2_c && $(CC) ./video/hardware/g1x.c \
+	cd l2_c && $(CC) \
+		video/hardware/g1x.c \
 		-shared -fPIC \
 		$(CCFLAGS) \
 		-o ../components/video/g1x.so -g
-	cd l2_c && $(CC) luna_l2.c \
+	cd l2_c && $(CC) \
+		luna_l2.c \
 		util/*.c \
 		cpu/*.c \
 		bios/*.c \

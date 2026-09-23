@@ -1,9 +1,8 @@
-mov sp, 0x200
+set 32
+.bits 32
 
-push 1000
-pop r1
-
-mov r1, 0
-lod16 r1, r2
-
-jmp pc
+start:
+    mov sp, 0x500
+    push 0x12345678
+    pop r1
+    jmp pc

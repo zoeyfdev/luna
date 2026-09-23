@@ -83,7 +83,7 @@ readin_rdy:
     
     push r1
     push r2
-    mov r1, 0x6FFF0019
+    mov r1, 0x8004001E
     mov r2, 1
     str r1, r2 // ENABLE KEYBOARD INTERRUPT
     pop r2
@@ -96,7 +96,7 @@ readin_rd:
 readin_ai:
     push r1
     push r2
-    mov r1, 0x6FFF0019
+    mov r1, 0x8004001E
     mov r2, 0
     str r1, r2 // DISABLE KEYBOARD INTERRUPT
     pop r2
@@ -169,7 +169,7 @@ readin_bksp:
     mov r3, r11
     jmp e10
 readin_done:
-    mov r1, 0x6FFF0019
+    mov r1, 0x8004001E
     mov r2, 0
     str r1, r2 // DISABLE KEYBOARD INTERRUPT
 
@@ -418,7 +418,7 @@ wfk_ret:
 key_click:
     push r2
 
-    mov r2, 0x80000012
+    mov r2, 0x80020000
     lod r2, r1
 
     pop r2

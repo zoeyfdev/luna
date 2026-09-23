@@ -52,13 +52,6 @@ pipeline_top:
         uint32_t pc = get_register(PC);
         unsigned char op = get_memory(pc);
 
-        /*
-        if (op <= 32) {
-            printf(instructions[op - 1]);
-            printf("\n");
-        }
-        */
-
         // check for interrupts
         if (!IS_IIF || 1) {
             for (int i = 0; i < 32; i++) {
@@ -83,8 +76,8 @@ pipeline_top:
                 // MOV
                 // mov <register> (<value>/<reg>/<reg + disp>)
                 unsigned char mode = get_memory(pc + 1);
-                unsigned char dest = get_memory(pc + 2);
-                
+                unsigned char dest = get_memory(pc + 2); 
+
                 switch (mode) {
                 case 0x01:
                     // Immediate
@@ -101,9 +94,30 @@ pipeline_top:
                     set_register(dest, get_register(get_memory(pc + 3)));
                     set_register(PC, pc + 4);
                     break;
-                case 0x03:
-                    // TODO: displacement
-                    break;
+                case 0x03: {
+                        // Displacement
+                        unsigned char from = get_memory(pc + 3);
+                        unsigned char dmode = get_memory(pc + 4);
+                        uint32_t imm = 0;
+
+                        if (!IS_XEN) {
+                            imm = get_word(pc + 5);
+                            set_register(PC, pc + 7);
+                        } else {
+                            imm = get_dword(pc + 5);
+                            set_register(PC, pc + 9);
+                        }
+
+                        switch (dmode) {
+                        case 0x01:
+                            set_register(dest, get_register(from) + imm);
+                            break;
+                        case 0x02:
+                            set_register(dest, get_register(from) - imm);
+                            break;
+                        }
+                        break;
+                    }
                 }
 
                 stall(4);
@@ -130,8 +144,6 @@ pipeline_top:
                         set_register(PC, get_dword(pc + 2));
                     break;
                 case 0x02:
-                    if (get_memory(pc + 2) == E11)
-                        printf("E11: 0x%08x\n", get_register(E11));
                     if (get_memory(pc + 2) == IRV)
                         set_register(S, get_register(S) | (0 << 1)); // disable IIF flag if jumping to IRV
                     set_register(PC, get_register(get_memory(pc + 2)));
@@ -166,7 +178,7 @@ pipeline_top:
                     if (!IS_XEN)
                         set_register(PC, get_register(reg) != 0 ? get_word(pc + 3) : pc + 5);
                     else
-                        set_register(PC, get_register(reg) != 0 ? get_word(pc + 3) : pc + 7);
+                        set_register(PC, get_register(reg) != 0 ? get_dword(pc + 3) : pc + 7);
                     break;
                 case 0x02:
                     // Reg
@@ -205,7 +217,7 @@ pipeline_top:
                     if (!IS_XEN)
                         set_register(PC, get_register(reg) == 0 ? get_word(pc + 3) : pc + 5);
                     else
-                        set_register(PC, get_register(reg) == 0 ? get_word(pc + 3) : pc + 7);
+                        set_register(PC, get_register(reg) == 0 ? get_dword(pc + 3) : pc + 7);
                     break;
                 case 0x02:
                     // Reg
@@ -258,15 +270,14 @@ pipeline_top:
                 if (!IS_XEN) {
                     set_register(SP, get_register(SP) - 2);
 
-                    printf("PUSH\nHi: 0x%02x\nLo: 0x%02x\n", ((unsigned char) (val >> 8)), (val & 0xFF));
                     set_memory(get_register(SP), (unsigned char) ((val >> 8) & 0xFF));
                     set_memory(get_register(SP) + 1, (unsigned char) (val & 0xFF));
                 } else {
                     set_register(SP, get_register(SP) - 4);
 
-                    set_memory(get_register(SP), (unsigned char) ((val >> 24) & 0xFF));
-                    set_memory(get_register(SP) + 1, (unsigned char) ((val >> 16) & 0xFF));
-                    set_memory(get_register(SP) + 2, (unsigned char) ((val >> 8) & 0xFF));
+                    set_memory(get_register(SP), ((unsigned char) (val >> 24) & 0xFF));
+                    set_memory(get_register(SP) + 1, ((unsigned char) (val >> 16) & 0xFF));
+                    set_memory(get_register(SP) + 2, ((unsigned char) (val >> 8) & 0xFF));
                     set_memory(get_register(SP) + 3, (unsigned char) (val & 0xFF)); 
                 }
 
@@ -278,20 +289,19 @@ pipeline_top:
                 // pop <reg>
                 
                 unsigned char reg = get_memory(pc + 1);
-                if (!IS_XEN) {
-                   
+                if (!IS_XEN) { 
                     uint32_t val = get_memory(get_register(SP)) << 8 
                             | (get_memory(get_register(SP) + 1) & 0xFF);
 
-                    printf("Pop value: 0x%08x\n", val);
-
                     set_register(reg, val);
                     set_register(SP, get_register(SP) + 2);
-                } else { 
-                    set_register(reg, get_memory(get_register(SP)) << 24 
+                } else {
+                    uint32_t val = get_memory(get_register(SP)) << 24
                             | get_memory(get_register(SP) + 1) << 16
                             | get_memory(get_register(SP) + 2) << 8
-                            | (get_memory(get_register(SP) + 3) & 0xFF));
+                            | (get_memory(get_register(SP) + 3) & 0xFF);
+
+                    set_register(reg, val);
                     set_register(SP, get_register(SP) + 4);
                 }
                 
@@ -534,6 +544,8 @@ pipeline_top:
                 break;
             }
         case 0x1a: {
+                // SET
+                // set <16/32>
                 unsigned char mode = get_memory(pc + 1);
                 switch (mode) {
                 case 0x00:
@@ -545,7 +557,7 @@ pipeline_top:
                     set_register(S, get_register(S) | (1 << 0));
                     break;
                 }
-                set_register(PC, pc + 1);
+                set_register(PC, pc + 2);
 
                 stall(9);
                 break;

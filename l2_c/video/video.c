@@ -7,6 +7,7 @@
 #include "nrgba/nrgba.h"
 #include "../io/keyboard.h"
 #include "../cpu/registers.h"
+#include "../cpu/memory.h"
 
 #define SCREEN_WIDTH    960
 #define SCREEN_HEIGHT   600
@@ -139,7 +140,16 @@ int initialize_window() {
 
                 int key = (int) e.key.keysym.sym;
                 switch (key) {
-                
+                case SDLK_F5: {
+                        FILE* debug_file;
+                        debug_file = fopen("memory_dump.bin", "w");
+                        if (debug_file == NULL)
+                            break;
+                        
+                        fwrite(MEMORY, 1, 0x70000000, debug_file);
+                        fclose(debug_file);
+                        break;
+                    }
                 default:
                     if (ctrl && alt && key == 'g') {
                         SDL_SetRelativeMouseMode(false);

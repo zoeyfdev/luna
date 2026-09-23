@@ -11,7 +11,7 @@ _register registers[35];
 
 void initialize_registers() {
     for (int i = 0; i < 34; i++) {
-        registers[i].address = i; // Init all with names 
+        registers[i].address = i;
     }
 
     int base = 13;
@@ -41,6 +41,15 @@ uint32_t get_register(unsigned char address) {
 void set_register(unsigned char address, uint32_t value) {
     if (address < 35)
         registers[address].value = value;
+}
+
+char* get_register_name(unsigned char address) {
+    for (int i = 0; i < 35; i++) {
+        if (address == i) {
+            return registers[i].name;
+        }
+    }
+    return "R?";
 }
 
 void reg_dump() {

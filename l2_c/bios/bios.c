@@ -142,7 +142,6 @@ void bios_handle_interrupt(uint32_t code) {
             break;
         }
     case 0x10:
-        printf("%d\n", bios_boot_drive);
         set_register(R1, bios_boot_drive);
         break;
     case 0x11:
