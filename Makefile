@@ -8,29 +8,23 @@ all: luna-l2 las lcc lcc1 l2ld
 .PHONY: clean install l2ld lcc lcc1 las
 
 luna-l2: $(SRC)/l2/*
-	cd l2 && go build -buildmode=plugin -o ../components/audio/s1.so ./audio/hardware/s1.go
-	cd l2 && go build -buildmode=plugin -o ../components/video/g1.so ./video/hardware/g1.go
-	cd l2 && go build -buildmode=plugin -o ../components/video/g1x.so ./video/hardware/g1x.go
-	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go
-
-luna-l2-c: $(SRC)/l2_c/*
-	cd l2_c && $(CC) \
+	cd l2 && $(CC) \
 		hardware/g1x/g1x.c \
 		-shared -fPIC \
 		$(CCFLAGS) \
 		-o ../components/video/g1x.so -g
-	cd l2_c && $(CC) \
+	cd l2 && $(CC) \
 		hardware/pit/pit.c \
 		-shared -fPIC \
 		$(CCFLAGS) \
 		-o ../components/pit/pit.so -g
-	cd l2_c && $(CC) \
+	cd l2 && $(CC) \
 		hardware/s1/s1.c \
 		-shared -fPIC \
 		$(shell sdl2-config --cflags --libs) \
 		$(CCFLAGS) \
 		-o ../components/audio/s1.so -g
-	cd l2_c && $(CC) \
+	cd l2 && $(CC) \
 		luna_l2.c \
 		util/*.c \
 		cpu/*.c \
@@ -39,7 +33,7 @@ luna-l2-c: $(SRC)/l2_c/*
 		hwinit/*.c \
 		io/*.c \
 		component/*.c \
-		-o ../bin/luna-l2-c \
+		-o ../bin/luna-l2 \
 		$(shell sdl2-config --cflags --libs) \
 		$(CCFLAGS) \
 		-g
