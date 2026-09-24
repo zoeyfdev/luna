@@ -8,6 +8,8 @@
 #include "../io/keyboard.h"
 #include "../cpu/registers.h"
 #include "../cpu/memory.h"
+#include "../hwinit/video.h"
+#include "../hardware/video_common.h"
 
 #define SCREEN_WIDTH    960
 #define SCREEN_HEIGHT   600
@@ -17,14 +19,6 @@
 #endif
 
 #define SDL_HINT_RENDER_SCALE_QUALITY "0"
-
-unsigned char (*v_read_video_memory)(uint32_t);
-void (*v_write_video_memory)(uint32_t, unsigned char);
-void (*v_print_char)(unsigned char, unsigned char, unsigned char);
-void (*v_set_cursor)(int, int);
-void (*v_get_cursor)(int*, int*);
-void (*v_gpu_reset)();
-
 bool VIDEO_READY = false;
 
 void reset_aspect_ratio(SDL_Renderer* renderer) {
@@ -63,9 +57,6 @@ void reset_aspect_ratio(SDL_Renderer* renderer) {
 }
 
 int initialize_window() {
-    // for now
-    void* video_component = initialize_component("/usr/local/lib/l2/video/g1x.so"); 
-    
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
         printf("luna-l2: could not initialize window: %s\n", SDL_GetError());
         exit(1);
@@ -91,24 +82,9 @@ int initialize_window() {
         exit(1);
     }
 
+    initialize_video();
 
-    // Define function pointers
-    nrgba_image* (*return_framebuffer)();
-    void (*initialize_component)();
-
-    return_framebuffer = return_component_function(video_component, "return_framebuffer");
-    initialize_component = return_component_function(video_component, "initialize_component");
-
-    v_read_video_memory = return_component_function(video_component, "read_video_memory");
-    v_write_video_memory = return_component_function(video_component, "write_video_memory");
-    v_print_char = return_component_function(video_component, "print_char");
-    v_set_cursor = return_component_function(video_component, "set_cursor");
-    v_get_cursor = return_component_function(video_component, "get_cursor");
-    v_gpu_reset = return_component_function(video_component, "gpu_reset");
-
-    (*initialize_component)();
-
-    nrgba_image* img = (*return_framebuffer)();
+    nrgba_image* img = return_framebuffer();
     SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, img->width, img->height); 
 
     SDL_UpdateTexture(texture, NULL, img->img, img->stride);
@@ -171,7 +147,7 @@ int initialize_window() {
             }
         }
  
-        img = (*return_framebuffer)();
+        img = return_framebuffer();
         SDL_UpdateTexture(texture, NULL, img->img, img->stride);
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, NULL, NULL);

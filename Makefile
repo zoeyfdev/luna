@@ -1,6 +1,6 @@
 SRC=./
 CC=gcc
-CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits
+CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits -Wno-unused-parameter
 
 # No windows support (for now until I figure out how to get DLLs to work)
 
@@ -15,12 +15,17 @@ luna-l2: $(SRC)/l2/*
 
 luna-l2-c: $(SRC)/l2_c/*
 	cd l2_c && $(CC) \
-		video/hardware/g1x.c \
+		hardware/g1x/g1x.c \
 		-shared -fPIC \
 		$(CCFLAGS) \
 		-o ../components/video/g1x.so -g
 	cd l2_c && $(CC) \
-		audio/hardware/s1.c \
+		hardware/pit/pit.c \
+		-shared -fPIC \
+		$(CCFLAGS) \
+		-o ../components/pit/pit.so -g
+	cd l2_c && $(CC) \
+		hardware/s1/s1.c \
 		-shared -fPIC \
 		$(shell sdl2-config --cflags --libs) \
 		$(CCFLAGS) \
@@ -31,7 +36,7 @@ luna-l2-c: $(SRC)/l2_c/*
 		cpu/*.c \
 		bios/*.c \
 		video/*.c \
-		audio/*.c \
+		hwinit/*.c \
 		io/*.c \
 		component/*.c \
 		-o ../bin/luna-l2-c \

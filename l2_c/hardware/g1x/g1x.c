@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../nrgba/nrgba.h"
+#include "../../video/nrgba/nrgba.h"
 #include "font8x8/font.h"
 #include "../../util/copy.c"
 

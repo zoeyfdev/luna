@@ -5,8 +5,9 @@
 
 #include "registers.h"
 #include "memdefs.h"
-#include "../video/videocard.h"
-#include "../audio/audiocard.h"
+#include "../hardware/video_common.h"
+#include "../hardware/audio_common.h"
+#include "../hardware/pit_common.h"
 #include "../io/keyboard.h"
 #include "../bios/bios.h"
 
@@ -43,6 +44,8 @@ unsigned char get_memory(uint32_t address) {
             return bios_read_memory(address - S_BIOS_RAM_16);
         else if (address >= S_AUDIO_RAM_16 && address <= E_AUDIO_RAM_16)
             return audio_read_memory(address - S_AUDIO_RAM_16);
+        else if (address >= S_PIT_RAM_16 && address <= E_PIT_RAM_16)
+            return pit_read_memory(address - S_PIT_RAM_16);
     } else {
         if (address >= S_SYS_RAM_32 && address <= E_SYS_RAM_32)
             return get_memory_main(address - S_SYS_RAM_32);
@@ -54,6 +57,8 @@ unsigned char get_memory(uint32_t address) {
             return bios_read_memory(address - S_BIOS_RAM_32);
         else if (address >= S_AUDIO_RAM_32 && address <= E_AUDIO_RAM_32)
             return audio_read_memory(address - S_AUDIO_RAM_32);
+        else if (address >= S_PIT_RAM_32 && address <= E_PIT_RAM_32)
+            return pit_read_memory(address - S_PIT_RAM_32);
     }
     return (unsigned char) rand() & 0xFF;
 }
@@ -71,6 +76,8 @@ void set_memory(uint32_t address, unsigned char value) {
             bios_write_memory(address - S_BIOS_RAM_16, value);
         else if (address >= S_AUDIO_RAM_16 && address <= E_AUDIO_RAM_16)
             audio_write_memory(address - S_AUDIO_RAM_16, value);
+        else if (address >= S_PIT_RAM_16 && address <= E_PIT_RAM_16)
+            pit_write_memory(address - S_PIT_RAM_16, value);
     } else {
         if (address >= S_SYS_RAM_32 && address <= E_SYS_RAM_32)
             set_memory_main(address - S_SYS_RAM_32, value);
@@ -82,6 +89,8 @@ void set_memory(uint32_t address, unsigned char value) {
             bios_write_memory(address - S_BIOS_RAM_32, value);
         else if (address >= S_AUDIO_RAM_32 && address <= E_AUDIO_RAM_32)
             audio_write_memory(address - S_AUDIO_RAM_32, value);
+        else if (address >= S_PIT_RAM_32 && address <= E_PIT_RAM_32)
+            pit_write_memory(address - S_PIT_RAM_32, value);
     }
 }
 

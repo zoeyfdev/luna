@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../video/videocard.h"
+#include "../hardware/video_common.h"
 #include "../cpu/registers.h"
 #include "../cpu/memory.h"
 #include "../cpu/memdefs.h"

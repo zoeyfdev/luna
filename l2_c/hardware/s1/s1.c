@@ -52,6 +52,7 @@ void* audio_poll(void* VOID) {
 
 void audio_init(unsigned char (*_get_memory)(uint32_t)) {
     if (audio_initialized == true) return;
+
     audio_initialized = true;
     AUDIO_MEMORY = malloc(AUDIO_RAM_SIZE);
     get_memory = _get_memory;
@@ -62,15 +63,13 @@ void audio_init(unsigned char (*_get_memory)(uint32_t)) {
     }
 
     SDL_AudioSpec spec;
+    SDL_AudioSpec obtained;
     spec.freq = 48000;
     spec.format = AUDIO_S8;
     spec.channels = 1;
     spec.samples = 4096;
-    SDL_AudioSpec obtained;
 
-    device = SDL_OpenAudioDevice(NULL, false, &spec, &obtained, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
-
-    printf("Obtained data:\nFreq: %d\nFormat: %d\nChannels: %d\nSamples: %d\n", obtained.freq, obtained.format, obtained.channels, obtained.samples);
+    device = SDL_OpenAudioDevice(NULL, false, &spec, &obtained, 0);
 
     if (device == 0) {
         printf("luna-l2: could not initialize audio: %s\n", SDL_GetError());

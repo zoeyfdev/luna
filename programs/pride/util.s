@@ -33,7 +33,7 @@ pit_handler:
     #ifdef PORTABLE
         mov r1, 0x6FFF0007 // 0xFA3E for 16 bit
     #else
-        mov r1, 0xFA3E
+        mov r1, 0xF506
     #endif
 
     mov r2, 1
@@ -45,7 +45,7 @@ pit_nxt:
     #ifdef PORTABLE
         mov r1, 0x6FFF0007 // 0xFA3E for 16 bit
     #else
-        mov r1, 0xFA3E
+        mov r1, 0xF506
     #endif
 
     mov r2, 0

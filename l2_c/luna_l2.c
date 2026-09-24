@@ -2,12 +2,15 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "video/video.h"
 #include "cpu/init.h"
+#include "cpu/registers.h"
 #include "bios/bios.h"
 #include "io/keyboard.h"
-#include "audio/audio.h"
+#include "hwinit/audio.h"
+#include "hwinit/pit.h"
 
 int main(int argc, char* argv[]) {
     for (int i = 0; i < argc; i++) {
@@ -16,7 +19,11 @@ int main(int argc, char* argv[]) {
     }
 
     // Initialize IO devices
+    // Initialize audio
     initialize_audio();
+    initialize_pit();
+
+    // Initialize keyboard
     KEYBOARD_MEMORY = malloc(1);
 
     // Execute CPU

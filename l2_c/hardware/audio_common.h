@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdint.h>
 
 extern unsigned char (*audio_read_memory)(uint32_t address);
