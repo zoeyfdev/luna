@@ -1,6 +1,7 @@
 SRC=./
 CC=gcc
 CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits -Wno-unused-parameter
+EMUFLAGS=-Wimplicit-fallthrough
 
 # No windows support (for now until I figure out how to get DLLs to work)
 
