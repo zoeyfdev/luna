@@ -18,5 +18,7 @@ typedef struct {
 
 typedef struct {
     char* name;
+    char* file;
     bool solved;
+    uint64_t location;
 } unresolved_binding;

@@ -1,5 +1,10 @@
 SRC=./
 CC=gcc
+
+OS_NAME := $(shell uname -s)
+ifeq ($(OS_NAME),Darwin)
+	CC=clang
+endif
 CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits -Wno-unused-parameter
 EMUFLAGS=-Wimplicit-fallthrough
 
@@ -61,6 +66,7 @@ l2ld:
 	cd l2ld && gcc \
 		*.c \
 		-o ../bin/l2ld \
+		-g \
 		$(CCFLAGS)
 	cd l2ld && go build -o ../bin/l2ld-go ./l2ld.go
 

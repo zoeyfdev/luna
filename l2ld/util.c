@@ -9,9 +9,9 @@ extern binding** bindings;
 extern size_t nbuffer;
 extern unsigned char* buffer;
 
-binding* find_binding(char* name) {
+binding* find_binding(char* name, char* filename) {
     for (int i = 0; i < nbindings; i++) {
-        if (!strcmp(bindings[i]->name, name))
+        if (!strcmp(bindings[i]->name, name) && (!strcmp(bindings[i]->file, filename) || bindings[i]->global))
             return bindings[i];
     }
     return NULL;

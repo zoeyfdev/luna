@@ -5,5 +5,5 @@
 #include "types.h"
 
 void* bump_arr(void* arr, size_t nelem, size_t size);
-binding* find_binding(char* name);
+binding* find_binding(char* name, char* filename);
 void write(unsigned char b);

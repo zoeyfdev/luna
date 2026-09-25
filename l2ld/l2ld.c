@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdcountof.h>
 #include <stdint.h>
 
 #include "info.h"
@@ -18,8 +17,13 @@ uint64_t current_org = 0;
 size_t nbindings;
 binding** bindings;
 
+size_t nunresolved_bindings;
+unresolved_binding** unresolved_bindings;
+
 size_t nbuffer;
 unsigned char* buffer;
+
+bool do_not_compile = false;
 
 void ld_link(file* f) {
     uint64_t size = f->size;
@@ -29,8 +33,9 @@ void ld_link(file* f) {
         if (!memcmp(current, "LD16_", 5) || !memcmp(current, "LD32_", 5)) {
             binding* decl = malloc(sizeof(binding));
 
-            decl->is_32 = !memcmp(data, "LD32_", 5);
-            decl->location = nbuffer;
+            decl->is_32 = !memcmp(current, "LD32_", 5);
+            decl->location = nbuffer + current_org;
+            decl->file = f->name;
 
             uint64_t j = i + 5;
 
@@ -43,10 +48,29 @@ void ld_link(file* f) {
             }
             j++;
 
-            printf("Added binding %s\n", decl->name);
+            if (find_binding(decl->name, f->name) != NULL) {
+                fprintf(stderr, "%s:(0x%08x): redefinition of `%s'\n", f->name, i, decl->name);
+                do_not_compile = true;
+            }
 
             bindings = bump_arr(bindings, nbindings, sizeof(bindings));
             bindings[nbindings++] = decl;
+
+            for (int k = 0; k < nunresolved_bindings; k++) {
+                unresolved_binding* ub = unresolved_bindings[k];
+                if (!strcmp(decl->name, ub->name) && !ub->solved) { 
+                    ub->solved = true;
+                    if (!decl->is_32) {
+                        buffer[ub->location] = decl->location >> 8;
+                        buffer[ub->location + 1] = decl->location & 0xFF;
+                    } else {
+                        buffer[ub->location] = decl->location >> 24;
+                        buffer[ub->location + 1] = decl->location >> 16;
+                        buffer[ub->location + 2] = decl->location >> 8;
+                        buffer[ub->location + 3] = decl->location & 0xFF;
+                    }
+                }
+            }
 
             i = j - 1;
         } else if (!memcmp(current, "LR_", 3)) {
@@ -61,12 +85,25 @@ void ld_link(file* f) {
             }
             j++;
 
-
-            binding* b = find_binding(sym_name);
+            binding* b = find_binding(sym_name, f->name);
             if (b == NULL) {
                 unresolved_binding* ub = malloc(sizeof(unresolved_binding));
                 ub->name = sym_name;
+                ub->location = nbuffer;
+                ub->file = f->name;
+                unresolved_bindings = bump_arr(unresolved_bindings, nunresolved_bindings, sizeof(unresolved_binding));
+                unresolved_bindings[nunresolved_bindings++] = ub;
+
+                if (!is_32)
+                    WRITE_VALUE_16(0x00);
+                else
+                    WRITE_VALUE_32(0x00);
             } else {
+                if (b->is_32 == true && is_32 == false) {
+                    printf("%s:(0x%08x): warning: referencing 32-bit label from 16-bit code\n", f->name, i);
+                } else if (b->is_32 == false && is_32 == true) {
+                    printf("%s:(0x%08x): warning: referencing 16-bit label from 32-bit code\n", f->name, i);
+                }
                 WRITE_VALUE_16(b->location);
                 free(sym_name);
             }
@@ -75,6 +112,26 @@ void ld_link(file* f) {
         } else if (!memcmp(current, "L_16BIT", 7) || !memcmp(current, "L_32BIT", 7)) {
             i += 6;
             is_32 = !memcmp(current, "L_32BIT", 7);
+        } else if (!memcmp(current, "L_GLOBL_", 8)) {
+            uint64_t j = i + 8;
+
+            size_t nsize = 0;
+            char* sym_name = calloc(0, sizeof(char));
+            while (j < size && data[j]) {
+                sym_name = bump_arr(sym_name, nsize, sizeof(char));
+                sym_name[nsize++] = data[j];
+                j++;
+            }
+            j++;
+
+            printf("gname: %s\n", sym_name);
+            binding* b = find_binding(sym_name, f->name);
+            if (b != NULL) {
+                b->global = true;
+            }
+
+            free(sym_name);
+            i = j - 1;
         } else
             write(data[i]);
     }
@@ -121,11 +178,14 @@ int main(int argc, char* argv[]) {
             
             fread(f->data, end, end, f_real);
 
-            uint64_t current_arr_size = array_size / sizeof(file*); 
-            files = reallocarray(files, current_arr_size + 1, sizeof(file*));
-            array_size = current_arr_size + 1;
-            files[current_arr_size] = f;
-
+            uint64_t current_arr_size = array_size / sizeof(file*);
+            #ifndef __APPLE__
+                files = reallocarray(files, array_size + 1, sizeof(file*));
+            #else
+                files = realloc(files, (array_size + 1) * sizeof(file*));
+            #endif
+            printf("current: %d\nnew: %d\n", array_size, current_arr_size);
+            files[array_size++] = f;
             fclose(f_real);
         }
     }
@@ -135,11 +195,23 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
+    printf("%d\n", array_size);
     for (int i = 0; i < array_size; i++) {
-        printf("doing file\n");
         file* file = files[i];
         ld_link(file);
     }
+
+    bool unresolved;
+    for (int i = 0; i < nunresolved_bindings; i++) {
+        unresolved_binding* ub = unresolved_bindings[i];
+        if (!ub->solved) {
+            unresolved = true;
+            fprintf(stderr, "%s:(0x%08x): undefined reference to `%s'\n", ub->file, ub->location, ub->name);
+        }
+    }
+
+    if (unresolved || do_not_compile)
+        exit(1);
 
     if (output_file == NULL)
         output_file = "a.o";
@@ -151,6 +223,4 @@ int main(int argc, char* argv[]) {
     }
     fwrite(buffer, sizeof(unsigned char), nbuffer, out_file);
     fclose(out_file);
-
-    printf("%s", output_file);
 }
