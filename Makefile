@@ -26,7 +26,7 @@ luna-l2: $(SRC)/l2/*
 		$(CCFLAGS) \
 		-o ../components/audio/s1.so -g
 	cd l2 && $(CC) \
-		luna_l2.c \
+		*.c \
 		util/*.c \
 		cpu/*.c \
 		bios/*.c \
@@ -58,7 +58,11 @@ lcc: $(SRC)/lcc/* $(SRC)/lcc_info/*
 	cd lcc && go build -o ../bin/lcc ./lcc.go
 
 l2ld:
-	cd l2ld && go build -o ../bin/l2ld ./l2ld.go
+	cd l2ld && gcc \
+		*.c \
+		-o ../bin/l2ld \
+		$(CCFLAGS)
+	cd l2ld && go build -o ../bin/l2ld-go ./l2ld.go
 
 macos-installer:
 	cd l2 && CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/"Luna L2"/Contents/MacOS/luna-l2 luna_l2.go
