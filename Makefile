@@ -66,6 +66,7 @@ l2ld:
 	cd l2ld && gcc \
 		*.c \
 		../lcc_shared/libvector.c \
+		../lcc_shared/libfile.c \
 		-o ../bin/l2ld \
 		-g \
 		$(CCFLAGS)
