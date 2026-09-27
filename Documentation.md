@@ -10,10 +10,10 @@
 [Jump to frontend](#frontend)<br><br>
 
 # Preamble
-The Luna L2 is a simple, lightweight, RISC CPU that aims to be clean while also leveraging some luxuries from CISC, with the ultimate end goal being ease of use and ease of learning.<br><br>
+The Luna L2 is a simple, lightweight, RISC CPU that aims to be clean while also leveraging some luxuries from CISC, with the ultimate end goal being ease of use and ease of programming.<br><br>
 
 # Registers
-L2 has 34 total registers for the storage and manipulation of data and information:<br><br>
+L2 has 35 total registers for the storage and manipulation of data and information:<br><br>
 R0-R12: general purpose registers, all can be written to and read from<br>
 E0-E12: extra registers, also general purpose. The standard calling convention uses registers E0-E6<br>
 E13-E14: Assembler reserved for PIE mode and PIE macros, do not use<br>
@@ -22,13 +22,15 @@ PC: program counter/instruction pointer<br>
 IRV: interrupt return address storage<br>
 IR: interrupt register<br>
 B: bank register<br>
-FP: frame pointer; not related to SP in any way<br>
+FP: frame pointer<br>
+S: status register; contains information about the current CPU state<br>
+Note: all registers can be used in all contexts.<br> 
 
 # Instructions
 The Luna L2 has 32 unique instructions that allow the CPU to interact with registers, memory, and the BIOS<br><br>
 
 1. MOV: moves a value from the source to the destination; source can be register or immediate or a displacement target (only addition and subtraction).<br>
-2. HLT: stops the CPU from executing instructions.<br>
+2. HLT: halts CPU execution until program counter changes or interrupt is raised.<br>
 3. JMP: sets the program counter to the specified address; address can be register or immediate.<br>
 4. INT: calls a BIOS interrupt. [Jump to interrupts](#interrupts)<br> 
 5. JNZ: sets the program counter to the specified address if the register is not zero; address can be immediate or register.<br>
@@ -63,7 +65,7 @@ The Luna L2 has 32 unique instructions that allow the CPU to interact with regis
 # Interrupts
 Luna L2 has several instructions necessary for operation and/or communicating to other devices, listed below:<br><br>
 
-1. Print character to the screen (char in R1, foreground in R2, background in R3)<br>
+1. Print character to the screen (char in R1, foreground color in R2, background color in R3) (both colors are to be in packed RGB332 format)<br>
 2. Reserved for the programmable interval timer<br>
 3. Returns drive attached/inserted status in R1 (drive in R1)<br>
 4. Syscall reserved; (if using PIE and host OS supports it; refer to your OS' syscall implementation)<br>
@@ -85,25 +87,22 @@ Luna L2 has several instructions necessary for operation and/or communicating to
 The standard Luna L2 memory map is as follows:<br>
 ## 16-bit mode
 0x0000 - 0xEFFF: GP RAM<br>
-0xF000 - 0xF009: Audio controller registers<br>
-0xFA0A - 0xFA11: Mouse registers<br>
-0xFA12: Keyboard register<br>
-0xFA13 - 0xFA1A: PIT registers<br>
-0xFA1B - 0xFA30: Network controller registers<br>
-0xFA31 - 0xFA36: RTC registers<br>
-0xFA37 - 0xFC36: IDT
-0xFE00 - 0xFFFF (switch to higher/lower in banks of 512 bytes using B register; addresses that exceed VRAM will write/read from the final byte in VRAM): VRAM<br><br>
+0xF000 - 0xF0FF: Audio controller registers<br>
+0xF100 - 0xF1FF: Mouse registers<br>
+0xF200 - 0xF2FF: Keyboard register<br>
+0xF300 - 0xF3FF: PIT registers<br>
+0xF400 - 0xF4FF: Video RAM (switch between banks of 256 bytes using the B register)<br>
+0xF500 - 0xF5FF: Interrupt descriptor table<br><br>
 
 ## 32-bit mode
-0x00000000 - 0x6EFFFFFF: GP RAM<br>
-0x6FFF0000 - 0x6FFFFFFF: IDT<br>
-0x70000000 - 0x7FFFFFFF: VRAM<br>
-0x80000000 - 0x80000009: Audio controller registers<br>
-0x8000000A - 0x80000011: Mouse registers<br>
-0x80000012: Keyboard register<br>
-0x80000013 - 0x8000001A: PIT registers<br>
-0x80000020 - 0x80000025: RTC registers<br>
-0x80000026: Power controller register <br><br>
+0x00000000 - 0x6FFFFFFF: GP RAM<br>
+0x70000000 - 0x7FFFFFFF: Video RAM<br>
+0x80000000 - 0x8000FFFF: Audio controller registers<br>
+0x80010000 - 0x8001FFFF: Mouse registers<br>
+0x80020000 - 0x8002FFFF: Keyboard registers<br>
+0x80030000 - 0x8003FFFF: PIT registers<br>
+0x80040000 - 0x8004FFFF: Interrupt descriptor table<br><br>
+
 
 ## Device registers
 ### VRAM
@@ -122,15 +121,6 @@ Byte 0: character code of last key pressed.<br>
 ### PIT registers
 Bytes 0-3: 32-bit programmed countdown value (PIT updates every millisecond)
 Bytes 4-7: 32-bit actual countdown value (when this reaches 0, the PIT interrupt will be triggered and it will be reset to the programmed countdown value)<br>
-### RTC registers
-Byte 0: Current second<br>
-Byte 1: Current minute<br>
-Byte 2: Current hour<br>
-Byte 3: Current day<br>
-Byte 4: Current month<br>
-Byte 5: Current year minus 2000<br>
-### Power controller register
-Byte 0: current battery level; 100% if no battery<br><br>
 
 # Assembly
 The Luna toolchain has a custom assembler (`las`) to convert programs from assembly language to object format that can then be linked and then run on L2. (Flags can be found in the [frontend](#frontend) section.)<br>

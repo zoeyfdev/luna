@@ -65,10 +65,10 @@ lcc: $(SRC)/lcc/* $(SRC)/lcc_info/*
 l2ld:
 	cd l2ld && gcc \
 		*.c \
+		../lcc_shared/libvector.c \
 		-o ../bin/l2ld \
 		-g \
 		$(CCFLAGS)
-	cd l2ld && go build -o ../bin/l2ld-go ./l2ld.go
 
 macos-installer:
 	cd l2 && CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/"Luna L2"/Contents/MacOS/luna-l2 luna_l2.go
@@ -116,10 +116,14 @@ windows-installer:
 	cd l2ld && GOOS=windows GOARCH=amd64 go build -o ../Windows/l2ld.exe l2ld.go
 	cd Windows && wixl -v msi.xml -o "../build/Luna L2.msi"
 
-install: lcc1-libs
+install:
 	mkdir -p /usr/local/lib/l2/
 	sudo cp -r components/* /usr/local/lib/l2
 	sudo cp bin/* /usr/local/bin/
+
+quick:
+	sh -c "make"
+	sh -c "sudo make install"
 
 clean:
 	rm -f /usr/local/bin/luna-l2

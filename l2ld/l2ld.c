@@ -6,93 +6,93 @@
 #include "info.h"
 #include "types.h"
 #include "util.h"
+#include "autolink.h"
+#include "../lcc_shared/libvector.h"
 
 #define WRITE_VALUE_16(x) do { write((x) >> 8); write((x) & 0xFF); } while (0)
 #define WRITE_VALUE_32(x) do { write((x) >> 24); write((x) >> 16); write((x) >> 8); write((x) & 0xFF); } while(0)
 
 bool is_32 = false;
 char* output_file;
-uint64_t current_org = 0;
 
-size_t nbindings;
-binding** bindings;
+uint16_t current_org = 0;
+uint16_t padding_dir = 0;
 
-size_t nunresolved_bindings;
-unresolved_binding** unresolved_bindings;
-
-size_t nbuffer;
-unsigned char* buffer;
+vector* bindings;
+vector* unresolved_bindings;
+vector* preset_globals;
+vector* buffer;
 
 bool do_not_compile = false;
 
 void ld_link(file* f) {
     uint64_t size = f->size;
     unsigned char* data = f->data;
+    
+    preset_globals = vec_init(sizeof(char*), 0);
+
     for (uint64_t i = 0; i < size; i++) {
         unsigned char* current = data + i;
         if (!memcmp(current, "LD16_", 5) || !memcmp(current, "LD32_", 5)) {
             binding* decl = malloc(sizeof(binding));
 
             decl->is_32 = !memcmp(current, "LD32_", 5);
-            decl->location = nbuffer + current_org;
+            decl->location = buffer->elements + current_org;
             decl->file = f->name;
+            decl->global = false;
 
             uint64_t j = i + 5;
 
-            size_t nsize = 0;
-            decl->name = calloc(0, sizeof(char));
+            vector* name = vec_init(sizeof(char), 0);
             while (j < size && data[j]) {
-                decl->name = bump_arr(decl->name, nsize, sizeof(char));
-                decl->name[nsize++] = data[j];
+                vec_grow(name, 1);
+                ((char*) name->data)[name->next] = data[j];
                 j++;
             }
             j++;
 
-            if (find_binding(decl->name, f->name) != NULL) {
-                fprintf(stderr, "%s:(0x%08x): redefinition of `%s'\n", f->name, i, decl->name);
-                do_not_compile = true;
-            }
+            decl->name = (char*) name->data;
 
-            bindings = bump_arr(bindings, nbindings, sizeof(bindings));
-            bindings[nbindings++] = decl;
-
-            for (int k = 0; k < nunresolved_bindings; k++) {
-                unresolved_binding* ub = unresolved_bindings[k];
-                if (!strcmp(decl->name, ub->name) && !ub->solved) { 
-                    ub->solved = true;
-                    if (!decl->is_32) {
-                        buffer[ub->location] = decl->location >> 8;
-                        buffer[ub->location + 1] = decl->location & 0xFF;
-                    } else {
-                        buffer[ub->location] = decl->location >> 24;
-                        buffer[ub->location + 1] = decl->location >> 16;
-                        buffer[ub->location + 2] = decl->location >> 8;
-                        buffer[ub->location + 3] = decl->location & 0xFF;
-                    }
+            for (int i = 0; i < preset_globals->elements; i++) {
+                if (((char**) preset_globals->data)[i] == NULL)
+                    continue;
+                if (!strcmp(decl->name, ((char**) preset_globals->data)[i])) {
+                    decl->global = true;
+                    break;
                 }
             }
 
+            if (find_binding(decl->name, f->name) != NULL) {
+                fprintf(stderr, "%s:(0x%08lx): redefinition of `%s'\n", f->name, i, decl->name);
+                do_not_compile = true;
+            }
+
+            vec_grow(bindings, 1);
+            ((binding**) bindings->data)[bindings->next] = decl;
+
+            cleanup_unresolved();
             i = j - 1;
         } else if (!memcmp(current, "LR_", 3)) {
             uint64_t j = i + 3;
 
-            size_t nsize = 0;
-            char* sym_name = calloc(0, sizeof(char));
+            vector* name = vec_init(sizeof(char), 0);
             while (j < size && data[j]) {
-                sym_name = bump_arr(sym_name, nsize, sizeof(char));
-                sym_name[nsize++] = data[j];
+                vec_grow(name, 1);
+                ((char*) name->data)[name->next] = data[j];
                 j++;
             }
             j++;
 
-            binding* b = find_binding(sym_name, f->name);
+            binding* b = find_binding((char*) name->data, f->name);
             if (b == NULL) {
                 unresolved_binding* ub = malloc(sizeof(unresolved_binding));
-                ub->name = sym_name;
-                ub->location = nbuffer;
+                ub->name = (char*) name->data;
+                ub->location = buffer->elements;
                 ub->file = f->name;
-                unresolved_bindings = bump_arr(unresolved_bindings, nunresolved_bindings, sizeof(unresolved_binding));
-                unresolved_bindings[nunresolved_bindings++] = ub;
+                ub->solved = false;
+                
+                vec_grow(unresolved_bindings, 1);
+                ((unresolved_binding**) unresolved_bindings->data)[unresolved_bindings->next] = ub;
 
                 if (!is_32)
                     WRITE_VALUE_16(0x00);
@@ -100,14 +100,18 @@ void ld_link(file* f) {
                     WRITE_VALUE_32(0x00);
             } else {
                 if (b->is_32 == true && is_32 == false) {
-                    printf("%s:(0x%08x): warning: referencing 32-bit label from 16-bit code\n", f->name, i);
+                    printf("%s:(0x%08lx): warning: referencing 32-bit label from 16-bit code\n", f->name, i);
                 } else if (b->is_32 == false && is_32 == true) {
-                    printf("%s:(0x%08x): warning: referencing 16-bit label from 32-bit code\n", f->name, i);
+                    printf("%s:(0x%08lx): warning: referencing 16-bit label from 32-bit code\n", f->name, i);
                 }
-                WRITE_VALUE_16(b->location);
-                free(sym_name);
+
+                if (!b->is_32)
+                    WRITE_VALUE_16(b->location);
+                else
+                    WRITE_VALUE_32(b->location);
             }
 
+            cleanup_unresolved();
             i = j - 1;
         } else if (!memcmp(current, "L_16BIT", 7) || !memcmp(current, "L_32BIT", 7)) {
             i += 6;
@@ -115,31 +119,108 @@ void ld_link(file* f) {
         } else if (!memcmp(current, "L_GLOBL_", 8)) {
             uint64_t j = i + 8;
 
-            size_t nsize = 0;
-            char* sym_name = calloc(0, sizeof(char));
+            vector* name = vec_init(sizeof(char), 0);
             while (j < size && data[j]) {
-                sym_name = bump_arr(sym_name, nsize, sizeof(char));
-                sym_name[nsize++] = data[j];
+                vec_grow(name, 1);
+                ((char*) name->data)[name->next] = data[j];
                 j++;
             }
             j++;
 
-            printf("gname: %s\n", sym_name);
-            binding* b = find_binding(sym_name, f->name);
+            binding* b = find_binding((char*) name->data, f->name);
             if (b != NULL) {
                 b->global = true;
+                cleanup_unresolved();
+            } else {
+                vec_grow(preset_globals, 1);
+                ((char**) preset_globals->data)[preset_globals->next] = (char*) name->data;
             }
 
-            free(sym_name);
             i = j - 1;
+        } else if (!memcmp(current, "LO_", 3)) {
+            i += 3;
+            current_org = data[i] << 8 | data[i + 1];
+            i++;
+        } else if (!memcmp(current, "LP_", 3)) {
+            i += 3;
+            padding_dir = data[i] << 8 | data[i + 1];
+            i++;
         } else
             write(data[i]);
+    }
+
+    cleanup_unresolved();
+}
+
+file* load_file(char* filename) {
+    FILE* f_real = fopen(filename, "rb");
+    if (f_real == NULL) {
+        fprintf(stderr, "l2ld: cannot find '%s': %s\n", filename, "no such file or directory");
+        exit(1);
+    }
+
+    fseek(f_real, 0, SEEK_END);
+    int64_t end = ftell(f_real);
+
+    if (end == -1) {
+        fprintf(stderr, "l2ld: cannot seek file '%s'\n", filename);
+        exit(1);
+    }
+    fseek(f_real, 0, SEEK_SET);
+
+    file* f = malloc(sizeof(file));
+
+    f->name = filename;
+    f->size = end;
+    f->data = malloc(end);
+    
+    fread(f->data, end, end, f_real);
+
+    
+    fclose(f_real);
+
+    return f;
+}
+
+void do_autolink() {
+    bool unresolved = false;
+
+    for (int i = 0; i < unresolved_bindings->elements; i++) {
+        unresolved_binding* ub = ((unresolved_binding**) unresolved_bindings->data)[i];
+        if (!ub->solved) {
+            unresolved = true;
+        }
+    }
+
+    if (!unresolved)
+        return;
+
+    vector* groups = autolink();
+
+    for (int i = 0; i < groups->elements; i++) {
+        autolink_pair* pair = ((autolink_pair**) groups->data)[i];
+
+        for (int k = 0; k < unresolved_bindings->elements; k++) {
+            unresolved_binding* ub = ((unresolved_binding**) unresolved_bindings->data)[k];
+            if (!ub->solved) {
+                if (!strcmp(ub->name, pair->label)) {
+                    file* f = load_file(pair->file);
+                    ld_link(f);
+                    cleanup_unresolved();
+                }
+            }
+
+        }
     }
 }
 
 int main(int argc, char* argv[]) {
-    file** files = calloc(0, sizeof(file));
-    uint64_t array_size = 0;
+    vector* files = vec_init(sizeof(file*), 0);
+    bool allow_autolink = false;
+
+    bindings = vec_init(sizeof(binding*), 0);
+    unresolved_bindings = vec_init(sizeof(unresolved_binding*), 0);
+    buffer = vec_init(sizeof(unsigned char), 0);
 
     for (int i = 1; i < argc; i++) {
         char* arg = argv[i];
@@ -154,73 +235,56 @@ int main(int argc, char* argv[]) {
                 output_file = argv[i + 1];
                 i++;
             }
+        } else if (!strcmp(arg, "-a")) {
+            allow_autolink = true;
         } else {
-            FILE* f_real = fopen(arg, "rb");
-            if (f_real == NULL) {
-                fprintf(stderr, "l2ld: cannot find '%s': %s\n", arg, "no such file or directory");
-                exit(1);
-            }
-
-            fseek(f_real, 0, SEEK_END);
-            int64_t end = ftell(f_real);
-
-            if (end == -1) {
-                fprintf(stderr, "l2ld: cannot seek file '%s'\n", arg);
-                exit(1);
-            }
-            fseek(f_real, 0, SEEK_SET);
-
-            file* f = malloc(sizeof(file));
-
-            f->name = arg;
-            f->size = end;
-            f->data = malloc(end);
-            
-            fread(f->data, end, end, f_real);
-
-            uint64_t current_arr_size = array_size / sizeof(file*);
-            #ifndef __APPLE__
-                files = reallocarray(files, array_size + 1, sizeof(file*));
-            #else
-                files = realloc(files, (array_size + 1) * sizeof(file*));
-            #endif
-            printf("current: %d\nnew: %d\n", array_size, current_arr_size);
-            files[array_size++] = f;
-            fclose(f_real);
+            vec_grow(files, 1);
+            ((file**) files->data)[files->next] = load_file(arg);
         }
     }
 
-    if (array_size < 1) {
+    if (files->elements < 1) {
         fprintf(stderr, "l2ld: no input files\n");
         exit(1);
     }
 
-    printf("%d\n", array_size);
-    for (int i = 0; i < array_size; i++) {
-        file* file = files[i];
-        ld_link(file);
-    }
+    for (int i = 0; i < files->elements; i++)
+        ld_link(((file**) files->data)[i]);
 
-    bool unresolved;
-    for (int i = 0; i < nunresolved_bindings; i++) {
-        unresolved_binding* ub = unresolved_bindings[i];
+    if (allow_autolink)
+        do_autolink();
+
+    for (int i = 0; i < unresolved_bindings->elements; i++) {
+        unresolved_binding* ub = ((unresolved_binding**) unresolved_bindings->data)[i];
         if (!ub->solved) {
-            unresolved = true;
-            fprintf(stderr, "%s:(0x%08x): undefined reference to `%s'\n", ub->file, ub->location, ub->name);
+            do_not_compile = true;
+            fprintf(stderr, "%s:(0x%08lx): undefined reference to `%s'\n", ub->file, ub->location, ub->name);
         }
     }
 
-    if (unresolved || do_not_compile)
+    if (padding_dir > 0) {
+        if (buffer->elements <= padding_dir) {
+            for (int i = buffer->elements; i < padding_dir; i++) {
+                write(0x00);
+            }
+        } else {
+            fprintf(stderr, "l2ld: binary exceeds padding directive: requested: %d, actual: %d\n", padding_dir, buffer->elements);
+            do_not_compile = true;
+        }
+    }
+
+    if (do_not_compile)
         exit(1);
 
     if (output_file == NULL)
-        output_file = "a.o";
+        output_file = "a.bin";
 
     FILE* out_file = fopen(output_file, "w+b");
     if (out_file == NULL) {
         fprintf(stderr, "l2ld: could not write '%s'\n", output_file);
         exit(1);
     }
-    fwrite(buffer, sizeof(unsigned char), nbuffer, out_file);
+
+    fwrite(buffer->data, sizeof(unsigned char), buffer->elements, out_file);
     fclose(out_file);
 }

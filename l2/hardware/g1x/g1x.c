@@ -14,7 +14,7 @@
 #define REAL_VRAM 0xFA00
 
 unsigned char* VIDEO_MEMORY = NULL;
-nrgba_pixel Palette[256];
+nrgba_pixel palette[256];
 
 nrgba_image* img;
 nrgba_pixel* pixels;
@@ -30,15 +30,15 @@ void gpu_init() {
     pixels = malloc(sizeof(nrgba_pixel) * REAL_VRAM);
 
     for (int i = 0; i < 256; i++) {
-        // TODO: make real BIOS color palette
+        // TODO: make real VGA color palette
         int r = ((i >> 5) & 0x07) * 255 / 7;
         int g = ((i >> 2) & 0x07) * 255 / 7;
         int b = (i & 0x03) * 255 / 3;
 
-        Palette[i].r = r;
-        Palette[i].g = g;
-        Palette[i].b = b;
-        Palette[i].a = 255;
+        palette[i].r = r;
+        palette[i].g = g;
+        palette[i].b = b;
+        palette[i].a = 255;
     }
 }
 
@@ -67,7 +67,7 @@ nrgba_image* return_framebuffer() {
     int i = 0;
     for (int y = 0; y < 200; y++) {
         for (int x = 0; x < 320; x++) {
-            pixels[i] = Palette[VIDEO_MEMORY[i]];
+            pixels[i] = palette[VIDEO_MEMORY[i]];
             i++;
         }
     }
