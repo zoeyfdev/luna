@@ -15,9 +15,6 @@ typedef struct {
     char* file;
 } autolink_pair;
 
-extern int nunresolved_bindings;
-extern unresolved_binding** unresolved_bindings;
-
 char* directory = "/usr/local/lib/l2ld/";
 
 vector* autolink_file(char* filename, vector* al_groups) {
