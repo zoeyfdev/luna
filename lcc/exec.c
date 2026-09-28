@@ -3,10 +3,13 @@
 #include "../lcc_shared/libcommand.h"
 #include "../lcc_shared/liberror.h"
 
-bool execute_command(char* command, bool report_failure) {
-    int code = lc_command_execute(command);
+extern bool verbose;
 
-    printf("%s\n", command);
+bool execute_command(char* command, bool report_failure) {
+    if (verbose)
+        printf("%s\n", command);
+
+    int code = lc_command_execute(command);
 
     switch (code) {
     case 1:

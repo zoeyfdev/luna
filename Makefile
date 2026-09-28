@@ -12,11 +12,11 @@ endif
 CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits -Wno-unused-parameter
 
 
-all: luna-l2 las lcc lcc1 l2ld
-.PHONY: clean install l2ld lcc lcc1 las
+all: luna-l2 luna-l2-components las lcc lcc1 l2ld
+.PHONY: clean install l2ld lcc lcc1 las luna-l2-components
 
-luna-l2: $(SRC)/l2/*
-	cd l2 && $(CC) \
+luna-l2-components:
+		cd l2 && $(CC) \
 		hardware/g1x/g1x.c \
 		-shared -fPIC \
 		$(CCFLAGS) \
@@ -32,6 +32,8 @@ luna-l2: $(SRC)/l2/*
 		$(shell sdl2-config --cflags --libs) \
 		$(CCFLAGS) \
 		-o ../components/audio/s1.so -g
+
+luna-l2: $(SRC)/l2/*
 	cd l2 && $(CC) \
 		*.c \
 		util/*.c \
@@ -71,7 +73,6 @@ lcc: $(SRC)/lcc/* $(SRC)/lcc_info/* $(SRC)/lcc_shared/*
 		-o ../bin/lcc \
 		-g \
 		$(CCFLAGS)
-	cd lcc && go build -o ../bin/lcc-go ./lcc.go
 
 lcc1-libs:
 	cd lcc1/libs && lcc -c memcpy16.s
@@ -108,17 +109,10 @@ macos-installer:
 		--scripts Mac/scripts \
 		build/"Luna L2 (arm64).pkg"
 
-mac_qmake:
-	mkdir -p /usr/local/lib/l2/
-	cd l2 && go build -buildmode=plugin -o ../components/audio/s1.so ./audio/hardware/s1.go
-	cd l2 && go build -buildmode=plugin -o ../components/video/g1x.so ./video/hardware/g1x.go
-	cd l2 && go build -buildmode=plugin -o ../components/video/g1.so ./video/hardware/g1.go
-	sudo cp -r components/* /usr/local/lib/l2/
-	cd l2 && CGO_ENABLED=1 GOOS=darwin go build -o /Applications/"Luna L2.app"/Contents/MacOS/luna-l2 luna_l2.go
-	cd lcc && GOOS=darwin go build -o /usr/local/bin/lcc lcc.go
-	cd las && GOOS=darwin go build -o /usr/local/bin/las las.go
-	cd lcc1 && GOOS=darwin go build -o /usr/local/bin/lcc1 lcc1.go
-	cd l2ld && GOOS=darwin go build -o /usr/local/bin/l2ld l2ld.go	
+mac_qmake: luna-l2 lcc las lcc1 l2ld
+	sudo cp bin/luna-l2 /Applications/"Luna L2.app"/Contents/MacOS/
+	rm bin/luna-l2
+	sudo cp bin/* /usr/local/bin
 
 windows-installer:
 	cd l2 && CGO_LDFLAGS="-lmingw32 -lSDL2" CGO_CFLAGS="-D_REENTRANT" CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui" -o ../Windows/luna-l2.exe -x luna_l2.go
@@ -133,7 +127,7 @@ install:
 	sudo cp -r components/* /usr/local/lib/l2
 	sudo cp bin/* /usr/local/bin/
 
-quick:
+quick: # only installs if there are no errors
 	sh -c "make"
 	sh -c "sudo make install"
 

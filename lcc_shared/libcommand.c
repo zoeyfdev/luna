@@ -12,7 +12,9 @@ int lc_command_execute(char* command) {
             printf("%s", out);
     }
 
-    int code = WEXITSTATUS(pclose(pipe));
+    int status = pclose(pipe);
+
+    int code = WEXITSTATUS(status);
 
     return code;
 }
