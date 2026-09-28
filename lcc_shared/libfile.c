@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "libvector.h"
 
@@ -10,6 +11,7 @@ char* lfn_get_ext(char* s) {
     int i = len;
     bool exit = false;
     for (; i >= 0; i--) {
+        s[i] = tolower(s[i]); // just in case
         char c = s[i];
 
         switch (c) {

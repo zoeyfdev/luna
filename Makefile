@@ -5,10 +5,12 @@ OS_NAME := $(shell uname -s)
 ifeq ($(OS_NAME),Darwin)
 	CC=clang
 endif
-CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits -Wno-unused-parameter
-EMUFLAGS=-Wimplicit-fallthrough
+ifeq ($(OS),Windows_NT)
+	CC=x86_64-w64-mingw32-gcc
+endif
 
-# No windows support (for now until I figure out how to get DLLs to work)
+CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits -Wno-unused-parameter
+
 
 all: luna-l2 las lcc lcc1 l2ld
 .PHONY: clean install l2ld lcc lcc1 las
@@ -50,18 +52,6 @@ las: $(SRC)/las/* $(SRC)/lcc_info/*
 lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 	cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
 
-lcc1-libs:
-	cd lcc1/libs && lcc -c memcpy16.s
-	cd lcc1/libs && lcc -c memcpy32.s
-	cd lcc1/libs && lcc -c strcpy16.s
-	cd lcc1/libs && lcc -c strcpy32.s
-	cd lcc1/libs && sudo mv *.o /usr/local/lib/l2ld/
-	sudo printf "_builtin_lcc_memcpy16 /usr/local/lib/l2ld/memcpy16.o\n_builtin_lcc_memcpy32 /usr/local/lib/l2ld/memcpy32.o\n" > /usr/local/lib/l2ld/memcpy.lib
-	sudo printf "_builtin_lcc_strcpy32 /usr/local/lib/l2ld/strcpy32.o\n_builtin_lcc_strcpy16 /usr/local/lib/l2ld/strcpy16.o\n" > /usr/local/lib/l2ld/strcpy.lib
-
-lcc: $(SRC)/lcc/* $(SRC)/lcc_info/*
-	cd lcc && go build -o ../bin/lcc ./lcc.go
-
 l2ld:
 	cd l2ld && gcc \
 		*.c \
@@ -70,6 +60,27 @@ l2ld:
 		-o ../bin/l2ld \
 		-g \
 		$(CCFLAGS)
+
+lcc: $(SRC)/lcc/* $(SRC)/lcc_info/* $(SRC)/lcc_shared/*
+	cd lcc && $(CC) \
+		*.c \
+		../lcc_shared/libvector.c \
+		../lcc_shared/libfile.c \
+		../lcc_shared/liberror.c \
+		../lcc_shared/libcommand.c \
+		-o ../bin/lcc \
+		-g \
+		$(CCFLAGS)
+	cd lcc && go build -o ../bin/lcc-go ./lcc.go
+
+lcc1-libs:
+	cd lcc1/libs && lcc -c memcpy16.s
+	cd lcc1/libs && lcc -c memcpy32.s
+	cd lcc1/libs && lcc -c strcpy16.s
+	cd lcc1/libs && lcc -c strcpy32.s
+	cd lcc1/libs && sudo mv *.o /usr/local/lib/l2ld/
+	sudo printf "_builtin_lcc_memcpy16 /usr/local/lib/l2ld/memcpy16.o\n_builtin_lcc_memcpy32 /usr/local/lib/l2ld/memcpy32.o\n" > /usr/local/lib/l2ld/memcpy.lib
+	sudo printf "_builtin_lcc_strcpy32 /usr/local/lib/l2ld/strcpy32.o\n_builtin_lcc_strcpy16 /usr/local/lib/l2ld/strcpy16.o\n" > /usr/local/lib/l2ld/strcpy.lib
 
 macos-installer:
 	cd l2 && CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/"Luna L2"/Contents/MacOS/luna-l2 luna_l2.go
