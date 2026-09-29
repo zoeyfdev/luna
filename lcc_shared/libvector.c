@@ -22,8 +22,6 @@ vector* vec_init(size_t size, int init_elements) {
     v->size = size;
     v->data = calloc(init_elements, size);
 
-    // memset(v->data, 0x00, init_elements * size);
-
     return v;
 }
 

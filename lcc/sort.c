@@ -62,7 +62,7 @@ void sort_files() {
 
             free(base); // should be safe since we did everything
         } else if (!strcmp(ext, "s") || !strcmp(ext, "asm")) {
-            int len = strlen(base) + 5;
+            int len = strlen(base) + 5; // don't question it
             char* ld_ver = malloc(len);
             memset(ld_ver, 0, len);
 
