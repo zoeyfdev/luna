@@ -34,7 +34,7 @@ void ld_link(file* f) {
     for (uint64_t i = 0; i < size; i++) {
         unsigned char* current = data + i;
         if (!memcmp(current, "LD16_", 5) || !memcmp(current, "LD32_", 5)) {
-            binding* decl = malloc(sizeof(binding));
+            binding* decl = calloc(1, sizeof(binding));
 
             decl->is_32 = !memcmp(current, "LD32_", 5);
             decl->location = buffer->elements + current_org;
@@ -85,7 +85,7 @@ void ld_link(file* f) {
 
             binding* b = find_binding((char*) name->data, f->name);
             if (b == NULL) {
-                unresolved_binding* ub = malloc(sizeof(unresolved_binding));
+                unresolved_binding* ub = calloc(1, sizeof(unresolved_binding));
                 ub->name = (char*) name->data;
                 ub->location = buffer->elements;
                 ub->file = f->name;
@@ -168,11 +168,11 @@ file* load_file(char* filename) {
     }
     fseek(f_real, 0, SEEK_SET);
 
-    file* f = malloc(sizeof(file));
+    file* f = calloc(1, sizeof(file));
 
     f->name = filename;
     f->size = end;
-    f->data = malloc(end);
+    f->data = calloc(1, end);
     
     fread(f->data, end, end, f_real);
 

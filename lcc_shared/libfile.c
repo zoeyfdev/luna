@@ -43,11 +43,10 @@ char* lfn_get_ext(char* s) {
     return s + (i + 1);
 }
 
-char* lfn_get_base(char* _full) {
-    char* full = _full;
+char* lfn_get_base(char* full) {
     vector* name = vec_init(sizeof(char*), 0);
 
-    for (int i = 0; i < strlen(full); i++) {
+    for (size_t i = 0; i < strlen(full); i++) {
         char c = full[i];
 
         if (c != '/' && c != '\\') {
@@ -59,8 +58,6 @@ char* lfn_get_base(char* _full) {
             name = vec_init(sizeof(char*), 0);
         }
     }
-
-    char* _name = (char*) name->data;
 
     for (int i = name->elements; i >= 0; i--) {
         if (((char*) name->data)[i] == '.') {

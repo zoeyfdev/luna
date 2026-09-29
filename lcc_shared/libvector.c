@@ -1,4 +1,5 @@
-#include "stdlib.h"
+#include <stdlib.h>
+#include <string.h>
 
 typedef struct {
     size_t size;
@@ -20,6 +21,8 @@ vector* vec_init(size_t size, int init_elements) {
     v->next = v->elements - 1;
     v->size = size;
     v->data = calloc(init_elements, size);
+
+    // memset(v->data, 0x00, init_elements * size);
 
     return v;
 }

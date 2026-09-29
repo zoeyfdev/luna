@@ -18,6 +18,7 @@ bool ld_error;
 extern vector* hl_files;
 extern vector* as_files;
 extern vector* ld_files;
+extern vector* cleanup_files;
 
 vector* input_files;
 char* output_file = "a.bin"; // default output file name
@@ -108,7 +109,7 @@ int main(int argc, char* argv[]) {
     if (no_link)
         exit(0);
 
-    char* ld_command_base = "l2ld -o ";
+    char* ld_command_base = "l2ld -a -o ";
 
     char* ld_command = malloc(strlen(ld_command_base) + 1);
     strcpy(ld_command, ld_command_base);
@@ -130,4 +131,21 @@ int main(int argc, char* argv[]) {
 
     if (ld_error)
         exit(1);
+
+#ifndef _WIN32
+    char* rm_command = "rm -f ";
+#else
+    char* rm_command = "del /f ";
+#endif
+    for (int i = 0; i < cleanup_files->elements; i++) {
+        char* file = ((char**) cleanup_files->data)[i];
+        int len = strlen(rm_command) + strlen(file) + 1;
+        char* command = malloc(len);
+
+        memset(command, 0, len);
+        strcat(command, rm_command);
+        strcat(command, file);
+
+        execute_command(command, false);
+    }
 }
