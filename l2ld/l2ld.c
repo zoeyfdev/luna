@@ -49,6 +49,8 @@ void ld_link(file* f) {
                 ((char*) name->data)[name->next] = data[j];
                 j++;
             }
+            vec_grow(name, 1);
+            ((char*) name->data)[name->next] = 0;
             j++;
 
             decl->name = (char*) name->data;
@@ -81,6 +83,8 @@ void ld_link(file* f) {
                 ((char*) name->data)[name->next] = data[j];
                 j++;
             }
+            vec_grow(name, 1);
+            ((char*) name->data)[name->next] = 0;
             j++;
 
             binding* b = find_binding((char*) name->data, f->name);
@@ -125,6 +129,8 @@ void ld_link(file* f) {
                 ((char*) name->data)[name->next] = data[j];
                 j++;
             }
+            vec_grow(name, 1);
+            ((char*) name->data)[name->next] = 0;
             j++;
 
             binding* b = find_binding((char*) name->data, f->name);
