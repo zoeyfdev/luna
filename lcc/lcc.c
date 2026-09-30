@@ -70,14 +70,16 @@ int main(int argc, char* argv[]) {
     sort_files();
 
     for (int i = 0; i < hl_files->elements; i++) {
-        char* file = ((char**) hl_files->data)[i];
-        char* command_base = "lcc1 -S ";
-        int len = strlen(command_base) + strlen(file) + 1;
-        char* command = malloc(len);
-        memset(command, 0x00, len);
+        vector* command = vec_init(sizeof(char**), 0);
 
-        strcat(command, command_base);
-        strcat(command, file);
+        vec_grow(command, 1);
+        ((char**) command->data)[command->next] = "lcc1";
+
+        vec_grow(command, 1);
+        ((char**) command->data)[command->next] = "-S";
+
+        vec_grow(command, 1);
+        ((char**) command->data)[command->next] = ((char**) hl_files->data)[i];
 
         bool success = execute_command(command, false);
         if (!success) hl_error = true;
@@ -90,14 +92,16 @@ int main(int argc, char* argv[]) {
         exit(0);
 
     for (int i = 0; i < as_files->elements; i++) {
-        char* file = ((char**) as_files->data)[i];
-        char* command_base = "las -c ";
-        int len = strlen(command_base) + strlen(file) + 1;
-        char* command = malloc(len);
-        memset(command, 0x00, len);
+        vector* command = vec_init(sizeof(char**), 0);
 
-        strcat(command, command_base);
-        strcat(command, file);
+        vec_grow(command, 1);
+        ((char**) command->data)[command->next] = "las";
+
+        vec_grow(command, 1);
+        ((char**) command->data)[command->next] = "-c";
+
+        vec_grow(command, 1);
+        ((char**) command->data)[command->next] = ((char**) as_files->data)[i];
 
         bool success = execute_command(command, false);
         if (!success) as_error = true;
@@ -109,42 +113,51 @@ int main(int argc, char* argv[]) {
     if (no_link)
         exit(0);
 
-    char* ld_command_base = "l2ld -a -o ";
 
-    char* ld_command = malloc(strlen(ld_command_base) + 1);
-    strcpy(ld_command, ld_command_base);
 
-    ld_command = realloc(ld_command, strlen(ld_command) + strlen(output_file) + 1);
-    strcat(ld_command, output_file);
-    strcat(ld_command, " ");
+    vector* command = vec_init(sizeof(char**), 0);
+
+    vec_grow(command, 1);
+    ((char**) command->data)[command->next] = "l2ld";
+
+    vec_grow(command, 1);
+    ((char**) command->data)[command->next] = "-a";
+
+    vec_grow(command, 1);
+    ((char**) command->data)[command->next] = "-o";
+
+    vec_grow(command, 1);
+    ((char**) command->data)[command->next] = output_file;
 
     for (int i = 0; i < ld_files->elements; i++) {
-        char* file = ((char**) ld_files->data)[i];
-        int len = strlen(file) + 1;
-        
-        ld_command = realloc(ld_command, strlen(ld_command) + len + 1);
-        strcat(ld_command, file);
-        strcat(ld_command, " "); 
+        vec_grow(command, 1);
+        ((char**) command->data)[command->next] = ((char**) ld_files->data)[i]; 
     }
 
-    ld_error = !execute_command(ld_command, false);
+    ld_error = !execute_command(command, false);
 
     if (ld_error)
         exit(1);
 
-#ifndef _WIN32
-    char* rm_command = "rm -f ";
-#else
-    char* rm_command = "del /f ";
-#endif
     for (int i = 0; i < cleanup_files->elements; i++) {
-        char* file = ((char**) cleanup_files->data)[i];
-        int len = strlen(rm_command) + strlen(file) + 1;
-        char* command = malloc(len);
+        vector* command = vec_init(sizeof(char**), 0);
 
-        memset(command, 0, len);
-        strcat(command, rm_command);
-        strcat(command, file);
+        vec_grow(command, 1);
+        #ifndef _WIN32
+        ((char**) command->data)[command->next] = "rm";
+        #else
+        ((char**) command->data)[command->next] = "del";
+        #endif
+
+        vec_grow(command, 1);
+        #ifndef _WIN32
+        ((char**) command->data)[command->next] = "-f";
+        #else
+        ((char**) command->data)[command->next] = "/f";
+        #endif
+
+        vec_grow(command, 1);
+        ((char**) command->data)[command->next] = ((char**) cleanup_files->data)[i];
 
         execute_command(command, false);
     }

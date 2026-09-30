@@ -11,7 +11,6 @@ endif
 
 CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits -Wno-unused-parameter
 
-
 all: luna-l2 luna-l2-components las lcc lcc1 l2ld
 .PHONY: clean install l2ld lcc lcc1 las luna-l2-components
 
@@ -70,6 +69,7 @@ lcc: $(SRC)/lcc/* $(SRC)/lcc_info/* $(SRC)/lcc_shared/*
 		../lcc_shared/libfile.c \
 		../lcc_shared/liberror.c \
 		../lcc_shared/libcommand.c \
+		../lcc_shared/shared.c \
 		-o ../bin/lcc \
 		-g \
 		$(CCFLAGS)
