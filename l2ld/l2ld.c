@@ -65,7 +65,7 @@ void ld_link(file* f) {
             }
 
             if (find_binding(decl->name, f->name) != NULL) {
-                fprintf(stderr, "%s:(0x%08lx): redefinition of `%s'\n", f->name, i, decl->name);
+                fprintf(stderr, "%s:(0x%08llx): redefinition of `%s'\n", f->name, i, decl->name);
                 do_not_compile = true;
             }
 
@@ -104,9 +104,9 @@ void ld_link(file* f) {
                     WRITE_VALUE_32(0x00);
             } else {
                 if (b->is_32 == true && is_32 == false) {
-                    printf("%s:(0x%08lx): warning: referencing 32-bit label from 16-bit code\n", f->name, i);
+                    printf("%s:(0x%08llx): warning: referencing 32-bit label from 16-bit code\n", f->name, i);
                 } else if (b->is_32 == false && is_32 == true) {
-                    printf("%s:(0x%08lx): warning: referencing 16-bit label from 32-bit code\n", f->name, i);
+                    printf("%s:(0x%08llx): warning: referencing 16-bit label from 32-bit code\n", f->name, i);
                 }
 
                 if (!b->is_32)
@@ -264,7 +264,7 @@ int main(int argc, char* argv[]) {
         unresolved_binding* ub = ((unresolved_binding**) unresolved_bindings->data)[i];
         if (!ub->solved) {
             do_not_compile = true;
-            fprintf(stderr, "%s:(0x%08lx): undefined reference to `%s'\n", ub->file, ub->location, ub->name);
+            fprintf(stderr, "%s:(0x%08llx): undefined reference to `%s'\n", ub->file, ub->location, ub->name);
         }
     }
 

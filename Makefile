@@ -2,14 +2,18 @@ SRC=./
 CC=gcc
 
 OS_NAME := $(shell uname -s)
+SDL_FLAGS = $(shell sdl2-config --cflags --libs)
+CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits -Wno-unused-parameter
+
 ifeq ($(OS_NAME),Darwin)
-	CC=clang
+	CC=gcc-16
+	SDL_FLAGS = $(shell pkg-config --cflags --libs sdl2)
 endif
 ifeq ($(OS),Windows_NT)
 	CC=x86_64-w64-mingw32-gcc
 endif
 
-CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits -Wno-unused-parameter
+
 
 all: luna-l2 luna-l2-components las lcc lcc1 l2ld
 .PHONY: clean install l2ld lcc lcc1 las luna-l2-components
@@ -28,7 +32,7 @@ luna-l2-components:
 	cd l2 && $(CC) \
 		hardware/s1/s1.c \
 		-shared -fPIC \
-		$(shell sdl2-config --cflags --libs) \
+		$(SDL_FLAGS) \
 		$(CCFLAGS) \
 		-o ../components/audio/s1.so -g
 
@@ -43,18 +47,27 @@ luna-l2: $(SRC)/l2/*
 		io/*.c \
 		component/*.c \
 		-o ../bin/luna-l2 \
-		$(shell sdl2-config --cflags --libs) \
+		$(SDL_FLAGS) \
 		$(CCFLAGS) \
 		-g
 
-las: $(SRC)/las/* $(SRC)/lcc_info/*
+las: $(SRC)/las/* $(SRC)/las-c/* $(SRC)/lcc_info/*
+	cd las-c && $(CC) \
+		*.c \
+		lexer/*.c \
+		../lcc_shared/libvector.c \
+		../lcc_shared/shared.c \
+		../lcc_shared/liberror.c \
+		$(CCFLAGS) \
+		-o ../bin/las-c \
+		-g
 	cd las && go build -o ../bin/las ./las.go
 
 lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 	cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
 
 l2ld:
-	cd l2ld && gcc \
+	cd l2ld && $(CC) \
 		*.c \
 		../lcc_shared/libvector.c \
 		../lcc_shared/libfile.c \

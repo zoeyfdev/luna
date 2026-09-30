@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "../lcc_shared/libvector.h"
 #include "../lcc_shared/shared.h"
 #include "../lcc_shared/liberror.h"
+#include "lexer/lex.h"
 
 int main(int argc, char* argv[]) {
     vector* files = vec_init(sizeof(char**), 0);
@@ -34,7 +37,9 @@ int main(int argc, char* argv[]) {
         char* buffer = malloc(size);
         fread(buffer, size, size, f);
 
-
+        vector* tokens = lex(buffer);
+        for (int i = 0; i < tokens->elements; i++)
+            printf("Token value: %s\n", ((token**) tokens->data)[i]->value);
 
         free(buffer);
     }

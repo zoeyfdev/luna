@@ -1,3 +1,7 @@
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
 #include "../../lcc_shared/libvector.h"
 
 #define TYPE_REGISTER 1
@@ -54,15 +58,28 @@ bool is_register(char* str) {
     return false;
 }
 
-void lex(char* buffer) {
+vector* add_token(vector* current, vector* tokens) {
+    token* t = malloc(sizeof(token));
+    t->type = is_register((char*) current->data) ? 1 : 0;
+    t->value = (char*) current->data;
+
+    vec_grow(tokens, 1);
+    ((token**) tokens->data)[tokens->next] = t;
+    current = vec_init(sizeof(char*), 0);
+
+    return current;
+}
+
+vector* lex(char* buffer) {
     vector* tokens = vec_init(sizeof(token**), 0);
     vector* current = vec_init(sizeof(char*), 0);
     bool comment = false;
+    bool in_string = false;
 
     for (; *buffer; buffer++) {
         char c = *buffer;
 
-        if ((c == '/' && *(buffer + 1) == '/') || (c == ';') || (c == '#' && *(buffer + 1) == ' ')) {
+        if (((c == '/' && *(buffer + 1) == '/') || (c == ';') || (c == '#' && *(buffer + 1) == ' ')) && !in_string) {
             if (c != ';')
                 buffer++;
             comment = true;
@@ -77,23 +94,32 @@ void lex(char* buffer) {
             continue;
 
         switch (c) {
-        case ' ', '\n': {
-                token* t = malloc(sizeof(token));
-                t->type = is_register((char*) current->data) ? 1 : 0;
-                t->value = (char*) current->data;
-
-                vec_grow(tokens, 1);
-                ((token**) tokens->data)[tokens->next] = t;
-                current = vec_init(sizeof(char*), 0); // leave vector allocated so we don't segfault
-                break;
-            }
+        case '\n':
+        case ' ':
+            if (!in_string)
+                current = add_token(current, tokens); 
+            break;
         case '\r':
             break; // don't process carriage returns
+        case '"':
+            in_string = !in_string;
+
+            if (!in_string)
+                current = add_token(current, tokens);
+            break;
+        case ',':
+            if (is_register((char*) current->data) && !in_string) {
+                current = add_token(current, tokens);
+                buffer++;
+                break;
+            }
         default:
             vec_grow(current, 1);
             ((char*) current->data)[current->next] = c;
             break;
         }
     }
+
+    return tokens;
 }
 
