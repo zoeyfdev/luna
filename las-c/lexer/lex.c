@@ -1,55 +1,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "../../lcc_shared/libvector.h"
+#include "../util/registers.h"
+#include "../util/instructions.h"
 
 #define TYPE_REGISTER 1
-#define TYPE_TEXT 2
+#define TYPE_INSTRUCTION 2
+#define TYPE_TEXT 3
 
 typedef struct {
     int type;
+    int line;
     char* value;
 } token;
-
-#define NUM_REGISTERS 35
-char* registers[] = {
-    "r0",
-    "r1",
-    "r2",
-    "r3",
-    "r4",
-    "r5",
-    "r6",
-    "r7",
-    "r8",
-    "r9",
-    "r10",
-    "r11",
-    "r12",
-    "e0",
-    "e1",
-    "e2",
-    "e3",
-    "e4",
-    "e5",
-    "e6",
-    "e7",
-    "e8",
-    "e9",
-    "e10",
-    "e11",
-    "e12",
-    "e13",
-    "e14",
-    "sp",
-    "pc",
-    "irv",
-    "ir",
-    "b",
-    "fp",
-    "s"
-};
 
 bool is_register(char* str) {
     for (int i = 0; i < NUM_REGISTERS; i++)
@@ -58,25 +24,46 @@ bool is_register(char* str) {
     return false;
 }
 
-vector* add_token(vector* current, vector* tokens) {
+bool is_instruction(char* str) {
+    for (int i = 0; i < NUM_INSTRUCTIONS; i++)
+        if (!strcmp(str, instructions[i]))
+            return true;
+    return false;
+}
+
+int line = 1;
+
+vector* add_token(vector* current, vector* tokens, bool no_ins) {
     token* t = malloc(sizeof(token));
-    t->type = is_register((char*) current->data) ? 1 : 0;
+
+    if (is_register((char*) current->data))
+        t->type = TYPE_REGISTER;
+    else if ((is_instruction((char*) current->data) || ((char*) current->data)[0] == '.') && !no_ins)
+        t->type = TYPE_INSTRUCTION;
+    else
+        t->type = TYPE_TEXT;
+
     t->value = (char*) current->data;
+    t->line = line;
 
     vec_grow(tokens, 1);
     ((token**) tokens->data)[tokens->next] = t;
+    free(current); // Free header without freeing data
     current = vec_init(sizeof(char*), 0);
 
     return current;
 }
 
-vector* lex(char* buffer) {
+vector* lex(char* buffer, uint64_t size) {
     vector* tokens = vec_init(sizeof(token**), 0);
     vector* current = vec_init(sizeof(char*), 0);
     bool comment = false;
     bool in_string = false;
 
-    for (; *buffer; buffer++) {
+    for (int i = 0; i < size; i++, buffer++) {
+        if (*buffer == 0) 
+            break;
+
         char c = *buffer;
 
         if (((c == '/' && *(buffer + 1) == '/') || (c == ';') || (c == '#' && *(buffer + 1) == ' ')) && !in_string) {
@@ -94,22 +81,30 @@ vector* lex(char* buffer) {
             continue;
 
         switch (c) {
-        case '\n':
+        case '\n': 
         case ' ':
-            if (!in_string)
-                current = add_token(current, tokens); 
+            if (!in_string) {
+                current = add_token(current, tokens, false);
+                if (c == '\n')
+                    line++;
+            } else {
+                vec_grow(current, 1);
+                ((char*) current->data)[current->next] = c;
+            }
             break;
         case '\r':
             break; // don't process carriage returns
         case '"':
             in_string = !in_string;
 
-            if (!in_string)
-                current = add_token(current, tokens);
+            if (!in_string) {
+                current = add_token(current, tokens, true);
+                buffer++;
+            }
             break;
         case ',':
             if (is_register((char*) current->data) && !in_string) {
-                current = add_token(current, tokens);
+                current = add_token(current, tokens, false);
                 buffer++;
                 break;
             }

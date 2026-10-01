@@ -44,8 +44,8 @@ boot_try:
     }
 
     if (result == false) {
-        if (drive != 2) {
-            bios_write_line("Could not read the boot disk\n");
+        bios_write_line("Could not read the boot disk\n");
+        if (drive != 2) { 
             drive++;
             goto boot_try;
         } else {

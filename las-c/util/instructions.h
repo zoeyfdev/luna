@@ -1,0 +1,38 @@
+#pragma once
+
+#define NUM_INSTRUCTIONS 32
+
+char* instructions[] = {
+    "mov",
+    "hlt",
+    "jmp",
+    "int",
+    "jnz",
+    "nop",
+    "cmp",
+    "jz",
+    "inc",
+    "dec",
+    "push",
+    "pop",
+    "add",
+    "sub",
+    "mul",
+    "div",
+    "igt",
+    "ilt",
+    "and",
+    "or",
+    "not",
+    "xor",
+    "lod",
+    "str",
+    "str16",
+    "lod16",
+    "set",
+    "shl",
+    "shr",
+    "str32",
+    "lod32",
+    "mod"
+};

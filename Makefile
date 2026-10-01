@@ -3,7 +3,7 @@ CC=gcc
 
 OS_NAME := $(shell uname -s)
 SDL_FLAGS = $(shell sdl2-config --cflags --libs)
-CCFLAGS=-Wall -Wextra -Wimplicit-fallthrough -std=gnu23 -Wno-type-limits -Wno-unused-parameter
+CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough
 
 ifeq ($(OS_NAME),Darwin)
 	CC=gcc-16
@@ -13,10 +13,7 @@ ifeq ($(OS),Windows_NT)
 	CC=x86_64-w64-mingw32-gcc
 endif
 
-
-
 all: luna-l2 luna-l2-components las lcc lcc1 l2ld
-.PHONY: clean install l2ld lcc lcc1 las luna-l2-components
 
 luna-l2-components:
 		cd l2 && $(CC) \
@@ -55,6 +52,8 @@ las: $(SRC)/las/* $(SRC)/las-c/* $(SRC)/lcc_info/*
 	cd las-c && $(CC) \
 		*.c \
 		lexer/*.c \
+		parse/*.c \
+		error/*.c \
 		../lcc_shared/libvector.c \
 		../lcc_shared/shared.c \
 		../lcc_shared/liberror.c \
@@ -140,13 +139,9 @@ install:
 	sudo cp -r components/* /usr/local/lib/l2
 	sudo cp bin/* /usr/local/bin/
 
-quick: # only installs if there are no errors
+quick: # atomic install
 	sh -c "make"
 	sh -c "sudo make install"
 
 clean:
-	rm -f /usr/local/bin/luna-l2
-	rm -f /usr/local/bin/las
-	rm -f /usr/local/bin/lcc1
-	rm -f /usr/local/bin/lcc
-	rm -f /usr/local/bin/l2ld
+	rm -rf bin/*
