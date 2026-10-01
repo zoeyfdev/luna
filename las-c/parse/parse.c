@@ -5,6 +5,9 @@
 #include "../error/error.h"
 
 char* current_file = "lcc";
+bool bits_32 = false;
+
+#define EXPECT(T) do { expect(tokens, t, (T)); cursor++; } while(0)
 
 void expect(vector* tokens, token* t, int type) {
     if (t->type != type) {
@@ -21,8 +24,11 @@ void parse(vector* tokens) {
         if (cursor >= tokens->elements)
             break;
 
-        char* val = ((token**) tokens->data)[cursor];
+        token* t = ((token**) tokens->data)[cursor];
 
-        if (!strcmp("mov"))
+        if (!strcmp("mov")) {
+            EXPECT(TYPE_INSTRUCTION);
+            
+        }
     }
 }
