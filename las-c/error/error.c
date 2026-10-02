@@ -4,6 +4,8 @@
 #include "../lexer/lex.h"
 #include "../../lcc_shared/libvector.h"
 
+int num_errors;
+
 void stargaze(vector* tokens, token* t) {
     printf("    %d | ", t->line);
     for (int i = 0; i < tokens->elements; i++) {

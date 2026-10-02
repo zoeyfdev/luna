@@ -54,6 +54,7 @@ las: $(SRC)/las/* $(SRC)/las-c/* $(SRC)/lcc_info/*
 		lexer/*.c \
 		parse/*.c \
 		error/*.c \
+		util/*.c \
 		../lcc_shared/libvector.c \
 		../lcc_shared/shared.c \
 		../lcc_shared/liberror.c \

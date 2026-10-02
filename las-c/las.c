@@ -8,6 +8,7 @@
 #include "../lcc_shared/liberror.h"
 #include "lexer/lex.h"
 #include "error/error.h"
+#include "parse/parse.h"
 
 int main(int argc, char* argv[]) {
     vector* files = vec_init(sizeof(char**), 0);
@@ -40,11 +41,19 @@ int main(int argc, char* argv[]) {
 
         vector* tokens = lex(buffer, size);
 
-        stargaze(tokens, ((token**) tokens->data)[0]);
         for (int i = 0; i < tokens->elements; i++)
             printf("Token value: %s | register: %s | line: %d | instruction: %s\n", ((token**) tokens->data)[i]->value, 
                     is_register(((token**) tokens->data)[i]->value) ? "yes" : "no", ((token**) tokens->data)[i]->line,
                      ((token**) tokens->data)[i]->type == TYPE_INSTRUCTION ? "yes" : "no");
+
+        vector* buf = parse(tokens);
+
+        if (num_errors < 1) { 
+            for (int i = 0; i < buf->elements; i++)
+                printf("0x%02x ", ((unsigned char*) buf->data)[i]);
+            printf("\n");
+        }
+
 
         free(buffer);
     }
