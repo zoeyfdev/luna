@@ -1,4 +1,1 @@
-mov r1, 1
-jmp 1
-
-d
+jnz r1, r2
