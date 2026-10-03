@@ -36,6 +36,9 @@ int line = 1;
 vector* add_token(vector* current, vector* tokens, bool no_ins) {
     token* t = malloc(sizeof(token));
 
+    if (strlen((char*) current->data) < 1)
+        return current;
+
     if (is_register((char*) current->data))
         t->type = TYPE_REGISTER;
     else if ((is_instruction((char*) current->data) || ((char*) current->data)[0] == '.') && !no_ins)
@@ -60,7 +63,7 @@ vector* lex(char* buffer, uint64_t size) {
     bool comment = false;
     bool in_string = false;
 
-    for (int i = 0; i < size; i++, buffer++) {
+    for (uint64_t i = 0; i < size; i++, buffer++) {
         if (*buffer == 0) 
             break;
 
@@ -97,10 +100,14 @@ vector* lex(char* buffer, uint64_t size) {
         case '"':
             in_string = !in_string;
 
+            vec_grow(current, 1);
+            ((char*) current->data)[current->next] = c;
+
             if (!in_string) {
                 current = add_token(current, tokens, true);
                 buffer++;
-            }
+            } 
+
             break;
         case ',':
             if (is_register((char*) current->data) && !in_string) {
@@ -113,6 +120,10 @@ vector* lex(char* buffer, uint64_t size) {
             ((char*) current->data)[current->next] = c;
             break;
         }
+    }
+
+    if (current->elements > 0) {
+        current = add_token(current, tokens, false);
     }
 
     return tokens;

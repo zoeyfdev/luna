@@ -35,9 +35,7 @@ bool execute_command(vector* list, bool report_failure) {
     switch (code) {
     case 1:
         if (report_failure) {
-            char msg[8192];
-            sprintf(msg, "compilation command failed with exit code %d", code);
-            lcc_error("lcc", msg);
+            lcc_error(NULL, 0, "compilation command failed with exit code 1", NULL);
         }
         return false;
         break;

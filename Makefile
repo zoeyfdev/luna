@@ -58,6 +58,7 @@ las: $(SRC)/las/* $(SRC)/las-c/* $(SRC)/lcc_info/*
 		../lcc_shared/libvector.c \
 		../lcc_shared/shared.c \
 		../lcc_shared/liberror.c \
+		../lcc_shared/libfile.c \
 		$(CCFLAGS) \
 		-o ../bin/las-c \
 		-g
@@ -146,3 +147,4 @@ quick: # atomic install
 
 clean:
 	rm -rf bin/*
+	rm -rf components/*

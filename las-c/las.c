@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "../lcc_shared/libvector.h"
+#include "../lcc_shared/libfile.h"
 #include "../lcc_shared/shared.h"
 #include "../lcc_shared/liberror.h"
 #include "lexer/lex.h"
@@ -24,13 +25,23 @@ int main(int argc, char* argv[]) {
     }
 
     if (files->elements < 1) {
-        lcc_error("lcc", "no input files");
+        lcc_error(NULL, 0, "no input files", NULL);
         exit(1);
     }
 
     for (int i = 0; i < files->elements; i++) {
         char* file = ((char**) files->data)[i];
         FILE* f = fopen(file, "rb");
+        if (f == NULL) {
+            lcc_error(NULL, 0, "cannot open output file '", f, "': no such file or directory", NULL);
+            continue;
+        }
+ 
+        char* base = lfn_get_base(file);
+        char* out_fn = calloc(1, strlen(base) + 4);
+        
+        strcat(out_fn, base);
+        strcat(out_fn, ".o");
 
         fseek(f, 0, SEEK_END);
         uint64_t size = ftell(f);
@@ -39,14 +50,10 @@ int main(int argc, char* argv[]) {
         char* buffer = malloc(size);
         fread(buffer, size, size, f);
 
-        vector* tokens = lex(buffer, size);
+        fclose(f);
 
-        for (int i = 0; i < tokens->elements; i++)
-            printf("Token value: %s | register: %s | line: %d | instruction: %s\n", ((token**) tokens->data)[i]->value, 
-                    is_register(((token**) tokens->data)[i]->value) ? "yes" : "no", ((token**) tokens->data)[i]->line,
-                     ((token**) tokens->data)[i]->type == TYPE_INSTRUCTION ? "yes" : "no");
-
-        vector* buf = parse(tokens);
+        parse_init();
+        vector* buf = parse(lex(buffer, size));
 
         if (num_errors < 1) { 
             for (int i = 0; i < buf->elements; i++)
@@ -54,7 +61,18 @@ int main(int argc, char* argv[]) {
             printf("\n");
         }
 
+        FILE* of = fopen(out_fn, "w+b");
+        if (of == NULL) {
+            lcc_error(NULL, 0, "cannot open output file '", out_fn, "'", NULL);
+            continue;
+        }
+
+        fwrite(buf->data, sizeof(unsigned char), buf->elements, of);
+        fclose(of);
 
         free(buffer);
+        free(buf->data);
+        free(buf);
+        free(out_fn);
     }
 }

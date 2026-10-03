@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
                 output_file = argv[i + 1];
                 i++;
             } else {
-                lcc_error("lcc", "argument to '-o' is missing (expected 1 value)");
+                lcc_error(NULL, 0, "argument to '-o' is missing (expected 1 value)", NULL);
             }
         } else if (!strcmp(arg, "-v"))
             verbose = true;
@@ -53,17 +53,14 @@ int main(int argc, char* argv[]) {
                 vec_grow(input_files, 1);
                 ((char**) input_files->data)[input_files->next] = arg;
             } else {
-                char* str = malloc(strlen(arg) + 8192);
-                sprintf(str, "could not stat '%s': no such file or directory", arg);
-                lcc_error("lcc", str);
-                free(str);
+                lcc_error(NULL, 0, "could not stat ", arg, ": no such file or directory", NULL);
             }
             fclose(f);
         }
     }
 
     if (input_files->elements < 1) {
-        lcc_error("lcc", "no input files");
+        lcc_error(NULL, 0, "no input files", NULL);
         exit(1);
     }
 

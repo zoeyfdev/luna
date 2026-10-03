@@ -85,15 +85,7 @@ void sort_files() {
             vec_grow(ld_files, 1);
             ((char**) ld_files->data)[ld_files->next] = file;
         } else {
-            char* strbase = "unknown file type in '";
-            char* str = malloc(strlen(strbase) + strlen(file) + 2);
-            strcat(str, strbase);
-            strcat(str, file);
-            strcat(str, "'");
-
-            lcc_error("lcc", str);
-
-            free(str);
+            lcc_error(NULL, 0, "unknown file type in '", file, "'", NULL);
         }
     }    
 }
