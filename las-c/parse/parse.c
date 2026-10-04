@@ -9,12 +9,13 @@
 #include "../error/error.h"
 #include "../util/instructions.h"
 #include "../util/registers.h"
+#include "../../lcc_shared/libstoi.h"
 
 char* current_file = "lcc";
 bool bits_32 = false;
 
 vector* buffer;
-char* filename;
+char* filename = NULL;
 
 #define EXPECT(T) do { expect(tokens, ((token**) tokens->data)[cursor], (T)); cursor++; } while(0)
 #define LAST_TOKEN (((token**) tokens->data)[cursor - 1])
@@ -23,7 +24,7 @@ char* filename;
 void expect(vector* tokens, token* t, int type) {
     if (t->type != type) {
         num_errors++;
-        lcc_error(NULL, t->line, "unexpected token '", t->value, "'", NULL);
+        lcc_error(filename, t->line, "unexpected token '", t->value, "'", NULL);
         stargaze(tokens, t);
     }
 }
@@ -56,8 +57,9 @@ void insert_any(vector* tokens, token* t) {
     char* value = t->value;
 
     // text token
-    if ((atoi(value) != 0 && strcmp(value, "0")) || (atoi(value) == 0 && !strcmp(value, "0"))) { // numerical value
-        uint32_t num = atoi(value);
+    bool worked = false;
+    int64_t num = stoi(value, &worked);
+    if (worked) { // numerical value
         if (!bits_32) {
             write(num >> 8);
             write(num & 0xFF);
@@ -70,7 +72,7 @@ void insert_any(vector* tokens, token* t) {
     } else if (value[0] == '"') { // array of chars
         if (value[strlen(value) - 1] != '"') {
             num_errors++;
-            lcc_error(NULL, t->line, "unclosed string", NULL);
+            lcc_error(filename, t->line, "unclosed string", NULL);
             stargaze(tokens, t);
         }
 
@@ -90,9 +92,7 @@ void insert_any(vector* tokens, token* t) {
             write(num & 0xFF);
         }
     } else { // label reference
-        write('L');
-        write('R');
-        write('_');
+        write_str("LR_");
 
         for (size_t i = 0; i < strlen(value); i++) {
             write(value[i]);
@@ -138,7 +138,7 @@ vector* parse(vector* tokens) {
                 bits_32 = false;
             } else {
                 num_errors++;
-                lcc_error(NULL, THIS_TOKEN->line, "invalid value to '.bits', expected '16' or '32'", NULL);
+                lcc_error(filename, THIS_TOKEN->line, "invalid value to '.bits', expected '16' or '32'", NULL);
             }
             cursor++;
         } else if (!strcmp(val, "mov")) {
@@ -233,7 +233,7 @@ vector* parse(vector* tokens) {
             char* value = THIS_TOKEN->value;
             if (value[0] != '"' || value[strlen(value) - 1] != '"') {
                 num_errors++;
-                lcc_error(NULL, THIS_TOKEN->line, "invalid/unclosed string", NULL);
+                lcc_error(filename, THIS_TOKEN->line, "invalid/unclosed string", NULL);
             }
 
             for (size_t i = 1; i < strlen(value) - 1; i++) {
@@ -267,9 +267,129 @@ vector* parse(vector* tokens) {
         } else if (!strcmp(val, "ret")) {
             char* stream = "jmp e11";
             parse(lex(stream, strlen(stream)));
+        } else if (!strcmp(val, ".byte") || !strcmp(val, ".word") || !strcmp(val, ".dword")) {
+            int line = THIS_TOKEN->line;
+            while (cursor < tokens->elements) {
+                if (THIS_TOKEN->line != line)
+                    break;
+
+                bool worked = false;
+                int64_t n = stoi(THIS_TOKEN->value, &worked);
+
+                if (!worked) {
+                    num_errors++;
+                    lcc_error(filename, t->line, "invalid number '", THIS_TOKEN->value, "'", NULL);
+                }
+
+                if (!strcmp(val, ".byte")) {
+                    write(n & 0xFF);
+                } else if (!strcmp(val, ".word")) {
+                    write(n >> 8);
+                    write(n & 0xFF);
+                } else if (!strcmp(val, ".dword")) {
+                    write(n >> 24);
+                    write(n >> 16);
+                    write(n >> 8);
+                    write(n & 0xFF);
+                }
+
+                cursor++;
+                
+                if (cursor < tokens->elements) {
+                    if (THIS_TOKEN->line == line) {
+                        if (strcmp(THIS_TOKEN->value, ",")) {
+                            num_errors++;
+                            lcc_error(filename, t->line, "missing comma separator between values", NULL);
+                        } else {
+                            cursor++;
+                        }
+                    }
+                }
+            }
+        } else if (!strcmp(val, ".ptr")) {
+            insert_any(tokens, THIS_TOKEN);
+            cursor++;
+        } else if (!strcmp(val, ".embed")) {
+            char* fn = THIS_TOKEN->value;
+
+            if (strlen(fn) == 0) {
+                num_errors++;
+                lcc_error(filename, t->line, "invalid filename '", fn, "'", NULL);
+                goto done;
+            }
+
+            if (fn[0] != '"' || fn[strlen(fn) - 1] != '"') {
+                num_errors++;
+                lcc_error(filename, t->line, "invalid/unclosed string", NULL);
+                goto done;
+            }
+
+            char* _fn = calloc(1, strlen(fn) + 1);
+            for (size_t i = 1; i < strlen(fn) - 1; i++)
+                _fn[i - 1] = fn[i];
+
+            FILE* f = fopen(_fn, "rb");
+            if (f == NULL) {
+                num_errors++;
+                lcc_error(filename, t->line, "could not open '", _fn, "': no such file or directory", NULL);
+                free(_fn);
+                goto done;
+            }
+
+            fseek(f, 0, SEEK_END);
+            uint64_t size = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            unsigned char* buffer = malloc(size);
+
+            fread(buffer, sizeof(unsigned char), size, f);
+            
+            for (uint64_t i = 0; i < size; i++)
+                write(buffer[i]);
+
+            free(_fn);
+            free(buffer);
+            fclose(f);
+            done:
+            cursor++;
+        } else if (!strcmp(val, ".global")) {
+            char* label = THIS_TOKEN->value;
+
+            write_str("L_GLOBL_");
+            write_str(label);
+            write(0);
+
+            cursor++;
+        } else if (!strcmp(val, ".pad")) {
+            bool worked = false;
+            int64_t num = stoi(THIS_TOKEN->value, &worked);
+
+            if (!worked) {
+                num_errors++;
+                lcc_error(filename, t->line, "invalid number '", THIS_TOKEN->value, "'", NULL);
+            }
+
+            for (int64_t i = 0; i < num; i++) {
+                write(0);
+            }
+
+            cursor++;
+        } else if (!strcmp(val, ".fill")) {
+            bool worked = false;
+            int64_t num = stoi(THIS_TOKEN->value, &worked);
+
+            if (!worked) {
+                num_errors++;
+                lcc_error(filename, t->line, "invalid number '", THIS_TOKEN->value, "'", NULL);
+            }
+
+            write_str("LP_");
+            write(num >> 8);
+            write(num & 0xFF);
+
+            cursor++;
         } else {
             num_errors++;
-            lcc_error(NULL, t->line, "unrecognized opcode/directive '", t->value, "'", NULL);
+            lcc_error(filename, t->line, "unknown instruction/directive '", t->value, "'", NULL);
         }
     }
 

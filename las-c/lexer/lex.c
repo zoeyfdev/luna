@@ -110,11 +110,16 @@ vector* lex(char* buffer, uint64_t size) {
 
             break;
         case ',':
-            if (is_register((char*) current->data) && !in_string) {
+            if (!in_string) {
                 current = add_token(current, tokens, false);
-                buffer++;
+                if (!is_register((char*) current->data)) {
+                    vec_grow(current, 1);
+                    ((char*) current->data)[current->next] = c;
+                } else {
+                    buffer++;
+                }
                 break;
-            }
+            } 
         default:
             vec_grow(current, 1);
             ((char*) current->data)[current->next] = c;

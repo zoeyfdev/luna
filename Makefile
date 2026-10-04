@@ -1,4 +1,4 @@
-SRC=./
+SRC=.
 CC=gcc
 
 OS_NAME := $(shell uname -s)
@@ -14,8 +14,9 @@ ifeq ($(OS),Windows_NT)
 endif
 
 all: luna-l2 luna-l2-components las lcc lcc1 l2ld
+.PHONY: all luna-l2 luna-l2-components las lcc lcc1 l2ld
 
-luna-l2-components:
+luna-l2-components: $(SRC)/l2/*
 		cd l2 && $(CC) \
 		hardware/g1x/g1x.c \
 		-shared -fPIC \
@@ -59,15 +60,15 @@ las: $(SRC)/las/* $(SRC)/las-c/* $(SRC)/lcc_info/*
 		../lcc_shared/shared.c \
 		../lcc_shared/liberror.c \
 		../lcc_shared/libfile.c \
+		../lcc_shared/libstoi.c \
 		$(CCFLAGS) \
 		-o ../bin/las-c \
 		-g
-	cd las && go build -o ../bin/las ./las.go
 
 lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 	cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
 
-l2ld:
+l2ld: $(SRC)/l2ld/*
 	cd l2ld && $(CC) \
 		*.c \
 		../lcc_shared/libvector.c \
@@ -76,7 +77,7 @@ l2ld:
 		-g \
 		$(CCFLAGS)
 
-lcc: $(SRC)/lcc/* $(SRC)/lcc_info/* $(SRC)/lcc_shared/*
+lcc: $(SRC)/lcc/* $(SRC)/lcc_shared/*
 	cd lcc && $(CC) \
 		*.c \
 		../lcc_shared/libvector.c \
@@ -97,44 +98,10 @@ lcc1-libs:
 	sudo printf "_builtin_lcc_memcpy16 /usr/local/lib/l2ld/memcpy16.o\n_builtin_lcc_memcpy32 /usr/local/lib/l2ld/memcpy32.o\n" > /usr/local/lib/l2ld/memcpy.lib
 	sudo printf "_builtin_lcc_strcpy32 /usr/local/lib/l2ld/strcpy32.o\n_builtin_lcc_strcpy16 /usr/local/lib/l2ld/strcpy16.o\n" > /usr/local/lib/l2ld/strcpy.lib
 
-macos-installer:
-	cd l2 && CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/"Luna L2"/Contents/MacOS/luna-l2 luna_l2.go
-	cd lcc && GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/lcc lcc.go
-	cd las && GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/las las.go
-	cd lcc1 && GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/lcc1 lcc1.go
-	cd l2ld && GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/l2ld l2ld.go
-	cd l2 && CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o ../Mac/arm64/usr/local/bin/"Luna L2"/Contents/MacOS/luna-l2 luna_l2.go
-	cd lcc && GOOS=darwin GOARCH=arm64 go build -o ../Mac/arm64/usr/local/bin/lcc lcc.go
-	cd las && GOOS=darwin GOARCH=arm64 go build -o ../Mac/arm64/usr/local/bin/las las.go
-	cd lcc1 && GOOS=darwin GOARCH=arm64 go build -o ../Mac/arm64/usr/local/bin/lcc1 lcc1.go
-	cd l2ld && GOOS=darwin GOARCH=arm64 go build -o ../Mac/arm64/usr/local/bin/l2ld l2ld.go
-	pkgbuild \
-		--root Mac/amd64 \
-		--install-location / \
-		--identifier com.alexfdev0.lunal2.amd64 \
-		--version 1.0 \
-		--scripts Mac/scripts \
-		build/"Luna L2 (amd64).pkg"
-	pkgbuild \
-		--root Mac/arm64 \
-		--install-location / \
-		--identifier com.alexfdev0.lunal2.arm64 \
-		--version 1.0 \
-		--scripts Mac/scripts \
-		build/"Luna L2 (arm64).pkg"
-
 mac_qmake: luna-l2 lcc las lcc1 l2ld
 	sudo cp bin/luna-l2 /Applications/"Luna L2.app"/Contents/MacOS/
 	rm bin/luna-l2
 	sudo cp bin/* /usr/local/bin
-
-windows-installer:
-	cd l2 && CGO_LDFLAGS="-lmingw32 -lSDL2" CGO_CFLAGS="-D_REENTRANT" CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui" -o ../Windows/luna-l2.exe -x luna_l2.go
-	cd lcc && GOOS=windows GOARCH=amd64 go build -o ../Windows/lcc.exe lcc.go
-	cd las && GOOS=windows GOARCH=amd64 go build -o ../Windows/las.exe las.go
-	cd lcc1 && GOOS=windows GOARCH=amd64 go build -o ../Windows/lcc1.exe lcc1.go
-	cd l2ld && GOOS=windows GOARCH=amd64 go build -o ../Windows/l2ld.exe l2ld.go
-	cd Windows && wixl -v msi.xml -o "../build/Luna L2.msi"
 
 install:
 	mkdir -p /usr/local/lib/l2/

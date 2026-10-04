@@ -52,10 +52,10 @@ int main(int argc, char* argv[]) {
             if (f != NULL) {
                 vec_grow(input_files, 1);
                 ((char**) input_files->data)[input_files->next] = arg;
+                fclose(f);
             } else {
                 lcc_error(NULL, 0, "could not stat ", arg, ": no such file or directory", NULL);
-            }
-            fclose(f);
+            } 
         }
     }
 

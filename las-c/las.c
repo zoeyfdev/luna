@@ -55,11 +55,8 @@ int main(int argc, char* argv[]) {
         parse_init();
         vector* buf = parse(lex(buffer, size));
 
-        if (num_errors < 1) { 
-            for (int i = 0; i < buf->elements; i++)
-                printf("0x%02x ", ((unsigned char*) buf->data)[i]);
-            printf("\n");
-        }
+        if (num_errors > 0)
+            exit(1);
 
         FILE* of = fopen(out_fn, "w+b");
         if (of == NULL) {
