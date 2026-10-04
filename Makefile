@@ -49,8 +49,8 @@ luna-l2: $(SRC)/l2/*
 		$(CCFLAGS) \
 		-g
 
-las: $(SRC)/las/* $(SRC)/las-c/* $(SRC)/lcc_info/*
-	cd las-c && $(CC) \
+las: $(SRC)/las/* $(SRC)/lcc_info/*
+	cd las && $(CC) \
 		*.c \
 		lexer/*.c \
 		parse/*.c \
@@ -62,7 +62,7 @@ las: $(SRC)/las/* $(SRC)/las-c/* $(SRC)/lcc_info/*
 		../lcc_shared/libfile.c \
 		../lcc_shared/libstoi.c \
 		$(CCFLAGS) \
-		-o ../bin/las-c \
+		-o ../bin/las \
 		-g
 
 lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
