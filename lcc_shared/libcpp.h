@@ -2,4 +2,4 @@
 
 #include <string.h>
 
-void c_preprocessor(char* buffer);
+char* cpp(char* filename, char* buffer);

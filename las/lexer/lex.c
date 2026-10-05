@@ -46,6 +46,10 @@ vector* add_token(vector* current, vector* tokens, bool no_ins) {
     else
         t->type = TYPE_TEXT;
 
+
+    vec_grow(current, 1);
+    ((char*) current->data)[current->next] = 0;
+
     t->value = (char*) current->data;
     t->line = line;
 

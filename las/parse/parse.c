@@ -10,6 +10,7 @@
 #include "../util/instructions.h"
 #include "../util/registers.h"
 #include "../../lcc_shared/libstoi.h"
+#include "../util/push.h"
 
 char* current_file = "lcc";
 bool bits_32 = false;
@@ -117,6 +118,7 @@ vector* parse(vector* tokens) {
 
         cursor++;
 
+        printf("%s\n", val);
         if (val[strlen(val) - 1] == ':') { // label
             if (!bits_32)
                 write_str("LD16_");
@@ -140,6 +142,19 @@ vector* parse(vector* tokens) {
                 num_errors++;
                 lcc_error(filename, THIS_TOKEN->line, "invalid value to '.bits', expected '16' or '32'", NULL);
             }
+            cursor++;
+        } else if (!strcmp(val, "set")) {
+            write(get_opcode(LAST_TOKEN));
+
+            if (!strcmp(THIS_TOKEN->value, "32")) {
+                write(1);
+            } else if (!strcmp(THIS_TOKEN->value, "16")) {
+                write(0);
+            } else {
+                num_errors++;
+                lcc_error(filename, THIS_TOKEN->line, "invalid value to 'set', expected '16' or '32'", NULL);
+            }
+
             cursor++;
         } else if (!strcmp(val, "mov")) {
             write(get_opcode(LAST_TOKEN));
@@ -222,8 +237,26 @@ vector* parse(vector* tokens) {
 
             cursor++;
         } else if (!strcmp(val, "lod") || !strcmp(val, "str") || !strcmp(val, "lod16") || !strcmp(val, "str16")
-                || !strcmp(val, "lod32") || !strcmp(val, "str32") || !strcmp(val, "not")) {
-            write(get_opcode(LAST_TOKEN));
+                || !strcmp(val, "lod32") || !strcmp(val, "str32") || !strcmp(val, "not") || !strcmp(val, "lod_ptr")
+                || !strcmp(val, "str_ptr")) {
+
+            if (strcmp(val, "lod_ptr") && strcmp(val, "str_ptr"))
+                write(get_opcode(LAST_TOKEN));
+            else {
+                if (!bits_32) {
+                    if (!strcmp(val, "lod_ptr")) {
+                        write(0x19);
+                    } else {
+                        write(0x18);
+                    }
+                } else {
+                    if (!strcmp(val, "lod_ptr")) {
+                        write(0x1f);
+                    } else {
+                        write(0x1e);
+                    }
+                }
+            }
 
             for (int i = 0; i < 2; i++) {
                 EXPECT(TYPE_REGISTER);
@@ -231,12 +264,21 @@ vector* parse(vector* tokens) {
             }
         } else if (!strcmp(val, ".ascii") || !strcmp(val, ".asciz")) {
             char* value = THIS_TOKEN->value;
+
             if (value[0] != '"' || value[strlen(value) - 1] != '"') {
                 num_errors++;
                 lcc_error(filename, THIS_TOKEN->line, "invalid/unclosed string", NULL);
             }
 
             for (size_t i = 1; i < strlen(value) - 1; i++) {
+                if (strlen(value) > i + 1) {
+                    if (value[i] == '\\' && value[i + 1] == 'n') {
+                        write('\n');
+                        i++;
+                        continue;
+                    }
+                }
+
                 write(value[i]);
             }
 
@@ -267,6 +309,10 @@ vector* parse(vector* tokens) {
         } else if (!strcmp(val, "ret")) {
             char* stream = "jmp e11";
             parse(lex(stream, strlen(stream)));
+        } else if (!strcmp(val, "pusha")) {
+            parse(lex(pusha_str, strlen(pusha_str)));
+        } else if (!strcmp(val, "popa")) {
+            parse(lex(popa_str, strlen(popa_str)));
         } else if (!strcmp(val, ".byte") || !strcmp(val, ".word") || !strcmp(val, ".dword")) {
             int line = THIS_TOKEN->line;
             while (cursor < tokens->elements) {

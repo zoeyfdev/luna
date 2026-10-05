@@ -1,10 +1,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "libvector.h"
+#include "liberror.h"
 
-#define INSERT_TOKEN() do { token* t = malloc(sizeof(token)); \
+#define INSERT_TOKEN() do { token* t = malloc(sizeof(token) + 5); \
+    vec_grow(current, 1); \
+    ((char*) current->data)[current->next] = 0; \
+    printf("%s\n", (char*) current->data); \
     t->value = (char*) current->data; \
     t->line = line; \
     vec_grow(tokens, 1); \
@@ -14,6 +19,12 @@
 } while(0)
 
 #define INSERT_CHAR() do { vec_grow(current, 1); ((char*) current->data)[current->next] = c; } while(0)
+
+#ifndef _WIN32
+    char* include_path = "/usr/local/include/lcc/";
+#else
+    char* include_path = "C:\\Program Files\\Luna L2\\include\\";
+#endif
 
 typedef struct {
     char* value;
@@ -31,9 +42,16 @@ vector* tokenize(char* buffer) {
     int line = 1;
 
     bool in_string = false;
+    bool last_was_str = false;
 
     for (size_t i = 0; i < strlen(buffer); i++) {
         char c = buffer[i];
+
+        if (c == '"') {
+            last_was_str = true;
+        } else {
+            last_was_str = false;
+        }
 
         switch (c) {
         case '"':
@@ -52,10 +70,14 @@ vector* tokenize(char* buffer) {
                 INSERT_TOKEN(); 
             } else {
                 INSERT_CHAR();
+                break;
             }
 
-            if (c == 0x0a)
+            if (c == 0x0a) {
+                INSERT_CHAR();
+                INSERT_TOKEN();
                 line++;
+            }
 
             break;
         default:
@@ -71,10 +93,9 @@ vector* tokenize(char* buffer) {
     return tokens;
 }
 
-void c_preprocessor(char* buffer) { 
+char* cpp(char* filename, char* buffer) { 
     vector* defines = vec_init(sizeof(define**), 0); 
     bool again = false;
-
 top:
     vector* tokens = tokenize(buffer);
     vector* output = vec_init(sizeof(char**), 0);
@@ -107,12 +128,117 @@ top:
 
             i--;
 
-            define* d = malloc(sizeof(define));
+            define* d = malloc(sizeof(define) + 5);
             d->original = orig->value;
             d->replacement_list = list;
 
             vec_grow(defines, 1);
             ((define**) defines->data)[defines->next] = d;
+        } else if (!strcmp(value, "#ifdef") || !strcmp(value, "#ifndef")) {
+            char* label = ((token**) tokens->data)[++i]->value;
+            bool found = false;
+            bool is_rev = !strcmp(value, "#ifndef");
+
+            for (int i = 0; i < defines->elements; i++) {
+                define* d = ((define**) defines->data)[i];
+
+                if (!strcmp(d->original, label)) {
+                    found = true;
+                    break;
+                }
+            }
+            i++;
+
+            while (strcmp(((token**) tokens->data)[i]->value, "#endif") && 
+                    strcmp(((token**) tokens->data)[i]->value, "#else")) {
+              
+                if ((found && !is_rev) || (!found && is_rev)) {
+                    vec_grow(output, 1);
+                    ((char**) output->data)[output->next] = ((token**) tokens->data)[i]->value;
+                }
+                i++;
+            }
+
+            if (!strcmp(((token**) tokens->data)[i]->value, "#else")) {
+                i++;
+                while (strcmp(((token**) tokens->data)[i]->value, "#endif")) {
+                    if ((found && is_rev) || (!found && !is_rev)) {
+                        vec_grow(output, 1);
+                        ((char**) output->data)[output->next] = ((token**) tokens->data)[i]->value;
+                    }
+                    i++;
+                }
+            }
+        } else if (!strcmp(value, "#include")) {
+            again = true;
+            token* path = ((token**) tokens->data)[++i];
+
+            if (strlen(path->value) < 2) {
+                lcc_error(filename, path->line, "invalid filename '", path->value, "'", NULL);
+                continue; 
+            }
+
+            char* _value = path->value;
+            bool abs = false;
+            char term = '"';
+
+            if (_value[0] == '"')
+                term = '"';
+            else if (_value[0] == '<') {
+                term = '>';
+                abs = true;
+            } else {
+                lcc_error(filename, path->line, "invalid string", NULL);
+                continue;
+            }
+
+            if (_value[strlen(_value) - 1] != term) {
+                lcc_error(filename, path->line, "invalid string", NULL);
+                continue;
+            }
+  
+    f_try_top:
+            int times = abs ? 1 : 0;
+            char* nostrm = calloc(1, strlen(_value) + 1);
+            char* actual = calloc(1, strlen(_value) + strlen(include_path) + 1); // should be enough
+          
+            for (size_t i = 1; i < strlen(_value) - 1; i++) {
+                nostrm[i - 1] = _value[i];
+            }
+
+            if (abs)
+                strcat(actual, include_path);
+            strcat(actual, nostrm);
+            free(nostrm);
+ 
+            FILE* f = fopen(actual, "rb");
+            if (f == NULL) {
+                if (times == 1) {
+                    lcc_error(filename, path->line, "could not open file '", actual, "'", NULL);
+                    fprintf(stderr, "compilation terminated.\n");
+                    exit(1);
+                } else {
+                    // free(actual);
+                    abs = true;
+                    goto f_try_top;
+                }
+            }
+
+            fseek(f, 0, SEEK_END);
+            uint64_t size = ftell(f);
+            fseek(f, 0, SEEK_SET);
+
+            char* fbuf = calloc(1, size + 5);
+
+            fread(fbuf, sizeof(char), size, f);
+            fclose(f);
+
+            vector* ftokens = tokenize(fbuf);
+
+            for (int i = 0; i < ftokens->elements; i++) {
+                vec_grow(output, 1);
+                ((char**) output->data)[output->next] = ((token**) ftokens->data)[i]->value;
+            }
         } else {
             bool found = false;
             for (int k = 0; k < defines->elements; k++) {
@@ -144,20 +270,23 @@ top:
     }
     len++;
 
-    char* buf = calloc(1, len + 1);
+    char* buf = calloc(1, len + 2);
 
     for (int i = 0; i < output->elements; i++) {
-        strcat(buf, ((char**) output->data)[i]);
+        char* ot = ((char**) output->data)[i];
+
+        strcat(buf, ot);
         if (buf[strlen(buf) - 1] != '\n' && i != output->next)
             strcat(buf, " ");
     }
-    buf[strlen(buf)] = 0; 
+
+    buf[strlen(buf) - 1] = 0;
 
     if (again) {
         again = false;
         buffer = buf;
         goto top;
-    }
+    } 
 
-    printf("Final: %s\n", buf);
+    return buf;
 }

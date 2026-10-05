@@ -61,6 +61,7 @@ las: $(SRC)/las/* $(SRC)/lcc_info/*
 		../lcc_shared/liberror.c \
 		../lcc_shared/libfile.c \
 		../lcc_shared/libstoi.c \
+		../lcc_shared/libcpp.c \
 		$(CCFLAGS) \
 		-o ../bin/las \
 		-g

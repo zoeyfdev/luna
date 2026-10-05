@@ -124,4 +124,4 @@ msg_missing_os:
     .asciz "Missing operating system\n"
 
 msg_read_error:
-    .asciz "Read from disk failed\n"
+    .asciz "Read from disk failedn"

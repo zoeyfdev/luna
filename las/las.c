@@ -7,6 +7,7 @@
 #include "../lcc_shared/libfile.h"
 #include "../lcc_shared/shared.h"
 #include "../lcc_shared/liberror.h"
+#include "../lcc_shared/libcpp.h"
 #include "lexer/lex.h"
 #include "error/error.h"
 #include "parse/parse.h"
@@ -47,13 +48,15 @@ int main(int argc, char* argv[]) {
         uint64_t size = ftell(f);
         fseek(f, 0, SEEK_SET);
 
-        char* buffer = malloc(size);
-        fread(buffer, size, size, f);
+        char* buffer = calloc(1, size + 2);
+        fread(buffer, sizeof(char), size, f);
 
         fclose(f);
 
+        char* pp_buffer = cpp(file, buffer);
+        pp_buffer[strlen(pp_buffer) - 1] = 0;
         parse_init();
-        vector* buf = parse(lex(buffer, size));
+        vector* buf = parse(lex(pp_buffer, strlen(pp_buffer)));
 
         if (num_errors > 0)
             exit(1);
