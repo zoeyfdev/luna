@@ -36,7 +36,7 @@ void bios_splash() {
 }
 
 void bios_init() {
-    BIOS_RAM = malloc(BIOS_RAM_SIZE); // 6 bytes per interrupt * 32 interrupts
+    BIOS_RAM = calloc(1, BIOS_RAM_SIZE); // 6 bytes per interrupt * 32 interrupts
 }
 
 unsigned char bios_read_memory(uint32_t address) {

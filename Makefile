@@ -6,8 +6,7 @@ SDL_FLAGS = $(shell sdl2-config --cflags --libs)
 CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough
 
 ifeq ($(OS_NAME),Darwin)
-	CC=gcc-16
-	SDL_FLAGS = $(shell pkg-config --cflags --libs sdl2)
+	CC=clang
 endif
 ifeq ($(OS),Windows_NT)
 	CC=x86_64-w64-mingw32-gcc

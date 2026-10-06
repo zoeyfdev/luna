@@ -56,7 +56,7 @@ pipeline_top:
         // check for interrupts
         if (!IS_IIF || 1) {
             for (int i = 0; i < 32; i++) {
-                if ((get_register(IR) & (1 << i)) != 0) {
+                if ((uint32_t) (get_register(IR) & (1 << i)) != 0) {
                     bios_handle_interrupt(i + 1);
                     if (i + 1 == 0x0F) {
                         CPU_RESET = true;
