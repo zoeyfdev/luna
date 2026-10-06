@@ -64,34 +64,18 @@ func CodegenLeaf(Leaf neoparser.Leaf) CodegenResult {
 		WritePre(StringName + ":", false)
 		WritePre(".asciz \"" + StringLit.Value + "\"\n", true)
 		VarTicker++
-
-		if StringLit.Scope != 0 {
-			PushAllocated()
-			Write(fmt.Sprintf("mov %s, %s", r, StringLit.Internal), true)
-			Write(fmt.Sprintf("push %s", r), true)
-			Write(fmt.Sprintf("push %s", StringName), true)
-			Write("call " + FormatLibraryName("_builtin_lcc_strcpy"), true)
-			PopAllocated()
-
-			Result.IsRvalue = true
-
-			// Just in case
-			Write(fmt.Sprintf("mov %s, %s", r, StringLit.Internal), true)
-			// TODO: reformat this for arrays
-			// TODO: make it so bare strings do not get allocated
-		} else {
-			LabelName := fmt.Sprintf("var_ptr_%d", VarTicker)
-			WritePre(LabelName + ":", false)
-			WritePre(".ptr " + StringName + "\n", true)
-			VarTicker++
 		
-			Write("mov " + r + ", " + LabelName, true)
+		LabelName := fmt.Sprintf("var_ptr_%d", VarTicker)
+		WritePre(LabelName + ":", false)
+		WritePre(".ptr " + StringName + "\n", true)
+		VarTicker++
+	
+		Write("mov " + r + ", " + LabelName, true)
 
-			if StringLit.IsRead == true {
-				Result.Read = true
-				Write("lod_ptr " + r + ", " + r, true)	
-			}
-		}	
+		if StringLit.IsRead == true {
+			Result.Read = true
+			Write("lod_ptr " + r + ", " + r, true)	
+		}
 
 		return Result
 	case neoparser.Identifier:

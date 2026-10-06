@@ -65,6 +65,7 @@ vector* lex(char* buffer, uint64_t size) {
     vector* tokens = vec_init(sizeof(token**), 0);
     vector* current = vec_init(sizeof(char*), 0);
     bool comment = false;
+    bool long_comment = false;
     bool in_string = false;
 
     for (uint64_t i = 0; i < size; i++, buffer++) {
@@ -73,13 +74,22 @@ vector* lex(char* buffer, uint64_t size) {
 
         char c = *buffer;
 
-        if (((c == '/' && *(buffer + 1) == '/') || (c == ';') || (c == '#' && *(buffer + 1) == ' ')) && !in_string) {
+        if (((c == '/' && *(buffer + 1) == '/') || (c == ';') || (c == '#' && *(buffer + 1) == ' ') || (c == '/' && *(buffer + 1) == '*')) && !in_string) {
+            if (c == '/' && *(buffer + 1) == '*')
+                long_comment = true;
             if (c != ';')
-                buffer++;
+                buffer++; 
             comment = true;
         } else if (c == '\n') {
-            if (comment) {
+            if (comment && !long_comment) {
                 comment = false;
+                continue;
+            }
+        } else if (c == '*' && *(buffer + 1) == '/') {
+            if (long_comment && comment) {
+                long_comment = false;
+                comment = false;
+                buffer++;
                 continue;
             }
         }
@@ -112,6 +122,18 @@ vector* lex(char* buffer, uint64_t size) {
                 buffer++;
             } 
 
+            break;
+        case '-':
+        case '+':
+            if (!in_string) {
+                current = add_token(current, tokens, false);
+                vec_grow(current, 1);
+                ((char*) current->data)[current->next] = c;
+                current = add_token(current, tokens, false);
+            } else {
+                vec_grow(current, 1);
+                ((char*) current->data)[current->next] = c;
+            }
             break;
         case ',':
             if (is_register((char*) current->data) && !in_string) {

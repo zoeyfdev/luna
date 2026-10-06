@@ -12,6 +12,8 @@
 #include "error/error.h"
 #include "parse/parse.h"
 
+extern char* filename;
+
 int main(int argc, char* argv[]) {
     vector* files = vec_init(sizeof(char**), 0);
 
@@ -19,6 +21,8 @@ int main(int argc, char* argv[]) {
         char* arg = argv[i];
         if (!strcmp(arg, "-v")) {
             _DISPLAY_VERSION_INFO();
+        } else if (!strcmp(arg, "-c")) {
+            // placeholder for now
         } else {
             vec_grow(files, 1);
             ((char**) files->data)[files->next] = arg;
@@ -34,9 +38,10 @@ int main(int argc, char* argv[]) {
         char* file = ((char**) files->data)[i];
         FILE* f = fopen(file, "rb");
         if (f == NULL) {
-            lcc_error(NULL, 0, "cannot open output file '", f, "': no such file or directory", NULL);
+            lcc_error(NULL, 0, "cannot open output file '", file, "': no such file or directory", NULL);
             continue;
         }
+        filename = file;
  
         char* base = lfn_get_base(file);
         char* out_fn = calloc(1, strlen(base) + 4);

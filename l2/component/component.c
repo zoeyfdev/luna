@@ -1,8 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifndef _WIN32
 
 #include <dlfcn.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 void* return_component_function(void* handle, char* name) {
     void* function_handle = dlsym(handle, name);
@@ -21,6 +22,5 @@ void* initialize_component(char* path) {
 
     return handle;
 }
-
 
 #endif

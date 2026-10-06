@@ -150,7 +150,7 @@ readin_bksp:
     mov r11, r3 
 
     dec r4
-    str, r4, r1
+    str r4, r1
 
     int 0x0e
     dec r1

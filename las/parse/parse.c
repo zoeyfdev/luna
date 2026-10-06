@@ -6,6 +6,7 @@
 #include "../lexer/lex.h"
 #include "../../lcc_shared/libvector.h"
 #include "../../lcc_shared/liberror.h"
+#include "../../lcc_shared/libfile.h"
 #include "../error/error.h"
 #include "../util/instructions.h"
 #include "../util/registers.h"
@@ -21,6 +22,7 @@ char* filename = NULL;
 #define EXPECT(T) do { expect(tokens, ((token**) tokens->data)[cursor], (T)); cursor++; } while(0)
 #define LAST_TOKEN (((token**) tokens->data)[cursor - 1])
 #define THIS_TOKEN (((token**) tokens->data)[cursor])
+#define NEXT_TOKEN (((token**) tokens->data)[cursor + 1])
 
 void expect(vector* tokens, token* t, int type) {
     if (t->type != type) {
@@ -77,11 +79,18 @@ void insert_any(vector* tokens, token* t) {
             stargaze(tokens, t);
         }
 
-        uint32_t num = 0;
-        if (!bits_32)
-            num = *(uint16_t*) value + (strlen(value) - 3);
-        else
-            num = *(uint32_t*) value + (strlen(value) - 5);
+        int bits = 0;
+
+        uint64_t num = 0;
+        for (size_t i = 1; i < strlen(value) - 1; i++, bits += 8) {
+            char c = value[i];
+            if (bits == 0) {
+                num = c & 0xFF;
+            } else {
+                num <<= 8;
+                num |= c;
+            }
+        } 
 
         if (!bits_32) {
             write(num >> 8);
@@ -118,7 +127,6 @@ vector* parse(vector* tokens) {
 
         cursor++;
 
-        printf("%s\n", val);
         if (val[strlen(val) - 1] == ':') { // label
             if (!bits_32)
                 write_str("LD16_");
@@ -136,8 +144,10 @@ vector* parse(vector* tokens) {
         if (!strcmp(val, ".bits")) {
             if (!strcmp(THIS_TOKEN->value, "32")) {
                 bits_32 = true;
+                write_str("L_32BIT");
             } else if (!strcmp(THIS_TOKEN->value, "16")) {
                 bits_32 = false;
+                write_str("L_16BIT");
             } else {
                 num_errors++;
                 lcc_error(filename, THIS_TOKEN->line, "invalid value to '.bits', expected '16' or '32'", NULL);
@@ -156,6 +166,21 @@ vector* parse(vector* tokens) {
             }
 
             cursor++;
+        } else if (!strcmp(val, ".org")) {
+            write_str("LO_");
+            
+            bool worked = false;
+            int64_t num = stoi(THIS_TOKEN->value, &worked);
+
+            if (!worked) {
+                num_errors++;
+                lcc_error(filename, THIS_TOKEN->line, "invalid number to .org, got '", THIS_TOKEN->value, "'", NULL);
+            }
+
+            write(num >> 8);
+            write(num & 0xFF);
+
+            cursor++;
         } else if (!strcmp(val, "mov")) {
             write(get_opcode(LAST_TOKEN));
 
@@ -166,9 +191,18 @@ vector* parse(vector* tokens) {
                 write(get_reg(LAST_TOKEN));
                 insert_any(tokens, THIS_TOKEN);
             } else {
-                write(2);
-                write(get_reg(LAST_TOKEN));
-                write(get_reg(THIS_TOKEN));
+                if (strcmp(NEXT_TOKEN->value, "+") && strcmp(NEXT_TOKEN->value, "-")) {
+                    write(2);
+                    write(get_reg(LAST_TOKEN));
+                    write(get_reg(THIS_TOKEN));
+                } else {
+                    write(3);
+                    write(get_reg(LAST_TOKEN));
+                    write(get_reg(THIS_TOKEN));
+                    cursor += 2;
+                    write(!strcmp(LAST_TOKEN->value, "+") ? 1 : 2);
+                    insert_any(tokens, THIS_TOKEN);
+                }
             }
 
             cursor++;
@@ -251,9 +285,9 @@ vector* parse(vector* tokens) {
                     }
                 } else {
                     if (!strcmp(val, "lod_ptr")) {
-                        write(0x1f);
-                    } else {
                         write(0x1e);
+                    } else {
+                        write(0x1f);
                     }
                 }
             }
@@ -346,6 +380,9 @@ vector* parse(vector* tokens) {
             cursor++;
         } else if (!strcmp(val, ".embed")) {
             char* fn = THIS_TOKEN->value;
+            char* lead = get_file_lead(filename);
+
+            char* full_fn = calloc(1, strlen(lead) + strlen(fn) + 1); 
 
             if (strlen(fn) == 0) {
                 num_errors++;
@@ -363,7 +400,10 @@ vector* parse(vector* tokens) {
             for (size_t i = 1; i < strlen(fn) - 1; i++)
                 _fn[i - 1] = fn[i];
 
-            FILE* f = fopen(_fn, "rb");
+            strcat(full_fn, lead);
+            strcat(full_fn, _fn);
+
+            FILE* f = fopen(full_fn, "rb");
             if (f == NULL) {
                 num_errors++;
                 lcc_error(filename, t->line, "could not open '", _fn, "': no such file or directory", NULL);
@@ -384,6 +424,7 @@ vector* parse(vector* tokens) {
             free(_fn);
             free(buffer);
             fclose(f);
+            free(full_fn);
             done:
             cursor++;
         } else if (!strcmp(val, ".global")) {

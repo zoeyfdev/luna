@@ -11,8 +11,8 @@
 set 32
 .bits 32
 LOS_BASE:
-mov sp, 1500
-mov fp, 0x10000000 // originally 0x40404040
+mov sp, 0x6F00FFFF
+mov fp, 0x6F000000
 
 call IDT_SETUP
 jmp boot

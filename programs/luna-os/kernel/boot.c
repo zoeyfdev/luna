@@ -13,7 +13,7 @@ extern void* _builtin_lcc_strcpy32;
 
 void boot() __attribute__((noreturn)) {
     targeted_load(_builtin_lcc_strcpy32, 3);
-    targeted_load(puts32_loc, 2);
+    targeted_load(puts32_loc, 3);
 
     puts32("Loading resources...\n", COLOR_WHITE, COLOR_BLACK);
     targeted_load(BOOT_SOUND, 43);

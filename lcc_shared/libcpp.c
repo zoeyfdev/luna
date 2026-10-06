@@ -9,7 +9,6 @@
 #define INSERT_TOKEN() do { token* t = malloc(sizeof(token) + 5); \
     vec_grow(current, 1); \
     ((char*) current->data)[current->next] = 0; \
-    printf("%s\n", (char*) current->data); \
     t->value = (char*) current->data; \
     t->line = line; \
     vec_grow(tokens, 1); \
@@ -42,16 +41,9 @@ vector* tokenize(char* buffer) {
     int line = 1;
 
     bool in_string = false;
-    bool last_was_str = false;
 
     for (size_t i = 0; i < strlen(buffer); i++) {
-        char c = buffer[i];
-
-        if (c == '"') {
-            last_was_str = true;
-        } else {
-            last_was_str = false;
-        }
+        char c = buffer[i]; 
 
         switch (c) {
         case '"':

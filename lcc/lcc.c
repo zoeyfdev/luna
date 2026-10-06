@@ -23,6 +23,31 @@ extern vector* cleanup_files;
 vector* input_files;
 char* output_file = "a.bin"; // default output file name
 
+void cleanup(vector* cleanup_files) {
+    for (int i = 0; i < cleanup_files->elements; i++) {
+        vector* command = vec_init(sizeof(char**), 0);
+
+        vec_grow(command, 1);
+        #ifndef _WIN32
+        ((char**) command->data)[command->next] = "rm";
+        #else
+        ((char**) command->data)[command->next] = "del";
+        #endif
+
+        vec_grow(command, 1);
+        #ifndef _WIN32
+        ((char**) command->data)[command->next] = "-f";
+        #else
+        ((char**) command->data)[command->next] = "/f";
+        #endif
+
+        vec_grow(command, 1);
+        ((char**) command->data)[command->next] = ((char**) cleanup_files->data)[i];
+
+        execute_command(command, false);
+    }
+}
+
 int main(int argc, char* argv[]) {
     input_files = vec_init(sizeof(char*), 0);
     for (int i = 1; i < argc; i++) {
@@ -82,8 +107,10 @@ int main(int argc, char* argv[]) {
         if (!success) hl_error = true;
     }
 
-    if (hl_error)
+    if (hl_error) {
+        cleanup(cleanup_files);
         exit(1);
+    }    
 
     if (no_assemble)
         exit(0);
@@ -104,8 +131,10 @@ int main(int argc, char* argv[]) {
         if (!success) as_error = true;
     }
 
-    if (as_error)
+    if (as_error) {
+        cleanup(cleanup_files);
         exit(1);
+    }
 
     if (no_link)
         exit(0);
@@ -133,29 +162,10 @@ int main(int argc, char* argv[]) {
 
     ld_error = !execute_command(command, false);
 
-    if (ld_error)
+    if (ld_error) {
+        cleanup(cleanup_files);
         exit(1);
-
-    for (int i = 0; i < cleanup_files->elements; i++) {
-        vector* command = vec_init(sizeof(char**), 0);
-
-        vec_grow(command, 1);
-        #ifndef _WIN32
-        ((char**) command->data)[command->next] = "rm";
-        #else
-        ((char**) command->data)[command->next] = "del";
-        #endif
-
-        vec_grow(command, 1);
-        #ifndef _WIN32
-        ((char**) command->data)[command->next] = "-f";
-        #else
-        ((char**) command->data)[command->next] = "/f";
-        #endif
-
-        vec_grow(command, 1);
-        ((char**) command->data)[command->next] = ((char**) cleanup_files->data)[i];
-
-        execute_command(command, false);
     }
+
+    cleanup(cleanup_files);
 }

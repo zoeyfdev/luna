@@ -6,21 +6,6 @@
 
 #include "libvector.h"
 
-void rev(char* s) {
-    int l = 0;
-    int r = strlen(s) - 1;
-    char t;
-
-    while (l < r) { 
-        t = s[l];
-        s[l] = s[r];
-        s[r] = t;
-
-        l++;
-        r--;
-    }
-}
-
 char* lfn_get_ext(char* s) {
     int len = strlen(s) - 1; // Get last character
 
@@ -95,4 +80,17 @@ vector* get_file_word(char* file_data, uint64_t end, int pos) {
     vec_grow(word, 1);
     ((char*) word->data)[word->next] = 0;
     return word;
+}
+
+char* get_file_lead(char* _fn) {
+    char* filename = strdup(_fn);
+    for (size_t i = strlen(filename); i >= 0; i--) {
+        char c = filename[i];
+
+        if (c == '/' || c == '\\') {
+            filename[i + 1] = 0;
+            break;
+        }
+    }
+    return filename;
 }

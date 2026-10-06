@@ -28,7 +28,7 @@ char* instructions[] = {
     "str",
     "shl",
     "shr",
-    "str32",
     "lod32",
+    "str32",
     "mod"
 };
