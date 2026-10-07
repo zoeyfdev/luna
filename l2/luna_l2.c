@@ -11,6 +11,7 @@
 #include "io/keyboard.h"
 #include "hwinit/audio.h"
 #include "hwinit/pit.h"
+#include "hwinit/keyboard.h"
 
 int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; i++) {
@@ -22,9 +23,9 @@ int main(int argc, char* argv[]) {
     // Initialize audio
     initialize_audio();
     initialize_pit();
+    initialize_keyboard();
 
     // Initialize keyboard
-    KEYBOARD_MEMORY = malloc(1);
 
     // Execute CPU
     pthread_t cpu_thread;
