@@ -15,8 +15,7 @@
 unsigned char* MEMORY = NULL;
 
 void initialize_memory() {
-    MEMORY = (unsigned char*) malloc(MEMSIZE);
-    memset(MEMORY, 0x00, MEMSIZE);
+    MEMORY = calloc(1, MEMSIZE);
 }
 
 unsigned char get_memory_main(uint32_t address) {
@@ -47,6 +46,7 @@ unsigned char get_memory(uint32_t address) {
         else if (address >= S_PIT_RAM_16 && address <= E_PIT_RAM_16)
             return pit_read_memory(address - S_PIT_RAM_16);
     } else {
+        // 32-bit memory map
         if (address >= S_SYS_RAM_32 && address <= E_SYS_RAM_32)
             return get_memory_main(address - S_SYS_RAM_32);
         else if (address >= S_VIDEO_RAM_32 && address <= E_VIDEO_RAM_32)
@@ -79,6 +79,7 @@ void set_memory(uint32_t address, unsigned char value) {
         else if (address >= S_PIT_RAM_16 && address <= E_PIT_RAM_16)
             pit_write_memory(address - S_PIT_RAM_16, value);
     } else {
+        // 32-bit memory map
         if (address >= S_SYS_RAM_32 && address <= E_SYS_RAM_32)
             set_memory_main(address - S_SYS_RAM_32, value);
         else if (address >= S_VIDEO_RAM_32 && address <= E_VIDEO_RAM_32)

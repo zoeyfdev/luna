@@ -16,7 +16,9 @@
 int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; i++) {
         char* arg = argv[i];
-        HDD_FILE = arg;
+        if (!strcmp("-hdd", arg) && i + 1 < argc)
+            HDD_FILE = argv[i + 1];
+        else if (!strcmp("-sd", arg) && i + 1 < argc)
     }
 
     // Initialize IO devices
