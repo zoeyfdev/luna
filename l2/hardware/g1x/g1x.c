@@ -23,8 +23,7 @@ int cursor_x = 0;
 int cursor_y = 0;
 
 void gpu_init() {
-    VIDEO_MEMORY = malloc(VRAM);
-    memset(VIDEO_MEMORY, 0x00, VRAM);
+    VIDEO_MEMORY = calloc(1, VRAM);
 
     img = malloc(sizeof(nrgba_image));
     pixels = malloc(sizeof(nrgba_pixel) * REAL_VRAM);
