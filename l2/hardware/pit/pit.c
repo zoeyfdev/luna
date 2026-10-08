@@ -49,8 +49,7 @@ void pit_init(void (*_set_register)(unsigned char, uint32_t), uint32_t (*_get_re
     set_register = _set_register;
     get_register = _get_register;
 
-    PIT_MEMORY = malloc(PIT_RAM_SIZE);
-    memset(PIT_MEMORY, 0x00, PIT_RAM_SIZE);
+    PIT_MEMORY = calloc(1, PIT_RAM_SIZE);
 
     PIT_MEMORY[2] = 0x03;
     PIT_MEMORY[3] = 0xE8;

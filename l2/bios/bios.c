@@ -67,7 +67,8 @@ void bios_handle_interrupt(uint32_t code) {
 
     switch (code) {
     case 0x01:
-        v_print_char((unsigned int) get_register(R1) & 0xFF, (unsigned int) get_register(R2) & 0xFF, (unsigned int) get_register(R3) & 0xFF);
+        v_print_char((unsigned int) get_register(R1) & 0xFF, (unsigned int) get_register(R2) & 0xFF, 
+                (unsigned int) get_register(R3) & 0xFF);
         break;
     case 0x02:
         // PIT reserved

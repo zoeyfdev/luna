@@ -25,7 +25,6 @@ bool load_sector(int drive, int sector, int dest_sector) {
     }
 
     if (file == NULL) {
-        printf("luna-l2: invalid drive %d for disk!\n", drive);
         return false;
     }
 
@@ -62,7 +61,6 @@ bool write_sector(int drive, int sector, int dest_sector) {
     }
 
     if (file == NULL) {
-        printf("luna-l2: invalid drive %d for disk!\n", drive);
         return false;
     }
 

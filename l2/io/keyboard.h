@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 extern unsigned char* KEYBOARD_MEMORY;
 
 int keyboard_upper(int code);

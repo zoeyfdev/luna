@@ -1,3 +1,3 @@
 #pragma once
 
-void initialize_pit();
+void initialize_pit(char* component);

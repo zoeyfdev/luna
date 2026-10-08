@@ -20,18 +20,18 @@ luna-l2-components: $(SRC)/l2/*
 		hardware/g1x/g1x.c \
 		-shared -fPIC \
 		$(CCFLAGS) \
-		-o ../components/video/g1x.so -g
+		-o ../components/g1x.so -g
 	cd l2 && $(CC) \
 		hardware/pit/pit.c \
 		-shared -fPIC \
 		$(CCFLAGS) \
-		-o ../components/pit/pit.so -g
+		-o ../components/pit.so -g
 	cd l2 && $(CC) \
 		hardware/s1/s1.c \
 		-shared -fPIC \
 		$(SDL_FLAGS) \
 		$(CCFLAGS) \
-		-o ../components/audio/s1.so -g
+		-o ../components/s1.so -g
 
 luna-l2: $(SRC)/l2/*
 	cd l2 && $(CC) \

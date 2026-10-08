@@ -52,9 +52,14 @@ void* audio_poll(void* VOID) {
 
 void audio_init(unsigned char (*_get_memory)(uint32_t)) {
     if (audio_initialized == true) return;
-
     audio_initialized = true;
-    AUDIO_MEMORY = malloc(AUDIO_RAM_SIZE);
+
+    if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+        printf("luna-l2: could not initialize audio: %s\n", SDL_GetError());
+        exit(1);
+    }
+ 
+    AUDIO_MEMORY = calloc(1, AUDIO_RAM_SIZE);
     get_memory = _get_memory;
 
     if (SDL_Init(SDL_INIT_AUDIO) < 0) {

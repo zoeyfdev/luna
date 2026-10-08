@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "../component/component.h"
 #include "../video/nrgba/nrgba.h"
@@ -11,11 +13,10 @@ void (*v_get_cursor)(int*, int*);
 void (*v_gpu_reset)();
 nrgba_image* (*return_framebuffer)();
 
-void initialize_video() {
-    void* video_component = initialize_component("/usr/local/lib/l2/video/g1x.so");
+void initialize_video(char* component) {
+    void* video_component = initialize_component(return_component_path(component));
 
-    void (*gpu_init)();
-    gpu_init = return_component_function(video_component, "gpu_init");
+    void (*gpu_init)() = return_component_function(video_component, "gpu_init");
 
     gpu_init();
 

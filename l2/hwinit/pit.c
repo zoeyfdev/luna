@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "../component/component.h"
 #include "../cpu/registers.h"
@@ -6,9 +8,10 @@
 unsigned char (*pit_read_memory)(uint32_t);
 void (*pit_write_memory)(uint32_t, unsigned char);
 
-void initialize_pit() {
-    void* pit_component = initialize_component("/usr/local/lib/l2/pit/pit.so");
-    void (*pit_init)(void (*)(unsigned char, uint32_t), uint32_t (*)(unsigned char)) = return_component_function(pit_component, "pit_init");
+void initialize_pit(char* component) {
+    void* pit_component = initialize_component(return_component_path(component));
+    void (*pit_init)(void (*)(unsigned char, uint32_t), uint32_t (*)(unsigned char)) = 
+        return_component_function(pit_component, "pit_init");
 
     pit_init(set_register, get_register);
 

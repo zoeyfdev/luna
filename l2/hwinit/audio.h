@@ -1,3 +1,3 @@
 #pragma once
 
-void initialize_audio();
+void initialize_audio(char* component);

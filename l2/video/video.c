@@ -3,12 +3,10 @@
 #include <SDL2/SDL.h>
 #include <stdint.h>
 
-#include "../component/component.h"
 #include "nrgba/nrgba.h"
 #include "../io/keyboard.h"
 #include "../cpu/registers.h"
 #include "../cpu/memory.h"
-#include "../hwinit/video.h"
 #include "../hardware/video_common.h"
 
 #define SCREEN_WIDTH    960
@@ -69,7 +67,6 @@ int initialize_window() {
         }
     #endif
 
-
     SDL_Window* window = SDL_CreateWindow("Luna L2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     if (!window) {
         printf("luna-l2: could not initialize window: %s\n", SDL_GetError());
@@ -81,8 +78,6 @@ int initialize_window() {
         printf("luna-l2: could not initialize renderer: %s", SDL_GetError());
         exit(1);
     }
-
-    initialize_video();
 
     nrgba_image* img = return_framebuffer();
     SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, img->width, img->height); 

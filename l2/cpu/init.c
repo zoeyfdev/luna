@@ -5,7 +5,6 @@
 #include "../util/psleep.h"
 #include "../bios/bios.h"
 #include "../bios/disk.h"
-
 #include "registers.h"
 #include "memory.h"
 #include "cpu.h"
@@ -62,8 +61,10 @@ boot_try:
             CPU_RESET = false;
             goto reboot;
         }
-    } else
-        for (;;) psleep(15);
+    } else {
+        for (;;)
+            psleep(1000);
+    }
     return NULL;
 }
 
