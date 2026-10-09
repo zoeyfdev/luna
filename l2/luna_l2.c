@@ -33,6 +33,8 @@ int main(int argc, char* argv[]) {
             audio_name = argv[i + 1];
         else if (!strcmp("-pit", arg) && i + 1 < argc)
             pit_name = argv[i + 1];
+        else
+            HDD_FILE = argv[i];
     }
 
     // Initialize IO devices

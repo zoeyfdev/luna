@@ -23,81 +23,57 @@ _start:
     mov r1, 1
     mov r3, r1
     int 0x0b
-    mov r1, 2
-    mov r3, r1
-    int 0x0b
-    mov r1, 3
-    mov r3, r1
-    int 0x0b
-    mov r1, 4
-    mov r3, r1
-    int 0x0b
-    mov r1, 5
-    mov r3, r1
-    int 0x0b
 
     set 32
     .bits 32
+    mov sp, 0xFFFFF
     jmp main_setup
-
-modulo:
-    pop e11
-    pop r2 // Divisor
-    pop r1 // Dividend
-
-    div r3, r1, r2
-    mul r4, r3, r2
-    sub e6, r3, r4
-
-    ret
 
 gen_random:
     pop e11
-    push e11
 
     mov r5, 0x90909090
     lod r5, r5 // Random number
     
-    push r5
-    push 2
-    call modulo
+    push r6
+
+    mov r6, 2
+    mod e6, r5, r6
+
+    pop r6
 
     jz e6, gen_random_yes
-    jnz e6, gen_random_no
+    jmp gen_random_no
 gen_random_yes:
     mov e6, 2
     jmp gen_random_ret
 gen_random_no:
     mov e6, 0
-    jmp gen_random_ret 
 gen_random_ret:
-    pop e11
     ret
 
 main_setup:
     // PIT to 0.5 seconds
     mov r1, TICK_TIME
     mov r2, 0x80000013
-    str32 r2, r1
+    //str32 r2, r1
 
     mov r1, TICK_TIME // milliseconds
     mov r2, 0x80000017
-    str32 r2, r1
+    //str32 r2, r1
     // Set up IDT
     mov r1, pit_nxt
-    mov r2, 0x6FFF0008
+    mov r2, 0x80040009
     str32 r2, r1
 
     mov r1, key_click
-    mov r2, 0x6FFF001A
+    mov r2, 0x8004001F
     str32 r2, r1
 main:
 // int 0x02
 // 07 = mode
 // 08 09 0A 0B = addr
-    mov sp, 0x6FFFFFFF
-
-    mov r1, 0x6FFF0019
+    mov r1, 0x8004001E
     mov r2, 1
     str r1, r2 // ENABLE KEYBOARD INTERRUPT
 
@@ -209,23 +185,25 @@ add_next_nxt:
     cmp r12, r10, r11
     jz r12, e10
 
-    mov r1, 0x6FFF0007
+    mov r1, 0x80040006
     mov r2, 1
     str r1, r2 // ENABLE PIT
 pit_wait:
     hlt
     jmp pit_wait
 pit_nxt:
-    mov r1, 0x6FFF0007
+    mov r1, 0x80040006
     mov r2, 0
     str r1, r2 // DISABLE PIT
+
+    sti
     jmp main
 
 game_over:
-    mov r1, 0x6FFF0007
+    mov r1, 0x80040006
     mov r2, 0
     str r1, r2 // DISABLE PIT
-    mov r1, 0x6FFF0019
+    mov r1, 0x8004001E
     mov r2, 0
     str r1, r2 // DISABLE KEYBOARD INTERRUPT
 
@@ -253,18 +231,18 @@ write:
     jnz r1, e10
     ret
 
-key_click: 
+key_click:
     pusha
 
-    mov r1, 0x6FFF0007
+    mov r1, 0x80040006
     mov r2, 0
     str r1, r2 // DISABLE PIT
 
-    mov r1, 0x6FFF0019
+    mov r1, 0x8004001E
     mov r2, 0
     str r1, r2 // DISABLE KEYBOARD INTERRUPT
 
-    mov r1, 0x80000012
+    mov r1, 0x80020000
     lod r1, r2
 
     mov r3, "a"
@@ -306,15 +284,16 @@ rollover_2_done:
     str r1, r2
     jmp key_click_ret
 key_click_ret:
-    mov r1, 0x6FFF0019
+    mov r1, 0x8004001E
     mov r2, 1
     str r1, r2 // ENABLE KEYBOARD INTERRUPT
 
-    mov r1, 0x6FFF0007
+    mov r1, 0x80040006
     mov r2, 1
     str r1, r2 // ENABLE PIT
 
     popa
+    sti
     jmp irv
 
 game_over_txt:

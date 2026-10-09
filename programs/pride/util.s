@@ -19,6 +19,7 @@ sleep:
     mov e10, pc
 
     call pit_handler
+    sti
     inc r5
 
     cmp r6, r4, r5
@@ -51,6 +52,7 @@ pit_nxt:
     mov r2, 0
     str r1, r2
 
+    sti
     ret
 
 putc:

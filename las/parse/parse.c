@@ -206,7 +206,7 @@ vector* parse(vector* tokens) {
             }
 
             cursor++;
-        } else if (!strcmp(val, "hlt") || !strcmp(val, "nop")) {
+        } else if (!strcmp(val, "hlt") || !strcmp(val, "nop") || !strcmp(val, "sti")) {
             write(get_opcode(LAST_TOKEN));
         } else if (!strcmp(val, "jmp")) {
             write(get_opcode(LAST_TOKEN));
@@ -245,8 +245,8 @@ vector* parse(vector* tokens) {
             cursor++;
         } else if (!strcmp(val, "cmp") || !strcmp(val, "add") || !strcmp(val, "sub") || !strcmp(val, "mul")
                 || !strcmp(val, "div") || !strcmp(val, "igt") || !strcmp(val, "ilt") || !strcmp(val, "and")
-                || !strcmp(val, "or") || !strcmp(val, "xor") || !strcmp(val, "mod") || !strcmp(val, "shl") 
-                || !strcmp(val, "shr")) {
+                || !strcmp(val, "or") || !strcmp(val, "mod") || !strcmp(val, "shl")  || !strcmp(val, "shr")
+                || !strcmp(val, "xor")) {
             write(get_opcode(LAST_TOKEN));
             
             for (int i = 0; i < 3; i++) {
@@ -271,8 +271,8 @@ vector* parse(vector* tokens) {
 
             cursor++;
         } else if (!strcmp(val, "lod") || !strcmp(val, "str") || !strcmp(val, "lod16") || !strcmp(val, "str16")
-                || !strcmp(val, "lod32") || !strcmp(val, "str32") || !strcmp(val, "not") || !strcmp(val, "lod_ptr")
-                || !strcmp(val, "str_ptr")) {
+                || !strcmp(val, "lod32") || !strcmp(val, "str32") || !strcmp(val, "lod_ptr")
+                || !strcmp(val, "str_ptr") || !strcmp(val, "not")) {
 
             if (strcmp(val, "lod_ptr") && strcmp(val, "str_ptr"))
                 write(get_opcode(LAST_TOKEN));

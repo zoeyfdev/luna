@@ -54,20 +54,21 @@ pipeline_top:
         unsigned char op = get_memory(pc);
 
         // check for interrupts
-        if (!IS_IIF || 1) {
+        if (!IS_IIF) {
             for (int i = 0; i < 32; i++) {
                 if ((uint32_t) (get_register(IR) & (1 << i)) != 0) {
+                    set_register(IR, get_register(IR) & (~(1 << (i))));
                     bios_handle_interrupt(i + 1);
                     if (i + 1 == 0x0F) {
                         CPU_RESET = true;
                         EXIT = true;
                         break;
-                    }
+                    } 
                     if (get_register(PC) != pc) {
                         set_register(S, get_register(S) | (1 << 1));
+                        set_register(IRV, pc);
                         goto pipeline_top;
-                    }
-                    set_register(IR, (get_register(IR) & (0 << i)));                   
+                    }                
                 }
             }
         }
@@ -144,9 +145,7 @@ pipeline_top:
                     else
                         set_register(PC, get_dword(pc + 2));
                     break;
-                case 0x02:
-                    if (get_memory(pc + 2) == IRV)
-                        set_register(S, get_register(S) | (0 << 1)); // disable IIF flag if jumping to IRV
+                case 0x02: 
                     set_register(PC, get_register(get_memory(pc + 2)));
                     break;
                 }
@@ -409,18 +408,7 @@ pipeline_top:
                 stall(15);
                 break;
             }
-        case 0x15: {
-                // NOT
-                // not <dest> <reg1>
-                unsigned char dest = get_memory(pc + 1);
-                uint32_t reg1 = get_register(get_memory(pc + 2));
-                set_register(dest, reg1 ^ reg1);
-                set_register(PC, pc + 3);
-
-                stall(15);
-                break;
-            }
-        case 0x16: {
+        case 0x21: {
                 // XOR
                 // xor <dest> <reg1> <reg2>
                 unsigned char dest = get_memory(pc + 1);
@@ -430,6 +418,25 @@ pipeline_top:
                 set_register(PC, pc + 4);
 
                 stall(220);
+                break;
+            }
+        case 0x15: {
+                // NOT
+                // not <dest> <reg1>
+                unsigned char dest = get_memory(pc + 1);
+                uint32_t reg1 = get_register(get_memory(pc + 2));
+                set_register(dest, ~reg1);
+                set_register(PC, pc + 3);
+
+                stall(15);
+                break;
+            }
+        case 0x16: {
+                // STI
+                // sti
+                set_register(S, get_register(S) & (~(1 << (CPU_FLAG_IIF - 1))));
+                set_register(PC, pc + 1);
+                stall(10);
                 break;
             }
         case 0x20: {
@@ -553,7 +560,7 @@ pipeline_top:
                 switch (mode) {
                 case 0x00:
                     // 16-bit mode
-                    set_register(S, get_register(S) | (0 << 0));
+                    set_register(S, get_register(S) & (~(1 << (CPU_FLAG_XEN - 1))));
                     break;
                 case 0x01:
                     // 32-bit mode
@@ -570,6 +577,7 @@ pipeline_top:
                 char buf[128];
                 sprintf(buf, "Illegal instruction 0x%02x at 0x%08x", op, pc);
                 bios_write_line(buf);
+                stall(100);
 
                 cpu_halt_state();
                 break;
@@ -600,7 +608,7 @@ char* instructions[] = {
     "AND",
     "OR",
     "NOT",
-    "XOR",
+    "STI",
     "LOD",
     "STR",
     "STR16",

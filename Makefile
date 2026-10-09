@@ -5,13 +5,6 @@ OS_NAME := $(shell uname -s)
 SDL_FLAGS = $(shell sdl2-config --cflags --libs)
 CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough
 
-ifeq ($(OS_NAME),Darwin)
-	CC=clang
-endif
-ifeq ($(OS),Windows_NT)
-	CC=x86_64-w64-mingw32-gcc
-endif
-
 all: luna-l2 luna-l2-components las lcc lcc1 l2ld
 .PHONY: all luna-l2 luna-l2-components las lcc lcc1 l2ld
 

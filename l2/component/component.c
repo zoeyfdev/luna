@@ -28,7 +28,7 @@ char* return_component_path(char* name) {
 void* return_component_function(void* handle, char* name) {
     void* function_handle = dlsym(handle, name);
     if (function_handle == NULL) {
-        printf("luna-l2: failed to return function '%s': %s", name, dlerror());
+        printf("luna-l2: failed to return function '%s': %s\n", name, dlerror());
     }
     return function_handle;
 }

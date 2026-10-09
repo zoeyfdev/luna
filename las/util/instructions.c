@@ -20,7 +20,7 @@ char* instructions[] = {
     "and",
     "or",
     "not",
-    "xor",
+    "sti",
     "lod",
     "str16",
     "lod16",
@@ -30,5 +30,6 @@ char* instructions[] = {
     "shr",
     "lod32",
     "str32",
-    "mod"
+    "mod",
+    "xor",
 };
