@@ -4,6 +4,8 @@
     .bits 16
 #endif
 
+#include "s"
+
 .global flags_start
 
 flags_start:

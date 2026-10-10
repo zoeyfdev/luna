@@ -6,7 +6,8 @@
 #include "libvector.h"
 #include "liberror.h"
 
-#define INSERT_TOKEN() do { token* t = malloc(sizeof(token) + 5); \
+#define INSERT_TOKEN() do { \
+    token* t = malloc(sizeof(token) + 5); \
     vec_grow(current, 1); \
     ((char*) current->data)[current->next] = 0; \
     t->value = (char*) current->data; \
