@@ -32,7 +32,7 @@ void* audio_poll(void* VOID) {
                 | ((uint32_t) AUDIO_MEMORY[7]) << 8
                 | ((uint32_t) AUDIO_MEMORY[8]);
 
-            unsigned char* buffer = malloc(length);
+            unsigned char* buffer = calloc(1, length);
             for (uint32_t i = 0; i < length; i++, cursor++)
                 buffer[i] = get_memory(cursor);
 

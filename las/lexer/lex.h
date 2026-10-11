@@ -14,6 +14,6 @@ typedef struct {
     char* value;
 } token;
 
-vector* lex(char* buffer, uint64_t size);
+vector* lex(vector* buffer);
 bool is_register(char* str);
 bool is_instruction(char* str);

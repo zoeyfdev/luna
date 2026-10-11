@@ -6,19 +6,14 @@
 #include "libvector.h"
 #include "liberror.h"
 
-#define INSERT_TOKEN() do { \
-    token* t = malloc(sizeof(token) + 5); \
-    vec_grow(current, 1); \
-    ((char*) current->data)[current->next] = 0; \
-    t->value = (char*) current->data; \
+#define INSERT_TOKEN(VALUE) do { \
+    token* t = malloc(sizeof(token)); \
+    t->value = (VALUE); \
+    t->filename = file; \
     t->line = line; \
     vec_grow(tokens, 1); \
     ((token**) tokens->data)[tokens->next] = t; \
-    free(current); \
-    current = vec_init(sizeof(char*), 0); \
-} while(0)
-
-#define INSERT_CHAR() do { vec_grow(current, 1); ((char*) current->data)[current->next] = c; } while(0)
+} while (0)
 
 #ifndef _WIN32
     char* include_path = "/usr/local/include/lcc/";
@@ -28,6 +23,7 @@
 
 typedef struct {
     char* value;
+    char* filename;
     int line;
 } token;
 
@@ -36,62 +32,211 @@ typedef struct {
     vector* replacement_list;
 } define;
 
-vector* tokenize(char* buffer) {
-    vector* current = vec_init(sizeof(char*), 0);
+bool is_space(char c) {
+    if (c == '\t' || c == '\n' || c == '\v' || c == '\f'
+        || c == '\r' || c == ' ') {
+        return true;
+    }
+    return false;
+}
+
+bool contains(char* match, char c) {
+    for (size_t i = 0; i < strlen(match); i++)
+        if (match[i] == c)
+            return true;
+    return false;
+}
+
+vector* tokenize(char* buffer, char* file, char* match_str) {
     vector* tokens = vec_init(sizeof(token**), 0);
+
+    size_t i = 0;
     int line = 1;
 
-    bool in_string = false;
+    while (i < strlen(buffer)) {
+        char c = buffer[i];
 
-    for (size_t i = 0; i < strlen(buffer); i++) {
-        char c = buffer[i]; 
+        if (c == '/' && buffer[i + 1] == '/') {
+            i += 2;
+            while (i < strlen(buffer) && buffer[i] != '\n')
+                i++;
+            continue;
+        }
 
-        switch (c) {
-        case '"':
-            in_string = !in_string;
+        if (c == '/' && buffer[i + 1] == '*') {
+            i += 2;
 
-            INSERT_CHAR();
-            if (!in_string) {
-                INSERT_TOKEN();
+            while (i < strlen(buffer)) {
+                if (buffer[i] == '*' && buffer[i + 1] == '/') {
+                    i += 2;
+                    break;
+                }
+                if (buffer[i] == '\n')
+                    line++;
+                i++;
             }
-            break;
-        case '\r':
-            break;
-        case '\n':
-        case ' ':
-            if (!in_string) {
-                INSERT_TOKEN(); 
-            } else {
-                INSERT_CHAR();
+            continue;
+        }
+
+        if (c == '\n') {
+            line++;
+            i++;
+            continue;
+        }
+
+        if (is_space(c)) {
+            i++;
+            continue;
+        }
+
+        if (c == '"' || (c == '<' && !strcmp(((token**) tokens->data)[tokens->elements - 1]->value, "#include"))) {
+            bool term_on_r_angle = (c == '<' && !strcmp(((token**) tokens->data)[tokens->elements - 1]->value, "#include"));
+            vector* buf = vec_init(sizeof(char*), 0);
+
+            vec_grow(buf, 1);
+            ((char*) buf->data)[buf->next] = c;
+            i++;
+
+            while (i < strlen(buffer)) {
+                char c = buffer[i];
+
+                vec_grow(buf, 1);
+                ((char*) buf->data)[buf->next] = c;
+
+                if (c == '"' || (c == '>' && term_on_r_angle))
+                    break;
+                else if (c == '\n')
+                    line++;
+
+                i++;
+            }
+            
+            i++;
+
+            vec_grow(buf, 1);
+            ((char*) buf->data)[buf->next] = 0;
+
+            token* t = malloc(sizeof(token));
+            t->value = (char*) buf->data;
+            t->filename = file;
+            t->line = line;
+
+            vec_grow(tokens, 1);
+            ((token**) tokens->data)[tokens->next] = t;
+
+            free(buf);
+
+            continue;
+        }
+
+        if (c == '=' && strlen(buffer) > i + 1 && buffer[i + 1] == '=') {
+            INSERT_TOKEN("==");
+
+            i += 2;
+            continue;
+        }
+
+        if (c == '>' && strlen(buffer) > i + 1 && buffer[i + 1] == '=') {
+            INSERT_TOKEN(">=");
+
+            i += 2;
+            continue;
+        }
+
+        if (c == '<' && strlen(buffer) > i + 1 && buffer[i + 1] == '=') {
+            INSERT_TOKEN("<=");
+
+            i += 2;
+            continue;
+        }
+
+        if (c == '!' && strlen(buffer) > i + 1 && buffer[i + 1] == '=') {
+            INSERT_TOKEN("!=");
+
+            i += 2;
+            continue;
+        }
+
+        if (c == '+' && strlen(buffer) > i + 1 && buffer[i + 1] == '+') {
+            INSERT_TOKEN("++");
+
+            i += 2;
+            continue;
+        }
+
+        if (c == '-' && strlen(buffer) > i + 1 && buffer[i + 1] == '-') {
+            INSERT_TOKEN("--");
+
+            i += 2;
+            continue;
+        }
+
+        if (c == '<' && strlen(buffer) > i + 1 && buffer[i + 1] == '<') {
+            INSERT_TOKEN("<<");
+
+            i += 2;
+            continue;
+        }
+
+        if (c == '>' && strlen(buffer) > i + 1 && buffer[i + 1] == '>') {
+            INSERT_TOKEN(">>");
+
+            i += 2;
+            continue;
+        }
+
+        if (c == '-' && strlen(buffer) > i + 1 && buffer[i + 1] == '>') {
+            INSERT_TOKEN("->");
+
+            i += 2;
+            continue;
+        }
+
+        if (c == '.' && strlen(buffer) > i + 2 && buffer[i + 1] == '.'
+                && buffer[i + 2] == '.') {
+            INSERT_TOKEN("...");
+
+            i += 3;
+            continue;
+        }
+
+        if (contains(match_str, c)) {
+            char* c_loc = calloc(1, 2);
+            c_loc[0] = c;
+            INSERT_TOKEN(c_loc);
+            
+            i++;
+            continue;
+        }
+
+        vector* buf = vec_init(sizeof(char*), 0);
+        while (i < strlen(buffer)) {
+            char c = buffer[i];
+
+            if (is_space(c) || contains(match_str, c) || contains("\"", c))
                 break;
-            }
+            
+            vec_grow(buf, 1);
+            ((char*) buf->data)[buf->next] = c;
+            i++;
+        }
+        if (buf->elements > 0) {
+            vec_grow(buf, 1);
+            ((char*) buf->data)[buf->next] = 0;
 
-            if (c == 0x0a) {
-                INSERT_CHAR();
-                INSERT_TOKEN();
-                line++;
-            }
-
-            break;
-        default:
-            INSERT_CHAR(); 
-            break;
-        } 
-    }
-
-    if (current->elements > 0) {
-        INSERT_TOKEN();
+            INSERT_TOKEN(buf->data);
+        }
     }
 
     return tokens;
 }
 
-char* cpp(char* filename, char* buffer) { 
+vector* cpp(char* filename, char* buffer, char* match_str) { 
     vector* defines = vec_init(sizeof(define**), 0); 
     bool again = false;
+    vector* tokens = tokenize(buffer, filename, match_str);
 top:
-    vector* tokens = tokenize(buffer);
-    vector* output = vec_init(sizeof(char**), 0);
+    vector* output = vec_init(sizeof(token**), 0);
     int i = 0;
 
     while (true) {
@@ -147,7 +292,7 @@ top:
               
                 if ((found && !is_rev) || (!found && is_rev)) {
                     vec_grow(output, 1);
-                    ((char**) output->data)[output->next] = ((token**) tokens->data)[i]->value;
+                    ((token**) output->data)[output->next] = ((token**) tokens->data)[i];
                 }
                 i++;
             }
@@ -157,7 +302,7 @@ top:
                 while (strcmp(((token**) tokens->data)[i]->value, "#endif")) {
                     if ((found && is_rev) || (!found && !is_rev)) {
                         vec_grow(output, 1);
-                        ((char**) output->data)[output->next] = ((token**) tokens->data)[i]->value;
+                        ((token**) output->data)[output->next] = ((token**) tokens->data)[i];
                     }
                     i++;
                 }
@@ -207,15 +352,13 @@ top:
             FILE* f = fopen(actual, "rb");
             if (f == NULL) {
                 if (times == 1) {
-                    lcc_error(filename, path->line, "could not open file '", actual, "'", NULL);
-                    fprintf(stderr, "compilation terminated.\n");
-                    exit(1);
+                    lcc_fatal(filename, path->line, "could not open file '", actual, "'", NULL);
                 } else {
-                    // free(actual);
                     abs = true;
                     goto f_try_top;
                 }
             }
+
 
             fseek(f, 0, SEEK_END);
             uint64_t size = ftell(f);
@@ -226,11 +369,11 @@ top:
             fread(fbuf, sizeof(char), size, f);
             fclose(f);
 
-            vector* ftokens = tokenize(fbuf);
+            vector* ftokens = tokenize(fbuf, actual, match_str);
 
             for (int i = 0; i < ftokens->elements; i++) {
                 vec_grow(output, 1);
-                ((char**) output->data)[output->next] = ((token**) ftokens->data)[i]->value;
+                ((token**) output->data)[output->next] = ((token**) ftokens->data)[i];
             }
         } else {
             bool found = false;
@@ -242,44 +385,32 @@ top:
                     again = true;
                     
                     for (int j = 0; j < d->replacement_list->elements; j++) {
+                        token* __t = ((token**) d->replacement_list->data)[j];
+                        token* _t = malloc(sizeof(token));
+                        memcpy(_t, __t, sizeof(token));
+                        
+                        _t->line = t->line;
+
                         vec_grow(output, 1);
-                        ((char**) output->data)[output->next] = ((token**) d->replacement_list->data)[j]->value; 
+                        ((token**) output->data)[output->next] = _t; 
                     }
                 }
             }
     
             if (!found) {
                 vec_grow(output, 1);
-                ((char**) output->data)[output->next] = value;
+                ((token**) output->data)[output->next] = t;
             }
         }
 
         i++;
     }
 
-    size_t len = 0;
-    for (int i = 0; i < output->elements; i++) {
-        len += strlen(((char**) output->data)[i]) + 2;
-    }
-    len++;
-
-    char* buf = calloc(1, len + 2);
-
-    for (int i = 0; i < output->elements; i++) {
-        char* ot = ((char**) output->data)[i];
-
-        strcat(buf, ot);
-        if (buf[strlen(buf) - 1] != '\n' && i != output->next)
-            strcat(buf, " ");
-    }
-
-    buf[strlen(buf) - 1] = 0;
-
     if (again) {
         again = false;
-        buffer = buf;
+        tokens = output;
         goto top;
-    } 
+    }
 
-    return buf;
+    return output;
 }

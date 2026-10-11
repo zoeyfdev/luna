@@ -24,7 +24,7 @@ void boot() __attribute__((noreturn)) {
     targeted_load(fzipdecode_loc, 3);
     targeted_load(malloc_loc, 2);
 
-    play_sound(fzip_decode(BOOT_SOUND), 41984, false);
+    // play_sound(fzip_decode(BOOT_SOUND), 41984, false);
     render_buf(fzip_decode(BOOT_IMG));
 
     puts32("Loading LunaOS...\n", COLOR_WHITE, COLOR_BLACK);
@@ -37,5 +37,6 @@ void boot() __attribute__((noreturn)) {
 
     render_buf((void*) 0x30303030);
     video_set_cursor(0, 0);
+
     asm ("jmp _cstart");
 }

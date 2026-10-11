@@ -2,4 +2,12 @@
 
 #include <string.h>
 
-char* cpp(char* filename, char* buffer);
+#include "libvector.h"
+
+typedef struct {
+    char* value;
+    char* filename;
+    int line;
+} cpp_token;
+
+vector* cpp(char* filename, char* buffer, char* match_str);

@@ -15,6 +15,8 @@ mov sp, 0x6F00FFFF
 mov fp, 0x6F000000
 
 call IDT_SETUP
+
+sti
 jmp boot
 
 IDT_SETUP:

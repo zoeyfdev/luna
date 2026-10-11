@@ -417,6 +417,8 @@ wfk_ret:
     mov r1, 0x6FFF0019
     mov r2, 0
     str r1, r2 // DISABLE KEYBOARD INTERRUPT
+
+    sti
     ret
 
 key_click:
@@ -427,6 +429,7 @@ key_click:
 
     pop r2
 
+    sti
     jmp e7
 
 ASLR_generate_address:
@@ -526,6 +529,8 @@ syscall_proc_exit:
     jmp lexec_done
 syscall_ret:
     popa
+
+    sti
     jmp irv
 
 offset_sec_load:
@@ -564,12 +569,16 @@ sleep:
     mov e10, pc
 
     call pit_handler
+    sti
+
     inc r5
 
     cmp r6, r4, r5
     jz r6, e10
 
     pop e11
+
+    sti
     ret
 
 pit_handler:
@@ -585,7 +594,8 @@ pit_nxt:
     mov r1, 0x6FFF0007
     mov r2, 0
     str r1, r2 // DISABLE PIT
-
+    
+    sti
     ret
 
 itoa:

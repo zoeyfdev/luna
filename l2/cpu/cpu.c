@@ -65,7 +65,7 @@ pipeline_top:
                         break;
                     } 
                     if (get_register(PC) != pc) {
-                        set_register(S, get_register(S) | (1 << 1));
+                        set_register(S, get_register(S) | (1 << (CPU_FLAG_IIF - 1)));
                         set_register(IRV, pc);
                         goto pipeline_top;
                     }                

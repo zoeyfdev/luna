@@ -59,6 +59,15 @@ las: $(SRC)/las/* $(SRC)/lcc_info/*
 		-g
 
 lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
+	cd lcc1-c && $(CC) \
+		*.c \
+		lex/*.c \
+		parse/*.c \
+		../lcc_shared/libvector.c \
+		../lcc_shared/libcpp.c \
+		-o ../bin/lcc1-c \
+		$(CCFLAGS) \
+		-g
 	cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
 
 l2ld: $(SRC)/l2ld/*

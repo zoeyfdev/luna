@@ -7,6 +7,7 @@
 #include "../../lcc_shared/libvector.h"
 #include "../../lcc_shared/liberror.h"
 #include "../../lcc_shared/libfile.h"
+#include "../../lcc_shared/libcpp.h"
 #include "../error/error.h"
 #include "../util/instructions.h"
 #include "../util/registers.h"
@@ -328,25 +329,25 @@ vector* parse(vector* tokens) {
                 char* stream = calloc(1, strlen(base) + strlen(name) + 2);
                 strcat(stream, base);
                 strcat(stream, name);
-                parse(lex(stream, strlen(stream)));
+                parse(lex(cpp("<auto>", stream, "+-,")));
                 free(stream);
             } else {
                 char* base = "mov e11, pc\nmov r0, 24\nadd e11, e11, r0\npush e11\njmp ";
                 char* stream = calloc(1, strlen(base) + strlen(name) + 2);
                 strcat(stream, base);
                 strcat(stream, name);
-                parse(lex(stream, strlen(stream)));
+                parse(lex(cpp("<auto>", stream, "+-,")));
                 free(stream);
             }
 
             cursor++;
         } else if (!strcmp(val, "ret")) {
             char* stream = "jmp e11";
-            parse(lex(stream, strlen(stream)));
+            parse(lex(cpp("<auto>", stream, "+-,")));
         } else if (!strcmp(val, "pusha")) {
-            parse(lex(pusha_str, strlen(pusha_str)));
+            parse(lex(cpp("<auto>", pusha_str, "+-,")));
         } else if (!strcmp(val, "popa")) {
-            parse(lex(popa_str, strlen(popa_str)));
+            parse(lex(cpp("<auto>", popa_str, "+-,")));
         } else if (!strcmp(val, ".byte") || !strcmp(val, ".word") || !strcmp(val, ".dword")) {
             int line = THIS_TOKEN->line;
             while (cursor < tokens->elements) {

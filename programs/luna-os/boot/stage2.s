@@ -264,6 +264,8 @@ bc_ret:
 key_inp:
     mov r1, 0xF200
     lod r1, e12
+
+    sti
     jmp e7
 
 REBOOT:

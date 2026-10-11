@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "../../lcc_shared/libvector.h"
+#include "../../lcc_shared/libcpp.h"
 #include "../util/registers.h"
 #include "../util/instructions.h"
 
@@ -33,125 +34,31 @@ bool is_instruction(char* str) {
 
 int line = 1;
 
-vector* add_token(vector* current, vector* tokens, bool no_ins) {
-    token* t = malloc(sizeof(token));
+vector* lex(vector* buffer) {
+    vector* output = vec_init(sizeof(token**), 0);
+    for (int i = 0; i < buffer->elements; i++) {
+        cpp_token* t = ((cpp_token**) buffer->data)[i];
 
-    if (strlen((char*) current->data) < 1)
-        return current;
-
-    if (is_register((char*) current->data))
-        t->type = TYPE_REGISTER;
-    else if ((is_instruction((char*) current->data) || ((char*) current->data)[0] == '.') && !no_ins)
-        t->type = TYPE_INSTRUCTION;
-    else
-        t->type = TYPE_TEXT;
-
-
-    vec_grow(current, 1);
-    ((char*) current->data)[current->next] = 0;
-
-    t->value = (char*) current->data;
-    t->line = line;
-
-    vec_grow(tokens, 1);
-    ((token**) tokens->data)[tokens->next] = t;
-    free(current); // Free header without freeing data
-    current = vec_init(sizeof(char*), 0);
-
-    return current;
-}
-
-vector* lex(char* buffer, uint64_t size) {
-    vector* tokens = vec_init(sizeof(token**), 0);
-    vector* current = vec_init(sizeof(char*), 0);
-    bool comment = false;
-    bool long_comment = false;
-    bool in_string = false;
-
-    for (uint64_t i = 0; i < size; i++, buffer++) {
-        if (*buffer == 0) 
-            break;
-
-        char c = *buffer;
-
-        if (((c == '/' && *(buffer + 1) == '/') || (c == ';') || (c == '#' && *(buffer + 1) == ' ') || (c == '/' && *(buffer + 1) == '*')) && !in_string) {
-            if (c == '/' && *(buffer + 1) == '*')
-                long_comment = true;
-            if (c != ';')
-                buffer++; 
-            comment = true;
-        } else if (c == '\n') {
-            if (comment && !long_comment) {
-                comment = false;
+        if (!strcmp(t->value, ",")) {
+            if (i - 1 >= 0 && is_register((char*) ((cpp_token**) buffer->data)[i - 1]->value))
                 continue;
-            }
-        } else if (c == '*' && *(buffer + 1) == '/') {
-            if (long_comment && comment) {
-                long_comment = false;
-                comment = false;
-                buffer++;
-                continue;
-            }
         }
 
-        if (comment)
-            continue;
+        token* _t = malloc(sizeof(token));
+        _t->line = t->line;
+        _t->value = t->value;
 
-        switch (c) {
-        case '\n': 
-        case ' ':
-            if (!in_string) {
-                current = add_token(current, tokens, false);
-                if (c == '\n')
-                    line++;
-            } else {
-                vec_grow(current, 1);
-                ((char*) current->data)[current->next] = c;
-            }
-            break;
-        case '\r':
-            break; // don't process carriage returns
-        case '"':
-            in_string = !in_string;
+        if (is_register(_t->value))
+            _t->type = TYPE_REGISTER;
+        else if (is_instruction(_t->value) || _t->value[0] == '.')
+            _t->type = TYPE_INSTRUCTION;
+        else
+            _t->type = TYPE_TEXT;
 
-            vec_grow(current, 1);
-            ((char*) current->data)[current->next] = c;
-
-            if (!in_string) {
-                current = add_token(current, tokens, true);
-                buffer++;
-            } 
-
-            break;
-        case '-':
-        case '+':
-            if (!in_string) {
-                current = add_token(current, tokens, false);
-                vec_grow(current, 1);
-                ((char*) current->data)[current->next] = c;
-                current = add_token(current, tokens, false);
-            } else {
-                vec_grow(current, 1);
-                ((char*) current->data)[current->next] = c;
-            }
-            break;
-        case ',':
-            if (is_register((char*) current->data) && !in_string) {
-                current = add_token(current, tokens, false);
-                buffer++;
-                break;
-            } 
-        default:
-            vec_grow(current, 1);
-            ((char*) current->data)[current->next] = c;
-            break;
-        }
+        vec_grow(output, 1);
+        ((token**) output->data)[output->next] = _t;
     }
 
-    if (current->elements > 0) {
-        current = add_token(current, tokens, false);
-    }
-
-    return tokens;
+    return output;
 }
 

@@ -58,10 +58,9 @@ int main(int argc, char* argv[]) {
 
         fclose(f);
 
-        char* pp_buffer = cpp(file, buffer);
-        pp_buffer[strlen(pp_buffer) - 1] = 0;
+        vector* pp_buffer = cpp(file, buffer, "+-,");
         parse_init();
-        vector* buf = parse(lex(pp_buffer, strlen(pp_buffer)));
+        vector* buf = parse(lex(pp_buffer));
 
         if (num_errors > 0)
             exit(1);
