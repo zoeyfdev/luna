@@ -63,8 +63,12 @@ lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 		*.c \
 		lex/*.c \
 		parse/*.c \
+		codegen/l2/*.c \
+		../lcc_shared/shared.c \
 		../lcc_shared/libvector.c \
 		../lcc_shared/libcpp.c \
+		../lcc_shared/liberror.c \
+		../lcc_shared/libstoi.c \
 		-o ../bin/lcc1-c \
 		$(CCFLAGS) \
 		-g

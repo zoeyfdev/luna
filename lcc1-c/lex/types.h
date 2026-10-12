@@ -1,13 +1,24 @@
 #pragma once
 
 typedef enum {
-    TOK_NUMBER,
+    TOK_NONE,
+
     TOK_PLUS,
     TOK_MINUS,
     TOK_STAR,
     TOK_SLASH,
+
     TOK_L_PAREN,
     TOK_R_PAREN,
+    TOK_L_CURLY,
+    TOK_R_CURLY,
+
+    TOK_ASM,
+    TOK_QUALIFIER,
+
+    TOK_NUMBER,
+    TOK_IDENTIFIER,
+    TOK_STRING
 } token_type;
 
 typedef struct {

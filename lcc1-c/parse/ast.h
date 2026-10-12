@@ -1,20 +1,28 @@
 #pragma once
 
 #include "types.h"
+#include "../../lcc_shared/libvector.h"
 
+/*
 typedef enum {
     AST_DECLARATION,
     AST_STATEMENT,
     AST_EXPRESSION,
     AST_LEAF
 } ast_node_class;
+*/
 
 typedef enum {
     AST_INTEGER_LITERAL,
     AST_STRING_LITERAL,
+
     AST_UNARY,
     AST_BINARY,
-    AST_ASSIGNMENT 
+
+    AST_ASSIGNMENT,
+
+    AST_VARIABLE,
+    AST_ASSEMBLY
 } ast_node_type;
 
 typedef enum {
@@ -22,7 +30,15 @@ typedef enum {
     BIN_OP_MINUS,
     BIN_OP_MULTIPLY,
     BIN_OP_DIVIDE,
+    BIN_OP_EQUAL
 } ast_binary_op_type;
+
+typedef enum {
+    KIND_VARIABLE,
+    KIND_FUNCTION
+} ast_variable_kind;
+
+// Expressions
 
 typedef struct {
     c_type type;
@@ -41,15 +57,47 @@ typedef struct {
     struct ast_node* right;
 } binary_operation;
 
+// Statements
+
+// Declarations
+
+typedef struct {
+    char* name;
+    char** attributes;
+    char* internal;
+
+    c_type type_info;
+
+    ast_variable_kind kind;
+
+    int scope;
+    uint32_t basin_size;
+
+    bool requires_const;
+    bool _register;
+
+    struct variable** parameters;
+    
+    struct ast_node** children;
+} variable;
+
+typedef struct {
+    char* string;
+} assembly;
+
+// Broad types
+
 typedef struct {
     ast_node_type type;
     union {
         integer_literal integer_literal;
         string_literal string_literal;
         binary_operation binary_operation;
+        variable variable;
+        assembly assembly;
     } content;
 } ast_node;
 
 typedef struct {
-    ast_node** nodes;
+    vector* declarations;
 } ast;

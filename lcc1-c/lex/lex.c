@@ -3,6 +3,7 @@
 
 #include "../../lcc_shared/libvector.h"
 #include "../../lcc_shared/libcpp.h"
+#include "../../lcc_shared/libstoi.h"
 #include "types.h"
 
 #define INSERT_CHAR() do { \
@@ -23,8 +24,20 @@ token_type return_tok_type(char* value) {
         return TOK_L_PAREN;
     else if (!strcmp(value, ")"))
         return TOK_R_PAREN;
-    else
-        return TOK_NUMBER;
+    else if (!strcmp(value, "{"))
+        return TOK_L_CURLY;
+    else if (!strcmp(value, "}"))
+        return TOK_R_CURLY;
+    else if (!strcmp(value, "asm") || !strcmp(value, "__asm__"))
+        return TOK_ASM;
+    else { 
+        bool worked = false;
+        stoi(value, &worked);
+
+        if (worked)
+            return TOK_NUMBER;
+        return TOK_IDENTIFIER;
+    }
 
     exit(1);
     return TOK_NUMBER;
@@ -41,9 +54,20 @@ vector* lex(vector* buffer) {
         _t->filename = t->filename;
         _t->value = t->value;
         _t->displayed_value = t->value;
-        _t->type = return_tok_type(_t->value);
+
+        if (_t->value[0] == '"' && _t->value[strlen(_t->value) - 1] == '"') {
+            char* v = calloc(1, strlen(_t->value));
+            for (size_t i = 1; i < strlen(_t->value) - 1; i++)
+                v[i - 1] = _t->value[i];
+            free(_t->value);
+            _t->value = v;
+            _t->type = TOK_STRING;
+        } else
+            _t->type = return_tok_type(_t->value);
 
         vec_grow(output, 1);
         ((token**) output->data)[output->next] = _t;
     }
+
+    return output;
 }
