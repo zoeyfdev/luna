@@ -5,8 +5,10 @@ typedef enum {
 
     TOK_PLUS,
     TOK_MINUS,
-    TOK_STAR,
     TOK_SLASH,
+
+    TOK_STAR,
+    TOK_AMPERSAND,
 
     TOK_L_PAREN,
     TOK_R_PAREN,
@@ -14,7 +16,14 @@ typedef enum {
     TOK_R_CURLY,
 
     TOK_ASM,
-    TOK_QUALIFIER,
+
+    TOK_LONG,
+    TOK_SHORT,
+    TOK_SIGNED,
+    TOK_UNSIGNED,
+    TOK_EXTERN,
+    TOK_STATIC,
+    TOK_CONST,
 
     TOK_NUMBER,
     TOK_IDENTIFIER,

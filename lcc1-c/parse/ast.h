@@ -21,8 +21,10 @@ typedef enum {
 
     AST_ASSIGNMENT,
 
+    AST_ASSEMBLY_STATEMENT,
+
     AST_VARIABLE,
-    AST_ASSEMBLY
+    AST_ASSEMBLY_DECL
 } ast_node_type;
 
 typedef enum {

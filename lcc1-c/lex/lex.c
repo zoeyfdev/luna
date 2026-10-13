@@ -30,6 +30,20 @@ token_type return_tok_type(char* value) {
         return TOK_R_CURLY;
     else if (!strcmp(value, "asm") || !strcmp(value, "__asm__"))
         return TOK_ASM;
+    else if (!strcmp(value, "short"))
+        return TOK_SHORT;
+    else if (!strcmp(value, "long"))
+        return TOK_LONG;
+    else if (!strcmp(value, "signed"))
+        return TOK_SIGNED;
+    else if (!strcmp(value, "unsigned"))
+        return TOK_UNSIGNED;
+    else if (!strcmp(value, "extern"))
+        return TOK_EXTERN;
+    else if (!strcmp(value, "static"))
+        return TOK_STATIC;
+    else if (!strcmp(value, "const"))
+        return TOK_CONST;
     else { 
         bool worked = false;
         stoi(value, &worked);

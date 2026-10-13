@@ -19,6 +19,33 @@ void write(char* buf, bool indent) {
     }
 }
 
+void codegen_decl(ast_node* decl) {
+    if (decl->type == AST_ASSEMBLY_DECL) {
+        write(decl->content.assembly.string, false);
+        write("    // Inline assembly\n", false);
+    } else if (decl->type == AST_VARIABLE) {
+        variable v = decl->content.variable;
+
+        if (v.kind == KIND_VARIABLE) {
+            if ((v.scope == 0 || v.type_info._static) && !v._register) {
+                // const codegen
+                switch (v.type_info.type) {
+                case TYPE_I8:
+                    write(".byte 0x00\n", false);
+                    break;
+                case TYPE_I16:
+                    write(".word 0x0000\n", false);
+                    break;
+                case TYPE_I32:
+                    write(".dword 0x00000000\n", false);
+                    break;
+                }
+                write("\n", false);
+            } 
+        }
+    } 
+}
+
 char* codegen_l2(ast* tu, bool is_32) {
     stream = vec_init(sizeof(char*), 0);
 
@@ -30,7 +57,7 @@ char* codegen_l2(ast* tu, bool is_32) {
     
     for (int i = 0; i < tu->declarations->elements; i++) {
         ast_node* decl = ((ast_node**) tu->declarations->data)[i];
-
+ 
         if (decl->type == AST_VARIABLE) {
             if (decl->content.variable.kind == KIND_FUNCTION) {
                 if (!decl->content.variable.type_info._static && !decl->content.variable.type_info.external) {
@@ -39,10 +66,8 @@ char* codegen_l2(ast* tu, bool is_32) {
                     write("\n", false);
                 }
             }
-        } else if (decl->type == AST_ASSEMBLY) {
-            write(decl->content.assembly.string, false);
-            write("    // User-defined inline assembly\n", false);
         }
+        codegen_decl(decl);
 
         write("\n", false);
     }

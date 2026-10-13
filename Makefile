@@ -3,7 +3,7 @@ CC=gcc
 
 OS_NAME := $(shell uname -s)
 SDL_FLAGS = $(shell sdl2-config --cflags --libs)
-CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough
+CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough -Wno-switch
 
 all: luna-l2 luna-l2-components las lcc lcc1 l2ld
 .PHONY: all luna-l2 luna-l2-components las lcc lcc1 l2ld
@@ -64,6 +64,7 @@ lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 		lex/*.c \
 		parse/*.c \
 		codegen/l2/*.c \
+		env/*.c \
 		../lcc_shared/shared.c \
 		../lcc_shared/libvector.c \
 		../lcc_shared/libcpp.c \
