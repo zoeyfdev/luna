@@ -94,3 +94,20 @@ char* get_file_lead(char* _fn) {
     }
     return filename;
 }
+
+char* open_file(char* filename) {
+    FILE* f = fopen(filename, "rb");
+    if (f == NULL)
+        return NULL;
+
+    fseek(f, 0, SEEK_END);
+    uint64_t size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    char* buf = calloc(1, size);
+    fread(buf, sizeof(char), size, f);
+
+    fclose(f);
+
+    return buf;
+}

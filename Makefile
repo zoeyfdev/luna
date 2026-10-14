@@ -70,6 +70,7 @@ lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 		../lcc_shared/libcpp.c \
 		../lcc_shared/liberror.c \
 		../lcc_shared/libstoi.c \
+		../lcc_shared/libfile.c \
 		-o ../bin/lcc1-c \
 		$(CCFLAGS) \
 		-g

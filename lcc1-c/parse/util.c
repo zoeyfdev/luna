@@ -38,3 +38,10 @@ token* expect(vector* tokens, int* i, token_type t) {
 
     return _t;
 }
+
+bool is_qualifier(token* t) {
+    if (t->type == TOK_SIGNED || t->type == TOK_UNSIGNED || t->type == TOK_SHORT || t->type == TOK_LONG ||
+        t->type == TOK_STATIC || t->type == TOK_EXTERN)
+        return true;
+    return false;
+}

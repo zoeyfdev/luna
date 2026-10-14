@@ -80,8 +80,17 @@ ast* parse(vector* tokens) {
             _asm->content.assembly.string = PEEK(-1)->value;
             add_decl(tu, _asm);
             EXPECT(TOK_R_PAREN);
-        } else if (is_type(t)) {
+        } else if (is_type(t) || is_qualifier(t)) { // add qualifiers
+            c_type* t = parse_type(tokens, &i);
+            char* name = PEEK(0)->value;
+           
+            if (PEEK(0)->type == TOK_EQUAL) {
 
+            } else if (PEEK(0)->type == TOK_L_PAREN) {
+
+            }
+        } else {
+            printf("unexpected tok %s\n", t->value);
         }
     }
 
