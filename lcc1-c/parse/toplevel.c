@@ -85,9 +85,12 @@ ast* parse(vector* tokens) {
             char* name = PEEK(0)->value;
            
             if (PEEK(0)->type == TOK_EQUAL) {
-
+                EXPECT(TOK_EQUAL);
             } else if (PEEK(0)->type == TOK_L_PAREN) {
-
+                EXPECT(TOK_L_PAREN);
+                EXPECT(TOK_R_PAREN);
+                EXPECT(TOK_L_CURLY);
+                EXPECT(TOK_R_CURLY);
             }
         } else {
             printf("unexpected tok %s\n", t->value);
