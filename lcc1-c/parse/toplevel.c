@@ -12,9 +12,10 @@
 #define PEEK(by) (peek(tokens, &i, (by)))
 #define EXPECT(t) (expect(tokens, &i, (t)))
 
-void add_decl(ast* tu, ast_node* node) {
+int add_decl(ast* tu, ast_node* node) {
     vec_grow(tu->declarations, 1);
     ((ast_node**) tu->declarations->data)[tu->declarations->next] = node;
+    return tu->declarations->next;
 }
 
 c_type* parse_type(vector* tokens, int* _i) {
@@ -83,6 +84,11 @@ ast* parse(vector* tokens) {
         } else if (is_type(t) || is_qualifier(t)) { // add qualifiers
             c_type* t = parse_type(tokens, &i);
             char* name = PEEK(0)->value;
+
+            ast_node* v = new_node(AST_VARIABLE);
+            int pos = add_decl(tu, v);
+            v->content.variable.name = name;
+            v->content.variable.type_info = *t;
            
             if (PEEK(0)->type == TOK_EQUAL) {
                 EXPECT(TOK_EQUAL);
@@ -92,6 +98,8 @@ ast* parse(vector* tokens) {
                 EXPECT(TOK_L_CURLY);
                 EXPECT(TOK_R_CURLY);
             }
+
+            add_decl(tu, v);
         } else {
             printf("unexpected tok %s\n", t->value);
         }

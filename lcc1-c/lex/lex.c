@@ -28,6 +28,8 @@ token_type return_tok_type(char* value) {
         return TOK_L_CURLY;
     else if (!strcmp(value, "}"))
         return TOK_R_CURLY;
+    else if (!strcmp(value, "="))
+        return TOK_EQUAL;
     else if (!strcmp(value, "asm") || !strcmp(value, "__asm__"))
         return TOK_ASM;
     else if (!strcmp(value, "short"))

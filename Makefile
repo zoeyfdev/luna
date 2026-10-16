@@ -1,9 +1,16 @@
 SRC=.
 CC=gcc
+BUILD_MODE=
 
 OS_NAME := $(shell uname -s)
 SDL_FLAGS = $(shell sdl2-config --cflags --libs)
-CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough -Wno-switch
+CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough -Wno-switch 
+
+ifeq ($(BUILD_MODE),mac)
+	CC=gcc-16
+	CCFLAGS+=-B/usr/local/bin/ld64.lld
+	SDL_FLAGS = $(shell pkg-config --cflags --libs sdl2)
+endif
 
 all: luna-l2 luna-l2-components las lcc lcc1 l2ld
 .PHONY: all luna-l2 luna-l2-components las lcc lcc1 l2ld
