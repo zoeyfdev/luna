@@ -18,6 +18,10 @@ int add_decl(ast* tu, ast_node* node) {
     return tu->declarations->next;
 }
 
+void modify_decl(ast* tu, ast_node* node, int pos) {
+    ((ast_node**) tu->declarations->data)[pos] = node;
+}
+
 c_type* parse_type(vector* tokens, int* _i) {
     int i = *_i;
 
@@ -91,10 +95,21 @@ ast* parse(vector* tokens) {
             v->content.variable.type_info = *t;
            
             if (PEEK(0)->type == TOK_EQUAL) {
+                v->content.variable.kind = KIND_VARIABLE;
                 EXPECT(TOK_EQUAL);
             } else if (PEEK(0)->type == TOK_L_PAREN) {
+                v->content.variable.kind = KIND_FUNCTION;
+
                 EXPECT(TOK_L_PAREN);
                 EXPECT(TOK_R_PAREN);
+
+                if (PEEK(0)->type == TOK_SEMI) {
+                    v->content.variable.type_info.external = true;
+                    modify_decl(tu, v, pos);
+
+                    continue;
+                }
+
                 EXPECT(TOK_L_CURLY);
                 EXPECT(TOK_R_CURLY);
             }

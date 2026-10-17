@@ -10,6 +10,7 @@ typedef enum {
     TOK_STAR,
     TOK_AMPERSAND,
     TOK_EQUAL,
+    TOK_SEMI,
 
     TOK_L_PAREN,
     TOK_R_PAREN,

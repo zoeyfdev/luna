@@ -1,6 +1,7 @@
 SRC=.
 CC=gcc
 BUILD_MODE=
+DEFAULT_ARCH=l2_16
 
 OS_NAME := $(shell uname -s)
 SDL_FLAGS = $(shell sdl2-config --cflags --libs)
