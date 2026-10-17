@@ -78,9 +78,9 @@ typedef struct {
     bool requires_const;
     bool _register;
 
-    struct variable** parameters;
+    vector* parameters;
     
-    struct ast_node** children;
+    vector* children;
 } variable;
 
 typedef struct {

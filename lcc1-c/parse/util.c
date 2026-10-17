@@ -4,11 +4,17 @@
 
 #include "ast.h"
 #include "../lex/types.h"
+#include "../../lcc_shared/liberror.h"
+#include "../../lcc_shared/libvector.h"
 
 ast_node* new_node(ast_node_type type) {
     ast_node* n = calloc(1, sizeof(ast_node));
-
     n->type = type;
+
+    if (type == AST_VARIABLE) {
+        n->content.variable.parameters = vec_init(sizeof(variable**), 0);
+        n->content.variable.children = vec_init(sizeof(ast_node**), 0);
+    }
 
     return n;
 }
@@ -44,4 +50,13 @@ bool is_qualifier(token* t) {
         t->type == TOK_STATIC || t->type == TOK_EXTERN)
         return true;
     return false;
+}
+
+void add_node(ast_node* p, ast_node* v) {
+    if (p->type == AST_VARIABLE) {
+        vec_grow(p->content.variable.children, 1);
+        ((ast_node**) p->content.variable.children->data)[p->content.variable.children->next] = v;
+    } else {
+        lcc_ice(NULL, 0, "invalid variable type to add_node()", NULL);
+    }
 }
