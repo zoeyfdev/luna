@@ -8,6 +8,7 @@
 #include "../lex/types.h"
 #include "util.h"
 #include "../env/env.h"
+#include "ntl.h"
 
 #define PEEK(by) (peek(tokens, &i, (by)))
 #define EXPECT(t) (expect(tokens, &i, (t)))
@@ -54,6 +55,8 @@ c_type* parse_type(vector* tokens, int* _i) {
     else if (!strcmp(type_tok->value, "void"))
         base = TYPE_VOID;
 
+    i++;
+
     while (PEEK(0)->type == TOK_STAR) {
         pointer_length++;
         i++;
@@ -75,7 +78,7 @@ ast* parse(vector* tokens) {
     tu->declarations = vec_init(sizeof(ast_node**), 0);
 
     for (int i = 0; i < tokens->elements; i++) {
-        token* t = ((token**) tokens->data)[i];
+        token* t = PEEK(0);
 
         if (!strcmp(t->value, "asm") || !strcmp(t->value, "__asm__")) {
             i++;
@@ -85,9 +88,10 @@ ast* parse(vector* tokens) {
             _asm->content.assembly.string = PEEK(-1)->value;
             add_decl(tu, _asm);
             EXPECT(TOK_R_PAREN);
+            EXPECT(TOK_SEMI);
         } else if (is_type(t) || is_qualifier(t)) { // add qualifiers
             c_type* t = parse_type(tokens, &i);
-            char* name = PEEK(0)->value;
+            char* name = EXPECT(TOK_IDENTIFIER)->value;
 
             ast_node* v = new_node(AST_VARIABLE);
             int pos = add_decl(tu, v);
@@ -111,10 +115,13 @@ ast* parse(vector* tokens) {
                 }
 
                 EXPECT(TOK_L_CURLY);
+
+                i = parse_local(tokens, i, v);
+
                 EXPECT(TOK_R_CURLY);
             }
 
-            add_decl(tu, v);
+            modify_decl(tu, v, pos);
         } else {
             printf("unexpected tok %s\n", t->value);
         }

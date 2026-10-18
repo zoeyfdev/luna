@@ -2,6 +2,34 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+void lcc_ice(char* label, int line, ...) {
+    if (label != NULL)
+        fprintf(stderr, "\033[1;39m%s:\033[0m", label);
+    else
+        fprintf(stderr, "\033[1;39m%s:\033[0m", "lcc");
+
+    if (line > 0)
+        fprintf(stderr, "\033[1;39m%d:\033[0m ", line);
+    else
+        fprintf(stderr, " ");
+
+    fprintf(stderr, "\033[1;31minternal compiler error:\033[0m ");
+
+    va_list strings;
+    va_start(strings, line);
+
+    char* s;
+    while ((s = ((char*) va_arg(strings, char*))) && (s != NULL))
+        fprintf(stderr, "\033[1;39m%s\033[0m", s);
+
+    fprintf(stderr, "\n");
+
+    fprintf(stderr, "Please file a bug report on the GitHub repository and provide the source code file(s) you used.\n");
+    fprintf(stderr, "compilation terminated.\n");
+
+    exit(2);
+}
+
 void lcc_fatal(char* label, int line, ...) {
     if (label != NULL)
         fprintf(stderr, "\033[1;39m%s:\033[0m", label);

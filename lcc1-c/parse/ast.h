@@ -17,11 +17,13 @@ typedef enum {
     AST_STRING_LITERAL,
 
     AST_UNARY,
-    AST_BINARY,
 
+    AST_BINARY,
     AST_ASSIGNMENT,
+    AST_FUNCTION_CALL,
 
     AST_ASSEMBLY_STATEMENT,
+    AST_STMT_EXPRESSION,
 
     AST_VARIABLE,
     AST_ASSEMBLY_DECL
@@ -40,7 +42,7 @@ typedef enum {
     KIND_FUNCTION
 } ast_variable_kind;
 
-// Expressions
+// Leaves
 
 typedef struct {
     c_type type;
@@ -52,6 +54,8 @@ typedef struct {
     char* value;
 } string_literal;
 
+// Expressions
+
 typedef struct {
     c_type type;
     ast_binary_op_type operation;
@@ -59,7 +63,17 @@ typedef struct {
     struct ast_node* right;
 } binary_operation;
 
+typedef struct {
+    c_type value;
+    struct ast_node* target;
+    struct ast_node* value;
+} assignment;
+
 // Statements
+
+typedef struct {
+    struct ast_node* statement;
+} statement_expression;
 
 // Declarations
 
@@ -94,9 +108,14 @@ typedef struct {
     union {
         integer_literal integer_literal;
         string_literal string_literal;
+
         binary_operation binary_operation;
-        variable variable;
+        assignment assignment;
+
         assembly assembly;
+        statement_expression statement_expression;
+
+        variable variable;
     } content;
 } ast_node;
 

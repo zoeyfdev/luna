@@ -30,6 +30,7 @@ token* peek(vector* tokens, int* i, int by) {
     if (*i >= tokens->elements) {
         token* t = calloc(1, sizeof(token));
         t->type = TOK_NONE;
+        printf("out of bounds\n");
         return t;
     }
 

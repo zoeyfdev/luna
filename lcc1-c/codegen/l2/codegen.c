@@ -2,10 +2,13 @@
 
 #include "../../parse/ast.h"
 #include "../../parse/types.h"
+#include "../../../lcc_shared/libvector.h"
+#include "registers.h"
+#include "types.h"
 
 vector* stream;
 
-void write(char* buf, bool indent) {
+codegen_return* write(char* buf, bool indent) {
     if (indent)
         for (int i = 0; i < 4; i++) {
             vec_grow(stream, 1);
@@ -19,6 +22,25 @@ void write(char* buf, bool indent) {
     }
 }
 
+codegen_return* codegen_leaf(ast_node* leaf) {
+    if (leaf->type == AST_INTEGER_LITERAL) {
+        
+    }
+}
+
+codegen_return* codegen_expression(ast_node* expression) {
+     
+}
+
+void codegen_statement(ast_node* statement) {
+    if (statement->type == AST_ASSEMBLY_STATEMENT) {
+        write(statement->content.assembly.string, true);
+        write("    // Inline assembly\n", true);
+    } else if (statement->type == AST_STATEMENT_EXPRESSION) {
+        codegen_expression(statement->content.statement_expression.expression);
+    }
+}
+
 void codegen_decl(ast_node* decl) {
     if (decl->type == AST_ASSEMBLY_DECL) {
         write(decl->content.assembly.string, false);
@@ -26,27 +48,39 @@ void codegen_decl(ast_node* decl) {
     } else if (decl->type == AST_VARIABLE) {
         variable v = decl->content.variable;
 
-        if (v.kind == KIND_VARIABLE) {
-            if ((v.scope == 0 || v.type_info._static) && !v._register) {
-                // const codegen
-                switch (v.type_info.type) {
-                case TYPE_I8:
-                    write(".byte 0x00\n", false);
-                    break;
-                case TYPE_I16:
-                    write(".word 0x0000\n", false);
-                    break;
-                case TYPE_I32:
-                    write(".dword 0x00000000\n", false);
-                    break;
+        if (!v.type_info.external) {
+            write(v.name, false);
+            write(":\n", false);
+            if (v.kind == KIND_VARIABLE) {
+                if ((v.scope == 0 || v.type_info._static) && !v._register) {
+                    // const codegen
+                    switch (v.type_info.type) {
+                    case TYPE_I8:
+                        write(".byte 0x00\n", true);
+                        break;
+                    case TYPE_I16:
+                        write(".word 0x0000\n", true);
+                        break;
+                    case TYPE_I32:
+                        write(".dword 0x00000000\n", true);
+                        break;
+                    }
+                    write("\n", false);
+                } 
+            } else if (v.kind == KIND_FUNCTION) {
+                for (int i = 0; i < v.children->elements; i++) {
+                    ast_node* statement = ((ast_node**) v.children->data)[i];
+                    codegen_statement(statement);
                 }
-                write("\n", false);
-            } 
+            }
         }
+
+
     } 
 }
 
 char* codegen_l2(ast* tu, bool is_32) {
+    regs_init();
     stream = vec_init(sizeof(char*), 0);
 
     if (!is_32)

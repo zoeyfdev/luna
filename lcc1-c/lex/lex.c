@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "../../lcc_shared/libvector.h"
 #include "../../lcc_shared/libcpp.h"
@@ -30,6 +31,8 @@ token_type return_tok_type(char* value) {
         return TOK_R_CURLY;
     else if (!strcmp(value, "="))
         return TOK_EQUAL;
+    else if (!strcmp(value, ";"))
+        return TOK_SEMI;
     else if (!strcmp(value, "asm") || !strcmp(value, "__asm__"))
         return TOK_ASM;
     else if (!strcmp(value, "short"))
@@ -62,7 +65,8 @@ token_type return_tok_type(char* value) {
 vector* lex(vector* buffer) {
     vector* output = vec_init(sizeof(token**), 0);
 
-    for (int i = 0; i < buffer->elements; i++) {
+    int i = 0;
+    for (; i < buffer->elements; i++) {
         cpp_token* t = ((cpp_token**) buffer->data)[i];
 
         token* _t = malloc(sizeof(token));
@@ -84,6 +88,8 @@ vector* lex(vector* buffer) {
         vec_grow(output, 1);
         ((token**) output->data)[output->next] = _t;
     }
+
+    printf("Inserted %d tokens\n", i);
 
     return output;
 }

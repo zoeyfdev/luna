@@ -117,6 +117,7 @@ vector* tokenize(char* buffer, char* file, char* match_str) {
             ((char*) buf->data)[buf->next] = 0;
 
             token* t = malloc(sizeof(token));
+
             t->value = (char*) buf->data;
             t->filename = file;
             t->line = line;
@@ -220,10 +221,9 @@ vector* tokenize(char* buffer, char* file, char* match_str) {
             ((char*) buf->data)[buf->next] = c;
             i++;
         }
+
         if (buf->elements > 0) {
             vec_grow(buf, 1);
-            ((char*) buf->data)[buf->next] = 0;
-
             INSERT_TOKEN(buf->data);
         }
     }
