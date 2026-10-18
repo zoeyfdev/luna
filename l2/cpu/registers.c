@@ -17,6 +17,8 @@ void initialize_registers() {
     for (int i = 0; i <= 12; i++) { // r registers
         sprintf(registers[i].name, "R%d", i);
     }
+
+    int base = 13;
     for (int i = 0; i <= 14; i++) { // e registers
         sprintf(registers[i + base].name, "E%d", i);
     }

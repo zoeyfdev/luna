@@ -54,6 +54,7 @@ bool is_qualifier(token* t) {
 }
 
 void add_node(ast_node* p, ast_node* v) {
+    printf("added node\n");
     if (p->type == AST_VARIABLE) {
         vec_grow(p->content.variable.children, 1);
         ((ast_node**) p->content.variable.children->data)[p->content.variable.children->next] = v;

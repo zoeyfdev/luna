@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "ast.h"
 #include "types.h"
 #include "../lex/types.h"
@@ -7,7 +9,7 @@
 #define PEEK(by) (peek(tokens, &i, (by)))
 #define EXPECT(t) (expect(tokens, &i, (t)))
 
-int parse_leaf(vector* tokens, int i, ast_node* decl, ast_node* r) {
+int parse_leaf(vector* tokens, int i, ast_node* decl, ast_node** r) {
     if (PEEK(0)->type == TOK_IDENTIFIER) {
 
     } else if (PEEK(0)->type == TOK_NUMBER) {
@@ -16,105 +18,108 @@ int parse_leaf(vector* tokens, int i, ast_node* decl, ast_node* r) {
 
         num_lit->content.integer_literal.value = int_token->value;
 
-        r = num_lit;
+        *r = num_lit;
+        printf("found\n");
     } else if (PEEK(0)->type == TOK_STRING) {
         token* str_token = EXPECT(TOK_STRING);
-        ast_node* num_lit = new_node(AST_STRING_LITERAL);
+        ast_node* str_lit = new_node(AST_STRING_LITERAL);
 
         str_lit->content.string_literal.value = str_token->value;
 
-        r = str_lit;
+        *r = str_lit;
+        printf("found str\n");
     }
 
     return i;
 }
 
-int parse_1(vector* tokens, int i, ast_node* decl, ast_node* r) {
+int parse_1(vector* tokens, int i, ast_node* decl, ast_node** r) {
     i = parse_leaf(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_2(vector* tokens, int i, ast_node* decl, ast_node* r) {
+int parse_2(vector* tokens, int i, ast_node* decl, ast_node** r) {
     i = parse_1(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_3(vector* tokens, int i, ast_node* decl, ast_node* r) { // *, /, %
+int parse_3(vector* tokens, int i, ast_node* decl, ast_node** r) { // *, /, %
     i = parse_2(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_4(vector* tokens, int i, ast_node* decl, ast_node* r) { // + and -
+int parse_4(vector* tokens, int i, ast_node* decl, ast_node** r) { // + and -
     i = parse_3(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_5(vector* tokens, int i, ast_node* decl, ast_node* r) { // << and >>
+int parse_5(vector* tokens, int i, ast_node* decl, ast_node** r) { // << and >>
     i = parse_4(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_6(vector* tokens, int i, ast_node* decl, ast_node* r) { // <, <=, >, >=
+int parse_6(vector* tokens, int i, ast_node* decl, ast_node** r) { // <, <=, >, >=
     i = parse_5(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_7(vector* tokens, int i, ast_node* decl, ast_node* r) { // == and !=
+int parse_7(vector* tokens, int i, ast_node* decl, ast_node** r) { // == and !=
     i = parse_6(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_8(vector* tokens, int i, ast_node* decl, ast_node* r) { // bitwise AND
+int parse_8(vector* tokens, int i, ast_node* decl, ast_node** r) { // bitwise AND
     i = parse_7(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_9(vector* tokens, int i, ast_node* decl, ast_node* r) { // bitwise AND
+int parse_9(vector* tokens, int i, ast_node* decl, ast_node** r) { // bitwise AND
     i = parse_8(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_10(vector* tokens, int i, ast_node* decl, ast_node* r) { // bitwise OR
+int parse_10(vector* tokens, int i, ast_node* decl, ast_node** r) { // bitwise OR
     i = parse_9(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_11(vector* tokens, int i, ast_node* decl, ast_node* r) { // logical AND
+int parse_11(vector* tokens, int i, ast_node* decl, ast_node** r) { // logical AND
     i = parse_10(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_12(vector* tokens, int i, ast_node* decl, ast_node* r) { // logical OR
+int parse_12(vector* tokens, int i, ast_node* decl, ast_node** r) { // logical OR
     i = parse_11(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_13(vector* tokens, int i, ast_node* decl, ast_node* r) { // ternary
+int parse_13(vector* tokens, int i, ast_node* decl, ast_node** r) { // ternary
     i = parse_12(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_14(vector* tokens, int i, ast_node* decl, ast_node* r) { // simple and compound assignments
-    ast_node* left = r;
+int parse_14(vector* tokens, int i, ast_node* decl, ast_node** r) { // simple and compound assignments
+    ast_node* left = *r;
 P14_TOP:
-    i = parse_13(tokens, i, decl, left);
+    i = parse_13(tokens, i, decl, &left);
 
     if (PEEK(0)->type == TOK_EQUAL) {
         EXPECT(TOK_EQUAL);
-        ast_node* right = parse_13(tokens, i, decl, right);
+        ast_node* right; 
+        i = parse_13(tokens, i, decl, &right);
 
         ast_node* assignment = new_node(AST_ASSIGNMENT);
         assignment->content.assignment.target = left;
@@ -123,25 +128,25 @@ P14_TOP:
         goto P14_TOP;
     }
 
-    r = left;
+    *r = left;
 
     return i;
 }
 
-int parse_15(vector* tokens, int i, ast_node* decl, ast_node* r) { // ,
+int parse_15(vector* tokens, int i, ast_node* decl, ast_node** r) { // ,
     i = parse_14(tokens, i, decl, r);
 
     return i;
 }
 
-int parse_expression(vector* tokens, int i, ast_node* decl, ast_node* r) { // top level wrapper
+int parse_expression(vector* tokens, int i, ast_node* decl, ast_node** r) { // top level wrapper
     i = parse_15(tokens, i, decl, r);
 
     return i;
 }
 
 int parse_statement(vector* tokens, int i, ast_node* decl) {
-    token* t = ((token**) tokens->data)[i];
+    token* t = PEEK(0);
 
     if (t->type == TOK_ASM) {
         EXPECT(TOK_ASM);
@@ -156,10 +161,11 @@ int parse_statement(vector* tokens, int i, ast_node* decl) {
     } else {
         // assume expression
         ast_node* e;
-        i = parse_expression(tokens, i, decl, e);
+        i = parse_expression(tokens, i, decl, &e);
 
         ast_node* stmt_expr = new_node(AST_STATEMENT_EXPRESSION);
-        stmt_expr.expression = e;
+        stmt_expr->content.statement_expression.expression = e;
+        add_node(decl, stmt_expr);
     }
 
     EXPECT(TOK_SEMI);
@@ -169,9 +175,8 @@ int parse_statement(vector* tokens, int i, ast_node* decl) {
 
 int parse_local(vector* tokens, int start, ast_node* decl) {
     int i = start;
-    for (; i < tokens->elements; i++) {
+    while (i < tokens->elements)
         i = parse_statement(tokens, i, decl);
-    }
 
     return i;
 }

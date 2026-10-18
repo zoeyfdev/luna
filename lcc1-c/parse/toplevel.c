@@ -116,7 +116,26 @@ ast* parse(vector* tokens) {
 
                 EXPECT(TOK_L_CURLY);
 
-                i = parse_local(tokens, i, v);
+                int depth = 1;
+                vector* list = vec_init(sizeof(token**), 0);
+                while (i < tokens->elements) {
+                    if (PEEK(0)->type == TOK_L_CURLY) {
+                        depth++;
+                    } else if (PEEK(0)->type == TOK_R_CURLY) {
+                        depth--;
+
+                        if (depth == 0) {
+                            break;
+                        }    
+                    }
+                    
+                    vec_grow(list, 1);
+                    ((token**) list->data)[list->next] = PEEK(0);
+
+                    i++;
+                }
+
+                parse_local(list, 0, v);
 
                 EXPECT(TOK_R_CURLY);
             }

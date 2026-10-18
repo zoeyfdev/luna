@@ -23,7 +23,7 @@ typedef enum {
     AST_FUNCTION_CALL,
 
     AST_ASSEMBLY_STATEMENT,
-    AST_STMT_EXPRESSION,
+    AST_STATEMENT_EXPRESSION,
 
     AST_VARIABLE,
     AST_ASSEMBLY_DECL
@@ -42,37 +42,39 @@ typedef enum {
     KIND_FUNCTION
 } ast_variable_kind;
 
+typedef struct ast_node ast_node;
+
 // Leaves
 
 typedef struct {
-    c_type type;
+    c_type type_info;
     char* value;
 } integer_literal;
 
 typedef struct {
-    c_type type;
+    c_type type_info;
     char* value;
 } string_literal;
 
 // Expressions
 
 typedef struct {
-    c_type type;
+    c_type type_info;
     ast_binary_op_type operation;
-    struct ast_node* left;
-    struct ast_node* right;
+    ast_node* left;
+    ast_node* right;
 } binary_operation;
 
 typedef struct {
-    c_type value;
-    struct ast_node* target;
-    struct ast_node* value;
+    c_type type_info;
+    ast_node* target;
+    ast_node* value;
 } assignment;
 
 // Statements
 
 typedef struct {
-    struct ast_node* statement;
+    ast_node* expression;
 } statement_expression;
 
 // Declarations
@@ -103,7 +105,7 @@ typedef struct {
 
 // Broad types
 
-typedef struct {
+struct ast_node {
     ast_node_type type;
     union {
         integer_literal integer_literal;
@@ -117,7 +119,7 @@ typedef struct {
 
         variable variable;
     } content;
-} ast_node;
+};
 
 typedef struct {
     vector* declarations;
