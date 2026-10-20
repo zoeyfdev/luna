@@ -25,8 +25,10 @@ void regs_init() {
 
 char* take_register() {
     for (int i = 0; i < 35; i++) {
-        if (!registers[i].taken)
+        if (!registers[i].taken) {
+            registers[i].taken = true;
             return registers[i].name;
+        }
     }
 
     lcc_error(NULL, 0, "no more free registers!", NULL);

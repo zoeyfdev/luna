@@ -75,7 +75,7 @@ codegen_return* codegen_leaf(ast_node* leaf) {
         write("mov ", true);
         write(r, false);
         write(", ", false);
-        write(name, false);
+        write(name2, false);
         write("\n", false);
 
 
@@ -85,7 +85,7 @@ codegen_return* codegen_leaf(ast_node* leaf) {
         return ret;
     }
 
-    lcc_fatal(NULL, 0, "no return value for codegen_leaf()", NULL);
+    lcc_ice(NULL, 0, "no return value for codegen_leaf()", NULL);
 }
 
 codegen_return* codegen_expression(ast_node* expression) {
@@ -93,10 +93,16 @@ codegen_return* codegen_expression(ast_node* expression) {
             expression->type == AST_STRING_LITERAL) {
         return codegen_leaf(expression);
     } else if (expression->type == AST_ASSIGNMENT) {
-         
+        codegen_return* target = codegen_expression(expression->content.assignment.target);
+        codegen_return* value = codegen_expression(expression->content.assignment.value);
+       
+        emit_store(&value->type_info, target->_register, value->_register);
+        free_register(target->_register);
+
+        return value;
     }
 
-    lcc_fatal(NULL, 0, "no return value for codegen_expression()", NULL);
+    lcc_ice(NULL, 0, "no return value for codegen_expression()", NULL);
 }
 
 void codegen_statement(ast_node* statement) {
@@ -104,7 +110,7 @@ void codegen_statement(ast_node* statement) {
         write(statement->content.assembly.string, true);
         write("    // Inline assembly\n", false);
     } else if (statement->type == AST_STATEMENT_EXPRESSION) {
-        codegen_expression(statement->content.statement_expression.expression);
+        free_register(codegen_expression(statement->content.statement_expression.expression)->_register);
     }
 }
 
@@ -143,8 +149,6 @@ void codegen_decl(ast_node* decl) {
                 }
             }
         }
-
-
     } 
 }
 

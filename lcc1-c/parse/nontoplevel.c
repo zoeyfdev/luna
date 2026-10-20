@@ -5,6 +5,7 @@
 #include "../lex/types.h"
 #include "../../lcc_shared/libvector.h"
 #include "util.h"
+#include "../env/env.h"
 
 #define PEEK(by) (peek(tokens, &i, (by)))
 #define EXPECT(t) (expect(tokens, &i, (t)))
@@ -17,9 +18,9 @@ int parse_leaf(vector* tokens, int i, ast_node* decl, ast_node** r) {
         ast_node* num_lit = new_node(AST_INTEGER_LITERAL);
 
         num_lit->content.integer_literal.value = int_token->value;
+        num_lit->content.integer_literal.type_info.type = INT_BASE_TYPE;
 
         *r = num_lit;
-        printf("found\n");
     } else if (PEEK(0)->type == TOK_STRING) {
         token* str_token = EXPECT(TOK_STRING);
         ast_node* str_lit = new_node(AST_STRING_LITERAL);
@@ -27,7 +28,6 @@ int parse_leaf(vector* tokens, int i, ast_node* decl, ast_node** r) {
         str_lit->content.string_literal.value = str_token->value;
 
         *r = str_lit;
-        printf("found str\n");
     }
 
     return i;
