@@ -39,7 +39,7 @@ void write(char* buf, bool indent) {
     }
 }
 
-codegen_return* codegen_leaf(ast_node* leaf) {
+codegen_return* codegen_leaf(ast_node* leaf, bool read) {
     if (leaf->type == AST_INTEGER_LITERAL) {
         char* _register = take_register();
 
@@ -78,6 +78,9 @@ codegen_return* codegen_leaf(ast_node* leaf) {
         write(name2, false);
         write("\n", false);
 
+        if (read)
+
+
 
         codegen_return* ret = new_cgr();
         ret->_register = r;
@@ -88,13 +91,13 @@ codegen_return* codegen_leaf(ast_node* leaf) {
     lcc_ice(NULL, 0, "no return value for codegen_leaf()", NULL);
 }
 
-codegen_return* codegen_expression(ast_node* expression) {
+codegen_return* codegen_expression(ast_node* expression, bool read) {
     if (expression->type == AST_INTEGER_LITERAL ||
             expression->type == AST_STRING_LITERAL) {
-        return codegen_leaf(expression);
+        return codegen_leaf(expression, read);
     } else if (expression->type == AST_ASSIGNMENT) {
-        codegen_return* target = codegen_expression(expression->content.assignment.target);
-        codegen_return* value = codegen_expression(expression->content.assignment.value);
+        codegen_return* target = codegen_expression(expression->content.assignment.target, false);
+        codegen_return* value = codegen_expression(expression->content.assignment.value, true);
        
         emit_store(&value->type_info, target->_register, value->_register);
         free_register(target->_register);
@@ -110,7 +113,7 @@ void codegen_statement(ast_node* statement) {
         write(statement->content.assembly.string, true);
         write("    // Inline assembly\n", false);
     } else if (statement->type == AST_STATEMENT_EXPRESSION) {
-        free_register(codegen_expression(statement->content.statement_expression.expression)->_register);
+        free_register(codegen_expression(statement->content.statement_expression.expression, true)->_register);
     }
 }
 

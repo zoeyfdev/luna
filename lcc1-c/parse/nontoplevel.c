@@ -26,6 +26,8 @@ int parse_leaf(vector* tokens, int i, ast_node* decl, ast_node** r) {
         ast_node* str_lit = new_node(AST_STRING_LITERAL);
 
         str_lit->content.string_literal.value = str_token->value;
+        str_lit->content.string_literal.type_info.type = TYPE_I8;
+        str_lit->content.string_literal.type_info.pointer_length = 1;
 
         *r = str_lit;
     }
