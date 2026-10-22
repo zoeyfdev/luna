@@ -53,6 +53,9 @@ codegen_return* codegen_leaf(ast_node* leaf, bool read) {
 
         r->_register = _register;
         r->type_info = leaf->content.integer_literal.type_info;
+        r->rvalue = true;
+        r->read = true;
+
         return r;
     } else if (leaf->type == AST_STRING_LITERAL) {
         char* name = generate_generic();
@@ -64,7 +67,7 @@ codegen_return* codegen_leaf(ast_node* leaf, bool read) {
         write_header("\"\n\n", false);
 
         char* name2 = generate_generic();
-        write_header(name, false);
+        write_header(name2, false);
         write_header(":\n", false);
 
         write_header(".ptr ", true);
@@ -78,17 +81,20 @@ codegen_return* codegen_leaf(ast_node* leaf, bool read) {
         write(name2, false);
         write("\n", false);
 
-        if (read)
-
-
-
         codegen_return* ret = new_cgr();
+
+        if (read) {
+            emit_load(&leaf->content.string_literal.type_info, r, r);
+            ret->read = true;
+        }
+        
         ret->_register = r;
         ret->type_info = leaf->content.string_literal.type_info;
         return ret;
     }
 
     lcc_ice(NULL, 0, "no return value for codegen_leaf()", NULL);
+    return NULL;
 }
 
 codegen_return* codegen_expression(ast_node* expression, bool read) {
@@ -106,6 +112,7 @@ codegen_return* codegen_expression(ast_node* expression, bool read) {
     }
 
     lcc_ice(NULL, 0, "no return value for codegen_expression()", NULL);
+    return NULL;
 }
 
 void codegen_statement(ast_node* statement) {

@@ -83,7 +83,7 @@ int parse_8(vector* tokens, int i, ast_node* decl, ast_node** r) { // bitwise AN
     return i;
 }
 
-int parse_9(vector* tokens, int i, ast_node* decl, ast_node** r) { // bitwise AND
+int parse_9(vector* tokens, int i, ast_node* decl, ast_node** r) { // bitwise XOR
     i = parse_8(tokens, i, decl, r);
 
     return i;

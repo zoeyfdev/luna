@@ -73,6 +73,7 @@ lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 		parse/*.c \
 		codegen/l2/*.c \
 		env/*.c \
+		typecheck/*.c \
 		../lcc_shared/shared.c \
 		../lcc_shared/libvector.c \
 		../lcc_shared/libcpp.c \

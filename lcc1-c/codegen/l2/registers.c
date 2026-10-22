@@ -14,7 +14,7 @@ _register registers[NUM_REGISTERS];
 void regs_init() {
     int base = 1;
     for (int i = 0; i < 12; i++, base++) { // r registers
-        sprintf(registers[i].name, "r%d", i);
+        sprintf(registers[i].name, "r%d", base);
     }
 
     base = 7;
