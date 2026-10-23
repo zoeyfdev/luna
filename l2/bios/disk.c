@@ -41,8 +41,7 @@ bool load_sector(int drive, int sector, int dest_sector) {
     int fd = open(file, O_RDONLY, 0);
     bool fail = fd == -1;
 #else
-    void* fd = CreateFileA(file, GENERIC_READ | GENERIC_WRITE, 
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
+    void* fd = CreateFileA(file, GENERIC_READ, FILE_SHARE_READ,
             NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     OVERLAPPED* offset = calloc(1, sizeof(OVERLAPPED));
     offset->OffsetHigh = (((dest_sector * 512) & 0xFFFFFFFF00000000) >> 32);
