@@ -4,19 +4,26 @@ BUILD_MODE=
 DEFAULT_ARCH=l2_16
 
 OS_NAME := $(shell uname -s)
-SDL_FLAGS = $(shell sdl2-config --cflags --libs)
+SDL_FLAGS = $(shell pkg-config --cflags --libs sdl2)
 CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough -Wno-switch
 MODULE_ENDING=so
+COMPAT_FLAG=false
 
 ifeq ($(BUILD_MODE),mac)
 	CC=gcc-16
 	CCFLAGS+=-B/usr/local/bin/ld64.lld
-	SDL_FLAGS = $(shell pkg-config --cflags --libs sdl2)
 endif
-ifeq ($(BUILD_MODE),win_cross)
+ifeq ($(BUILD_MODE),windows || $(OS),Windows_NT)
+	ifeq ($(OS),Windows_NT)
+		ifeq ($(COMPAT_FLAG),false)
+			echo "!! Please run the 'makefile_compatibility_driver' application and then try again !!"
+			exit
+		endif
+	endif
 	CC=x86_64-w64-mingw32-gcc
-	SDL_FLAGS = $(shell x86_64-w64-mingw32-pkg-config sdl2 --libs --cflags)
-	CCFLAGS+=--static -lsetupapi -lole32 -lwinmm -loleaut32 -limm32 -lversion
+	SDL_FLAGS=-Wl,-Bstatic $(shell x86_64-w64-mingw32-pkg-config sdl2 --libs) -Wl,-Bdynamic 
+	SDL_FLAGS+=$(shell x86_64-w64-mingw32-pkg-config sdl2 --cflags)
+	CCFLAGS+=-lsetupapi -lole32 -lwinmm -loleaut32 -limm32 -lversion
 	MODULE_ENDING=dll
 endif
 
