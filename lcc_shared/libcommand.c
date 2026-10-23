@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <limits.h>
-#include <sys/wait.h>
+
+#ifndef _WIN32
+    #include <sys/wait.h>
+#endif
 
 int lc_command_execute(char* command) {
     FILE* pipe = popen(command, "r");
@@ -14,7 +17,11 @@ int lc_command_execute(char* command) {
 
     int status = pclose(pipe);
 
+#ifndef _WIN32
     int code = WEXITSTATUS(status);
+#else
+    int code = 0;
+#endif
 
     return code;
 }

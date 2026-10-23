@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
+    #include <dlfcn.h>
+#else
+    #include <libloaderapi.h> 
+#endif
 
 #ifndef _WIN32
     char* component_base = "/usr/local/lib/l2/";
@@ -21,26 +26,38 @@ char* return_component_path(char* name) {
     return path;
 }
 
-#ifndef _WIN32
-
-#include <dlfcn.h>
-
 void* return_component_function(void* handle, char* name) {
+#ifndef _WIN32
     void* function_handle = dlsym(handle, name);
+#else
+    void* function_handle = GetProcAddress(handle, name);
+#endif
+
     if (function_handle == NULL) {
+#ifndef _WIN32
         printf("luna-l2: failed to return function '%s': %s\n", name, dlerror());
+#else
+        printf("luna-l2: failed to return function '%s': failed\n", name);
+#endif
     }
     return function_handle;
 }
 
 void* initialize_component(char* path) {
+#ifndef _WIN32
     void* handle = dlopen(path, RTLD_LAZY);
+#else
+    void* handle = LoadLibraryA(path);
+#endif
+
     if (handle == NULL) {
+#ifndef _WIN32
         printf("luna-l2: failed to initialize component with path '%s': %s\n", path, dlerror());
+#else
+        printf("luna-l2: failed to initialize component with path '%s': failed\n", path);
+#endif 
         exit(1);
     }
 
     return handle;
 }
-
-#endif

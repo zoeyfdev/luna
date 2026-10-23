@@ -5,12 +5,19 @@ DEFAULT_ARCH=l2_16
 
 OS_NAME := $(shell uname -s)
 SDL_FLAGS = $(shell sdl2-config --cflags --libs)
-CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough -Wno-switch 
+CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough -Wno-switch
+MODULE_ENDING=so
 
 ifeq ($(BUILD_MODE),mac)
 	CC=gcc-16
 	CCFLAGS+=-B/usr/local/bin/ld64.lld
 	SDL_FLAGS = $(shell pkg-config --cflags --libs sdl2)
+endif
+ifeq ($(BUILD_MODE),win_cross)
+	CC=x86_64-w64-mingw32-gcc
+	SDL_FLAGS = $(shell x86_64-w64-mingw32-pkg-config sdl2 --libs --cflags)
+	CCFLAGS+=--static -lsetupapi -lole32 -lwinmm -loleaut32 -limm32 -lversion
+	MODULE_ENDING=dll
 endif
 
 all: luna-l2 luna-l2-components las lcc lcc1 l2ld
@@ -21,18 +28,18 @@ luna-l2-components: $(SRC)/l2/*
 		hardware/g1x/g1x.c \
 		-shared -fPIC \
 		$(CCFLAGS) \
-		-o ../components/g1x.so -g
+		-o ../components/g1x.$(MODULE_ENDING) -g
 	cd l2 && $(CC) \
 		hardware/pit/pit.c \
 		-shared -fPIC \
 		$(CCFLAGS) \
-		-o ../components/pit.so -g
+		-o ../components/pit.$(MODULE_ENDING) -g
 	cd l2 && $(CC) \
 		hardware/s1/s1.c \
 		-shared -fPIC \
 		$(SDL_FLAGS) \
 		$(CCFLAGS) \
-		-o ../components/s1.so -g
+		-o ../components/s1.$(MODULE_ENDING) -g
 
 luna-l2: $(SRC)/l2/*
 	cd l2 && $(CC) \
