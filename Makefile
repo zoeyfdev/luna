@@ -13,24 +13,25 @@ ifeq ($(BUILD_MODE),mac)
 	CC=gcc-16
 	CCFLAGS+=-B/usr/local/bin/ld64.lld
 endif
-ifeq ($(BUILD_MODE),windows || $(OS),Windows_NT)
-	ifeq ($(OS),Windows_NT)
-		ifeq ($(COMPAT_FLAG),false)
-			echo "!! Please run the 'makefile_compatibility_driver' application and then try again !!"
-			exit
-		endif
-	endif
+ifeq ($(BUILD_MODE),windows)
+	CC=x86_64-w64-mingw32-gcc
+	SDL_FLAGS=-Wl,-Bstatic $(shell pkgconf sdl2 --libs) -Wl,-Bdynamic 
+	SDL_FLAGS+=$(shell pkgconf sdl2 --cflags)
+	CCFLAGS+=-lsetupapi -lole32 -lwinmm -loleaut32 -limm32 -lversion -Wl,-Bstatic -lgcc -Wl,-Bdynamic
+	MODULE_ENDING=dll
+endif
+ifeq ($(BUILD_MODE),windows_cross)
 	CC=x86_64-w64-mingw32-gcc
 	SDL_FLAGS=-Wl,-Bstatic $(shell x86_64-w64-mingw32-pkg-config sdl2 --libs) -Wl,-Bdynamic 
 	SDL_FLAGS+=$(shell x86_64-w64-mingw32-pkg-config sdl2 --cflags)
-	CCFLAGS+=-lsetupapi -lole32 -lwinmm -loleaut32 -limm32 -lversion
+	CCFLAGS+=-lsetupapi -lole32 -lwinmm -loleaut32 -limm32 -lversion -Wl,-Bstatic -lgcc -Wl,-Bdynamic
 	MODULE_ENDING=dll
 endif
 
 all: luna-l2 luna-l2-components las lcc lcc1 l2ld
 .PHONY: all luna-l2 luna-l2-components las lcc lcc1 l2ld
 
-luna-l2-components: $(SRC)/l2/*
+luna-l2-components:
 		cd l2 && $(CC) \
 		hardware/g1x/g1x.c \
 		-shared -fPIC \
@@ -48,7 +49,7 @@ luna-l2-components: $(SRC)/l2/*
 		$(CCFLAGS) \
 		-o ../components/s1.$(MODULE_ENDING) -g
 
-luna-l2: $(SRC)/l2/*
+luna-l2:
 	cd l2 && $(CC) \
 		*.c \
 		util/*.c \
@@ -63,7 +64,7 @@ luna-l2: $(SRC)/l2/*
 		$(CCFLAGS) \
 		-g
 
-las: $(SRC)/las/* $(SRC)/lcc_info/*
+las:
 	cd las && $(CC) \
 		*.c \
 		lexer/*.c \
@@ -80,7 +81,7 @@ las: $(SRC)/las/* $(SRC)/lcc_info/*
 		-o ../bin/las \
 		-g
 
-lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
+lcc1:
 	cd lcc1-c && $(CC) \
 		*.c \
 		lex/*.c \
@@ -99,7 +100,7 @@ lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 		-g
 	cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
 
-l2ld: $(SRC)/l2ld/*
+l2ld:
 	cd l2ld && $(CC) \
 		*.c \
 		../lcc_shared/libvector.c \
@@ -108,7 +109,7 @@ l2ld: $(SRC)/l2ld/*
 		-g \
 		$(CCFLAGS)
 
-lcc: $(SRC)/lcc/* $(SRC)/lcc_shared/*
+lcc:
 	cd lcc && $(CC) \
 		*.c \
 		../lcc_shared/libvector.c \
