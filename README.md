@@ -2,18 +2,20 @@
 A simple, lightweight RISC CPU architecture.<br><br>
 
 # Requirements<br>
-- MacOS, Linux, or FreeBSD<br>
-- Go<br>
-- GCC
+- Windows, or Unix-like system (includes MacOS, Linux, FreeBSD, etc.)<br>
+- SDL2<br>
+- GCC (GNU Compiler Collection)<br>
+- GNU Make<br>
 
-# Installation (MacOS, Linux, FreeBSD)<br>
+# Installation (Unix-like)<br>
 - Clone the repository using `git clone`<br>
-- Navigate into the directory<br>
-- Run `make; make install` to install the Luna L2 emulator and toolchain<br>
-- Run `luna-l2 <disk image>` to run an application<br>
+- Run `make; sudo make install` to install the Luna L2 emulator and toolchain<br>
 
-# Windows Support<br>
-- Windows is not currently supported because the Windows API isn't friendly to the shared library model Luna L2 uses.<br><br>
+# Installation (Windows)<br>
+- Download MinGW [here]() for the GNU Compiler collection<br>
+- Download 
+- Download the repository via `Code > Download ZIP` and extract the file<br>
+- Run the `makefile_compat.ps1` PowerShell 
 
 # Running a disk image<br>
 - Run `luna-l2 <disk image>` to execute a disk image.<br>

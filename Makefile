@@ -1,30 +1,22 @@
 SRC=.
 CC=gcc
 BUILD_MODE=
-DEFAULT_ARCH=l2_16
 
 OS_NAME := $(shell uname -s)
 SDL_FLAGS = $(shell pkg-config --cflags --libs sdl2)
 CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough -Wno-switch
 MODULE_ENDING=so
-COMPAT_FLAG=false
 
-ifeq ($(BUILD_MODE),mac)
-	CC=gcc-16
-	CCFLAGS+=-B/usr/local/bin/ld64.lld
-endif
 ifeq ($(BUILD_MODE),windows)
 	CC=x86_64-w64-mingw32-gcc
-	SDL_FLAGS=-Wl,-Bstatic $(shell pkgconf sdl2 --libs) -Wl,-Bdynamic 
-	SDL_FLAGS+=$(shell pkgconf sdl2 --cflags)
-	CCFLAGS+=-lsetupapi -lole32 -lwinmm -loleaut32 -limm32 -lversion -Wl,-Bstatic -lgcc -Wl,-Bdynamic
+	SDL_FLAGS=$(shell pkgconf sdl2 --libs --cflags)
+	CCFLAGS+=-Wl,-Bstatic -lgcc -Wl,-Bdynamic
 	MODULE_ENDING=dll
 endif
 ifeq ($(BUILD_MODE),windows_cross)
 	CC=x86_64-w64-mingw32-gcc
-	SDL_FLAGS=-Wl,-Bstatic $(shell x86_64-w64-mingw32-pkg-config sdl2 --libs) -Wl,-Bdynamic 
-	SDL_FLAGS+=$(shell x86_64-w64-mingw32-pkg-config sdl2 --cflags)
-	CCFLAGS+=-lsetupapi -lole32 -lwinmm -loleaut32 -limm32 -lversion -Wl,-Bstatic -lgcc -Wl,-Bdynamic
+	SDL_FLAGS=$(shell x86_64-w64-mingw32-pkg-config sdl2 --libs --cflags) 
+	CCFLAGS+=-Wl,-Bstatic -lgcc -Wl,-Bdynamic
 	MODULE_ENDING=dll
 endif
 
