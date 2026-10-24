@@ -12,10 +12,10 @@ A simple, lightweight RISC CPU architecture.<br><br>
 - Run `make; sudo make install` to install the Luna L2 emulator and toolchain<br>
 
 # Installation (Windows)<br>
-- Download MinGW [here]() for the GNU Compiler collection<br>
-- Download 
-- Download the repository via `Code > Download ZIP` and extract the file<br>
-- Run the `makefile_compat.ps1` PowerShell 
+- Download and install MSYS2 [here](https://www.msys2.org/)<br>
+- Open the MSYS2 MINGW64 shell **as Administrator** and run `pacman -S base-devel git mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2 mingw-w64-x86_64-pkg-config`<br>
+- Clone the repository using `git clone`<br>
+- Run `make BUILD_MODE=windows; make install`<br>
 
 # Running a disk image<br>
 - Run `luna-l2 <disk image>` to execute a disk image.<br>

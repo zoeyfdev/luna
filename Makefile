@@ -1,45 +1,52 @@
 SRC=.
 CC=gcc
+
 BUILD_MODE=
+MODULE_ENDING=so
+WIN_COMPONENT_ROOT=
+DEBUG=
 
 OS_NAME := $(shell uname -s)
 SDL_FLAGS = $(shell pkg-config --cflags --libs sdl2)
 CCFLAGS=-Wall -Wextra -std=gnu23 -Wno-type-limits -Wno-unused-parameter -Wno-implicit-fallthrough -Wno-switch
-MODULE_ENDING=so
 
+ifeq ($(DEBUG),true)
+	CCFLAGS+=-g
+endif
 ifeq ($(BUILD_MODE),windows)
 	CC=x86_64-w64-mingw32-gcc
-	SDL_FLAGS=$(shell pkgconf sdl2 --libs --cflags)
-	CCFLAGS+=-Wl,-Bstatic -lgcc -Wl,-Bdynamic
-	MODULE_ENDING=dll
-endif
-ifeq ($(BUILD_MODE),windows_cross)
-	CC=x86_64-w64-mingw32-gcc
-	SDL_FLAGS=$(shell x86_64-w64-mingw32-pkg-config sdl2 --libs --cflags) 
-	CCFLAGS+=-Wl,-Bstatic -lgcc -Wl,-Bdynamic
+	SDL_FLAGS=-Wl,-Bstatic $(shell x86_64-w64-mingw32-pkg-config sdl2 --libs --cflags) -Wl,-Bdynamic 
+	CCFLAGS+=-Wl,-Bstatic -lgcc -lwinpthread -Wl,-Bdynamic -lsetupapi -lole32 -lwinmm -loleaut32 -limm32 -lversion
+	ifneq ($(strip $(WIN_COMPONENT_ROOT)),)
+		CCFLAGS+=-DWIN_COMPONENT_BASE=$(WIN_COMPONENT_ROOT)
+	endif
 	MODULE_ENDING=dll
 endif
 
-all: luna-l2 luna-l2-components las lcc lcc1 l2ld
+all: always luna-l2 luna-l2-components las lcc lcc1 l2ld
 .PHONY: all luna-l2 luna-l2-components las lcc lcc1 l2ld
+
+always:
+	mkdir -p bin
+	mkdir -p components
 
 luna-l2-components:
 		cd l2 && $(CC) \
 		hardware/g1x/g1x.c \
 		-shared -fPIC \
 		$(CCFLAGS) \
-		-o ../components/g1x.$(MODULE_ENDING) -g
+		-o ../components/g1x.$(MODULE_ENDING)
 	cd l2 && $(CC) \
 		hardware/pit/pit.c \
 		-shared -fPIC \
 		$(CCFLAGS) \
-		-o ../components/pit.$(MODULE_ENDING) -g
+		-o ../components/pit.$(MODULE_ENDING)
 	cd l2 && $(CC) \
 		hardware/s1/s1.c \
 		-shared -fPIC \
 		$(SDL_FLAGS) \
 		$(CCFLAGS) \
-		-o ../components/s1.$(MODULE_ENDING) -g
+		-o ../components/s1.$(MODULE_ENDING)
 
 luna-l2:
 	cd l2 && $(CC) \
@@ -53,8 +60,7 @@ luna-l2:
 		component/*.c \
 		-o ../bin/luna-l2 \
 		$(SDL_FLAGS) \
-		$(CCFLAGS) \
-		-g
+		$(CCFLAGS)
 
 las:
 	cd las && $(CC) \
@@ -70,8 +76,7 @@ las:
 		../lcc_shared/libstoi.c \
 		../lcc_shared/libcpp.c \
 		$(CCFLAGS) \
-		-o ../bin/las \
-		-g
+		-o ../bin/las
 
 lcc1:
 	cd lcc1-c && $(CC) \
@@ -88,8 +93,7 @@ lcc1:
 		../lcc_shared/libstoi.c \
 		../lcc_shared/libfile.c \
 		-o ../bin/lcc1-c \
-		$(CCFLAGS) \
-		-g
+		$(CCFLAGS)
 	cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
 
 l2ld:
@@ -98,7 +102,6 @@ l2ld:
 		../lcc_shared/libvector.c \
 		../lcc_shared/libfile.c \
 		-o ../bin/l2ld \
-		-g \
 		$(CCFLAGS)
 
 lcc:
@@ -110,7 +113,6 @@ lcc:
 		../lcc_shared/libcommand.c \
 		../lcc_shared/shared.c \
 		-o ../bin/lcc \
-		-g \
 		$(CCFLAGS)
 
 lcc1-libs:
@@ -128,9 +130,16 @@ mac_qmake: luna-l2 lcc las lcc1 l2ld
 	sudo cp bin/* /usr/local/bin
 
 install:
-	mkdir -p /usr/local/lib/l2/
-	sudo cp -r components/* /usr/local/lib/l2
-	sudo cp bin/* /usr/local/bin/
+ifneq ($(BUILD_MODE),windows)
+	@mkdir -p /usr/local/lib/l2/
+	@sudo cp -r components/* /usr/local/lib/l2
+	@sudo cp bin/* /usr/local/bin/
+else
+	@mkdir -p C:\\"Program Files"\\"Luna L2"\\
+	@mkdir -p C:\\"Program Files"\\"Luna L2"\\lib
+	@mkdir -p C:\\"Program Files"\\"Luna L2"\\bin
+	@mkdir -p C:\\"Program Files"\\"Luna L2"\\include
+endif
 
 quick: # atomic install
 	sh -c "make"
