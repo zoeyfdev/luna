@@ -15,8 +15,8 @@ ifeq ($(DEBUG),true)
 endif
 ifeq ($(BUILD_MODE),windows)
 	CC=x86_64-w64-mingw32-gcc
-	SDL_FLAGS=-Wl,-Bstatic $(shell x86_64-w64-mingw32-pkg-config sdl2 --libs --cflags) -Wl,-Bdynamic 
-	CCFLAGS+=-Wl,-Bstatic -lgcc -lwinpthread -Wl,-Bdynamic -lsetupapi -lole32 -lwinmm -loleaut32 -limm32 -lversion
+	SDL_FLAGS=-Wl,-Bstatic $(shell x86_64-w64-mingw32-pkg-config sdl2 --libs --cflags) -Wl,-Bdynamic -lsetupapi -lole32 -lwinmm -loleaut32 -limm32 -lversion 
+	CCFLAGS+=-Wl,-Bstatic -lgcc -lwinpthread -Wl,-Bdynamic
 	ifneq ($(strip $(WIN_COMPONENT_ROOT)),)
 		CCFLAGS+=-DWIN_COMPONENT_BASE=$(WIN_COMPONENT_ROOT)
 	endif
@@ -94,7 +94,7 @@ lcc1:
 		../lcc_shared/libfile.c \
 		-o ../bin/lcc1-c \
 		$(CCFLAGS)
-	cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
+	#cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
 
 l2ld:
 	cd l2ld && $(CC) \
@@ -137,8 +137,11 @@ ifneq ($(BUILD_MODE),windows)
 else
 	@mkdir -p C:\\"Program Files"\\"Luna L2"\\
 	@mkdir -p C:\\"Program Files"\\"Luna L2"\\lib
+	@mkdir -p C:\\"Program Files"\\"Luna L2"\\lib\\l2
 	@mkdir -p C:\\"Program Files"\\"Luna L2"\\bin
 	@mkdir -p C:\\"Program Files"\\"Luna L2"\\include
+	@cp -r bin/* C:\\"Program Files"\\"Luna L2"\\bin\\
+	@cp -r components/* C:\\"Program Files"\\"Luna L2"\\lib\\
 endif
 
 quick: # atomic install

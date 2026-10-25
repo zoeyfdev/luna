@@ -3,7 +3,7 @@ A simple, lightweight RISC CPU architecture.<br><br>
 
 # Requirements<br>
 - Windows, or Unix-like system (includes MacOS, Linux, FreeBSD, etc.)<br>
-- SDL2<br>
+- SDL 2<br>
 - GCC (GNU Compiler Collection)<br>
 - GNU Make<br>
 
@@ -15,7 +15,8 @@ A simple, lightweight RISC CPU architecture.<br><br>
 - Download and install MSYS2 [here](https://www.msys2.org/)<br>
 - Open the MSYS2 MINGW64 shell **as Administrator** and run `pacman -S base-devel git mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2 mingw-w64-x86_64-pkg-config`<br>
 - Clone the repository using `git clone`<br>
-- Run `make BUILD_MODE=windows; make install`<br>
+- Run `make BUILD_MODE=windows; make install BUILD_MODE=windows`<br>
+- Add `C:\Program Files\Luna L2\` to your system's environment PATH variable<br>
 
 # Running a disk image<br>
 - Run `luna-l2 <disk image>` to execute a disk image.<br>
