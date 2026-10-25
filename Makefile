@@ -140,7 +140,7 @@ else
 	@mkdir -p C:\\"Program Files"\\"Luna L2"\\lib\\l2
 	@mkdir -p C:\\"Program Files"\\"Luna L2"\\bin
 	@mkdir -p C:\\"Program Files"\\"Luna L2"\\include
-	@cp -r bin/* C:\\"Program Files"\\"Luna L2"\\bin\\
+	@cp -r bin/* C:\\"Program Files"\\"Luna L2"\\bin\\l2\\
 	@cp -r components/* C:\\"Program Files"\\"Luna L2"\\lib\\
 endif
 
