@@ -142,7 +142,6 @@ else
 	@mkdir -p C:\\"Program Files"\\"Luna L2"\\include
 	@cp -r bin/* C:\\"Program Files"\\"Luna L2"\\bin\\
 	@cp -r components/* C:\\"Program Files"\\"Luna L2"\\lib\\l2\\
-	@setx PATH "%PATH%;C:\Program Files\Luna L2\bin" /M
 endif
 
 quick: # atomic install
