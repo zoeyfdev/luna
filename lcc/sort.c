@@ -85,7 +85,7 @@ void sort_files() {
             vec_grow(ld_files, 1);
             ((char**) ld_files->data)[ld_files->next] = file;
         } else {
-            lcc_error(NULL, 0, "unknown file type in '", file, "'", NULL);
+            lcc_error(NULL, 0, NULL, "unknown file type in '", file, "'", NULL);
         }
     }    
 }

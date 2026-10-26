@@ -312,7 +312,7 @@ top:
             token* path = ((token**) tokens->data)[++i];
 
             if (strlen(path->value) < 2) {
-                lcc_error(filename, path->line, "invalid filename '", path->value, "'", NULL);
+                lcc_error(filename, path->line, NULL, "invalid filename '", path->value, "'", NULL);
                 continue; 
             }
 
@@ -326,12 +326,12 @@ top:
                 term = '>';
                 abs = true;
             } else {
-                lcc_error(filename, path->line, "invalid string", NULL);
+                lcc_error(filename, path->line, NULL, "invalid string", NULL);
                 continue;
             }
 
             if (_value[strlen(_value) - 1] != term) {
-                lcc_error(filename, path->line, "invalid string", NULL);
+                lcc_error(filename, path->line, NULL, "invalid string", NULL);
                 continue;
             }
   

@@ -73,6 +73,10 @@ c_type* parse_type(vector* tokens, int* _i) {
     return type;
 }
 
+void parse_init() {
+    scopes_init();
+}
+
 ast* parse(vector* tokens) {
     ast* tu = malloc(sizeof(ast));
     tu->declarations = vec_init(sizeof(ast_node**), 0);

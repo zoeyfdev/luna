@@ -57,7 +57,7 @@ void lcc_fatal(char* label, int line, ...) {
     exit(1);
 }
 
-void lcc_error(char* label, int line, ...) {
+void lcc_error(char* label, int line, bool* marker, ...) {
     if (label != NULL)
         fprintf(stderr, "\033[1;39m%s:\033[0m", label);
     else
@@ -71,13 +71,16 @@ void lcc_error(char* label, int line, ...) {
     fprintf(stderr, "\033[1;31merror:\033[0m ");
 
     va_list strings;
-    va_start(strings, line);
+    va_start(strings, marker);
 
     char* s;
     while ((s = ((char*) va_arg(strings, char*))) && (s != NULL))
         fprintf(stderr, "\033[1;39m%s\033[0m", s);
 
     fprintf(stderr, "\n");
+
+    if (marker != NULL)
+        *marker = true;
 }
 
 void lcc_info(char* label, char* str) {

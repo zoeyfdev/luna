@@ -89,7 +89,5 @@ vector* lex(vector* buffer) {
         ((token**) output->data)[output->next] = _t;
     }
 
-    printf("Inserted %d tokens\n", i);
-
     return output;
 }

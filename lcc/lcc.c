@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
                 output_file = argv[i + 1];
                 i++;
             } else {
-                lcc_error(NULL, 0, "argument to '-o' is missing (expected 1 value)", NULL);
+                lcc_error(NULL, 0, NULL, "argument to '-o' is missing (expected 1 value)", NULL);
             }
         } else if (!strcmp(arg, "-v"))
             verbose = true;
@@ -79,13 +79,13 @@ int main(int argc, char* argv[]) {
                 ((char**) input_files->data)[input_files->next] = arg;
                 fclose(f);
             } else {
-                lcc_error(NULL, 0, "could not stat ", arg, ": no such file or directory", NULL);
+                lcc_error(NULL, 0, NULL, "could not stat ", arg, ": no such file or directory", NULL);
             } 
         }
     }
 
     if (input_files->elements < 1) {
-        lcc_error(NULL, 0, "no input files", NULL);
+        lcc_error(NULL, 0, NULL, "no input files", NULL);
         exit(1);
     }
 

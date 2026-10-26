@@ -111,3 +111,11 @@ char* open_file(char* filename) {
 
     return buf;
 }
+
+void write_file(char* filename, unsigned char* buffer, size_t len) {
+    FILE* f = fopen(filename, "w+b");
+    if (f == NULL)
+        return;
+    fwrite(buffer, sizeof(unsigned char), len, f);
+    fclose(f);
+}

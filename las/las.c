@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (files->elements < 1) {
-        lcc_error(NULL, 0, "no input files", NULL);
+        lcc_error(NULL, 0, NULL, "no input files", NULL);
         exit(1);
     }
 
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
         char* file = ((char**) files->data)[i];
         FILE* f = fopen(file, "rb");
         if (f == NULL) {
-            lcc_error(NULL, 0, "cannot open output file '", file, "': no such file or directory", NULL);
+            lcc_error(NULL, 0, NULL, "cannot open output file '", file, "': no such file or directory", NULL);
             continue;
         }
         filename = file;
@@ -62,12 +62,12 @@ int main(int argc, char* argv[]) {
         parse_init();
         vector* buf = parse(lex(pp_buffer));
 
-        if (num_errors > 0)
+        if (errors)
             exit(1);
 
         FILE* of = fopen(out_fn, "w+b");
         if (of == NULL) {
-            lcc_error(NULL, 0, "cannot open output file '", out_fn, "'", NULL);
+            lcc_error(NULL, 0, NULL, "cannot open output file '", out_fn, "'", NULL);
             continue;
         }
 

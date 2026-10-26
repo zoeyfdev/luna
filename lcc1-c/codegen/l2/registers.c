@@ -31,7 +31,7 @@ char* take_register() {
         }
     }
 
-    lcc_error(NULL, 0, "no more free registers!", NULL);
+    lcc_fatal(NULL, 0, "no more free registers!", NULL);
     return "";
 }
 

@@ -27,8 +27,7 @@ char* filename = NULL;
 
 void expect(vector* tokens, token* t, int type) {
     if (t->type != type) {
-        num_errors++;
-        lcc_error(filename, t->line, "unexpected token '", t->value, "'", NULL);
+        lcc_error(filename, t->line, &errors, "unexpected token '", t->value, "'", NULL);
         stargaze(tokens, t);
     }
 }
@@ -75,8 +74,7 @@ void insert_any(vector* tokens, token* t) {
         }
     } else if (value[0] == '"') { // array of chars
         if (value[strlen(value) - 1] != '"') {
-            num_errors++;
-            lcc_error(filename, t->line, "unclosed string", NULL);
+            lcc_error(filename, t->line, &errors, "unclosed string", NULL);
             stargaze(tokens, t);
         }
 
@@ -150,8 +148,7 @@ vector* parse(vector* tokens) {
                 bits_32 = false;
                 write_str("L_16BIT");
             } else {
-                num_errors++;
-                lcc_error(filename, THIS_TOKEN->line, "invalid value to '.bits', expected '16' or '32'", NULL);
+                lcc_error(filename, THIS_TOKEN->line, &errors, "invalid value to '.bits', expected '16' or '32'", NULL);
             }
             cursor++;
         } else if (!strcmp(val, "set")) {
@@ -162,8 +159,7 @@ vector* parse(vector* tokens) {
             } else if (!strcmp(THIS_TOKEN->value, "16")) {
                 write(0);
             } else {
-                num_errors++;
-                lcc_error(filename, THIS_TOKEN->line, "invalid value to 'set', expected '16' or '32'", NULL);
+                lcc_error(filename, THIS_TOKEN->line, &errors, "invalid value to 'set', expected '16' or '32'", NULL);
             }
 
             cursor++;
@@ -174,8 +170,7 @@ vector* parse(vector* tokens) {
             int64_t num = stoi(THIS_TOKEN->value, &worked);
 
             if (!worked) {
-                num_errors++;
-                lcc_error(filename, THIS_TOKEN->line, "invalid number to .org, got '", THIS_TOKEN->value, "'", NULL);
+                lcc_error(filename, THIS_TOKEN->line, &errors, "invalid number to .org, got '", THIS_TOKEN->value, "'", NULL);
             }
 
             write(num >> 8);
@@ -301,8 +296,7 @@ vector* parse(vector* tokens) {
             char* value = THIS_TOKEN->value;
 
             if (value[0] != '"' || value[strlen(value) - 1] != '"') {
-                num_errors++;
-                lcc_error(filename, THIS_TOKEN->line, "invalid/unclosed string", NULL);
+                lcc_error(filename, THIS_TOKEN->line, &errors, "invalid/unclosed string", NULL);
             }
 
             for (size_t i = 1; i < strlen(value) - 1; i++) {
@@ -358,8 +352,7 @@ vector* parse(vector* tokens) {
                 int64_t n = stoi(THIS_TOKEN->value, &worked);
 
                 if (!worked) {
-                    num_errors++;
-                    lcc_error(filename, t->line, "invalid number '", THIS_TOKEN->value, "'", NULL);
+                    lcc_error(filename, t->line, &errors, "invalid number '", THIS_TOKEN->value, "'", NULL);
                 }
 
                 if (!strcmp(val, ".byte")) {
@@ -386,14 +379,12 @@ vector* parse(vector* tokens) {
             char* full_fn = calloc(1, strlen(lead) + strlen(fn) + 1); 
 
             if (strlen(fn) == 0) {
-                num_errors++;
-                lcc_error(filename, t->line, "invalid filename '", fn, "'", NULL);
+                lcc_error(filename, t->line, &errors, "invalid filename '", fn, "'", NULL);
                 goto done;
             }
 
             if (fn[0] != '"' || fn[strlen(fn) - 1] != '"') {
-                num_errors++;
-                lcc_error(filename, t->line, "invalid/unclosed string", NULL);
+                lcc_error(filename, t->line, &errors, "invalid/unclosed string", NULL);
                 goto done;
             }
 
@@ -406,8 +397,7 @@ vector* parse(vector* tokens) {
 
             FILE* f = fopen(full_fn, "rb");
             if (f == NULL) {
-                num_errors++;
-                lcc_error(filename, t->line, "could not open '", _fn, "': no such file or directory", NULL);
+                lcc_error(filename, t->line, &errors, "could not open '", _fn, "': no such file or directory", NULL);
                 free(_fn);
                 goto done;
             }
@@ -441,8 +431,7 @@ vector* parse(vector* tokens) {
             int64_t num = stoi(THIS_TOKEN->value, &worked);
 
             if (!worked) {
-                num_errors++;
-                lcc_error(filename, t->line, "invalid number '", THIS_TOKEN->value, "'", NULL);
+                lcc_error(filename, t->line, &errors, "invalid number '", THIS_TOKEN->value, "'", NULL);
             }
 
             for (int64_t i = 0; i < num; i++) {
@@ -455,8 +444,7 @@ vector* parse(vector* tokens) {
             int64_t num = stoi(THIS_TOKEN->value, &worked);
 
             if (!worked) {
-                num_errors++;
-                lcc_error(filename, t->line, "invalid number '", THIS_TOKEN->value, "'", NULL);
+                lcc_error(filename, t->line, &errors, "invalid number '", THIS_TOKEN->value, "'", NULL);
             }
 
             write_str("LP_");
@@ -465,8 +453,7 @@ vector* parse(vector* tokens) {
 
             cursor++;
         } else {
-            num_errors++;
-            lcc_error(filename, t->line, "unknown instruction/directive '", t->value, "'", NULL);
+            lcc_error(filename, t->line, &errors, "unknown instruction/directive '", t->value, "'", NULL);
         }
     }
 

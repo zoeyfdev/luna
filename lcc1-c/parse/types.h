@@ -30,3 +30,8 @@ typedef struct {
 
     struct c_type** children;
 } c_type;
+
+typedef struct {
+    int scope;
+    int parent;
+} scope;

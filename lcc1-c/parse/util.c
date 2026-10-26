@@ -3,9 +3,12 @@
 #include <stdio.h>
 
 #include "ast.h"
+#include "types.h"
 #include "../lex/types.h"
 #include "../../lcc_shared/liberror.h"
 #include "../../lcc_shared/libvector.h"
+
+vector* scopes;
 
 ast_node* new_node(ast_node_type type) {
     ast_node* n = calloc(1, sizeof(ast_node));
@@ -54,11 +57,32 @@ bool is_qualifier(token* t) {
 }
 
 void add_node(ast_node* p, ast_node* v) {
-    printf("added node\n");
     if (p->type == AST_VARIABLE) {
         vec_grow(p->content.variable.children, 1);
         ((ast_node**) p->content.variable.children->data)[p->content.variable.children->next] = v;
     } else {
         lcc_ice(NULL, 0, "invalid variable type to add_node()", NULL);
     }
+}
+
+void scopes_init() {
+    scopes = vec_init(sizeof(scope**), 1);
+
+    scope* s = malloc(sizeof(scope));
+    s->scope = 0;
+    s->parent = -1;
+
+    ((scope**) scopes->data)[0] = s;
+} 
+
+int scope_ticker = 1;
+int create_scope(int parent) {
+    scope* s = malloc(sizeof(scope));
+    s->scope = scope_ticker++;
+    s->parent = parent;
+
+    vec_grow(scopes, 1);
+    ((scope**) scopes->data)[scopes->next] = s;
+
+    return s->scope;
 }

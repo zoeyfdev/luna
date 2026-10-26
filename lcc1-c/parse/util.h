@@ -10,3 +10,5 @@ token* peek(vector* tokens, int* i, int by);
 token* expect(vector* tokens, int* i, token_type t);
 bool is_qualifier(token* t);
 void add_node(ast_node* p, ast_node* v);
+void scopes_init();
+int create_scope(int parent);

@@ -7,23 +7,10 @@
     #include <libloaderapi.h> 
 #endif
 
-#define STRING(x) STR(x)
-#define STR(x) #x
-
 #ifndef _WIN32
-    #define PATH_SEP "/"
+    char* component_base = "/usr/local/lib/l2/";
 #else
-    #define PATH_SEP "\\"
-#endif
-
-#ifndef WIN_COMPONENT_BASE
-    #ifndef _WIN32
-        char* component_base = "/usr/local/lib/l2/";
-    #else
-        char* component_base = "C:\\Program Files\\Luna L2\\lib\\l2\\";
-    #endif
-#else
-    char* component_base = STRING(WIN_COMPONENT_BASE) PATH_SEP;
+    char* component_base = "C:\\Program Files\\Luna L2\\lib\\l2\\";
 #endif
 
 char* return_component_path(char* name) {
