@@ -8,8 +8,8 @@ A simple, lightweight RISC CPU architecture.<br><br>
 - GNU Make<br>
 
 # Minimum Recommended System Requirements
-- Intel Core i3-8100 (or AMD equivalent) or greater 
-- At least 4 GB of RAM
+- Any CPU
+- At least 2 GB RAM
 
 # Installation (Unix-like)<br>
 - Clone the repository using `git clone`<br>
