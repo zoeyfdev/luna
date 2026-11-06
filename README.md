@@ -1,11 +1,15 @@
 # Luna<br>
 A simple, lightweight RISC CPU architecture.<br><br>
 
-# Requirements<br>
+# Software Requirements<br>
 - Windows, or Unix-like system (includes MacOS, Linux, FreeBSD, etc.)<br>
 - SDL 2<br>
 - GCC (GNU Compiler Collection)<br>
 - GNU Make<br>
+
+# Minimum Recommended System Requirements
+- Intel Core i3-8100 (or AMD equivalent) or greater 
+- At least 4 GB of RAM
 
 # Installation (Unix-like)<br>
 - Clone the repository using `git clone`<br>
