@@ -7,9 +7,9 @@ A simple, lightweight RISC CPU architecture.<br><br>
 - GCC (GNU Compiler Collection)<br>
 - GNU Make<br>
 
-# Minimum Recommended System Requirements
-- Any CPU
-- At least 2 GB RAM
+# Minimum System Requirements
+- Intel Core 2 Duo (or AMD/other arch equivalent)
+- At least 512 MB RAM
 
 # Installation (Unix-like)<br>
 - Clone the repository using `git clone`<br>
